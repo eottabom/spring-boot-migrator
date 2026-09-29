@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=../../schema/gradle-guide.schema.json
+source: https://docs.gradle.org/current/userguide/upgrading_version_8.html
+
+checklist:
+  - id: plugins
+    title: Gradle 8.14 와 서드파티 플러그인
+    detail: 레시피가 wrapper 와 freefair / asciidoctor / gradle-git-properties 플러그인을 맞춘다. 그 밖의 플러그인과 buildSrc 가 Gradle 8.14 에서 동작하는지, deprecated 경고(Gradle 9 대비)를 확인한다
+    fix: assisted
+    recipe: com.eottabom.rewrite.stage.Gradle_8_14

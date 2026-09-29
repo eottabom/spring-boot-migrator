@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=../../schema/library-guide.schema.json
+library: software.amazon.awssdk:sdk-core
+
+checklist:
+  - id: aws-sdk-mixed-modules
+    title: AWS SDK 모듈 버전을 섞으면 IncompatibleClassChangeError
+    detail: 개별 모듈 버전 고정을 레시피가 제거하고 BOM 을 따르게 한다
+    fix: auto
+    recipe: com.eottabom.rewrite.custom.aws.UnpinAwsSdkVersions
+    crosses: "2.25.0"

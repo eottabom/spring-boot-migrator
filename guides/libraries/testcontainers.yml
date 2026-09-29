@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=../../schema/library-guide.schema.json
+library: org.testcontainers:testcontainers
+
+checklist:
+  - id: testcontainers-2
+    title: Testcontainers 2
+    detail: "`org.testcontainers.shaded.*` 제거, 일부 모듈명/클래스 변경"
+    fix: assisted
+    crosses: "2.0.0"

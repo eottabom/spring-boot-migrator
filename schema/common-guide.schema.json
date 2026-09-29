@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "common-guide.schema.json",
+  "title": "공통 가이드 (guides/common.yml)",
+  "description": "모든 stage 에 쓰는 실패 힌트와 deprecated API 대체 레시피",
+  "type": "object",
+  "properties": {
+    "failureHints": { "$ref": "guide-defs.schema.json#/$defs/failureHints" },
+    "deprecations": { "$ref": "guide-defs.schema.json#/$defs/deprecations" }
+  },
+  "additionalProperties": false
+}

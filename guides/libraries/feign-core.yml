@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=../../schema/library-guide.schema.json
+library: io.github.openfeign:feign-core
+
+checklist:
+  - id: feign-12-2
+    title: RetryableException 에 Long retryAfter 생성자 추가
+    detail: null 인자 모호성은 레시피가 보정한다
+    fix: auto
+    recipe: com.eottabom.rewrite.custom.feign.DisambiguateRetryableExceptionNull
+    crosses: "12.2"

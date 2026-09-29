@@ -1,0 +1,44 @@
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.stage.Gradle_8_14
+displayName: Gradle 8.14 및 서드파티 플러그인 정렬
+description: Gradle wrapper 를 8.14.x 로 올리고, 이에 맞춰 freefair lombok / asciidoctor 플러그인을 올린다.
+recipeList:
+  - org.openrewrite.gradle.UpdateGradleWrapper:
+      version: 8.14.x
+      addIfMissing: false
+  # freefair 플러그인은 major 버전이 Gradle major 버전을 따라간다 (6.x = Gradle 7, 8.x = Gradle 8)
+  - org.openrewrite.gradle.plugins.UpgradePluginVersion:
+      pluginIdPattern: io.freefair.*
+      newVersion: 8.x
+  - org.openrewrite.gradle.plugins.UpgradePluginVersion:
+      pluginIdPattern: org.asciidoctor.jvm.*
+      newVersion: 4.0.x
+  - org.openrewrite.gradle.plugins.UpgradePluginVersion:
+      pluginIdPattern: com.gorylenko.gradle-git-properties
+      newVersion: 2.5.x
+  - com.eottabom.rewrite.upstream.catalog.Gradle_8_14
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.stage.Gradle_9_1
+displayName: Gradle 9.1 및 서드파티 플러그인 정렬
+description: >-
+  Gradle wrapper 를 9.1.x 로 올리고, Gradle 9 에서 동작하지 않는 구버전 서드파티 플러그인을 올린다.
+  JDK 25 위에서 Gradle 을 띄우려면 9.1 이상이 필요해서 러너가 Java 25 stage 앞에 넣는다.
+  freefair 플러그인은 major 버전이 Gradle major 를 따라간다 (8.x = Gradle 8, 9.x = Gradle 9).
+recipeList:
+  - org.openrewrite.gradle.UpdateGradleWrapper:
+      version: 9.1.x
+      addIfMissing: false
+  - org.openrewrite.gradle.plugins.UpgradePluginVersion:
+      pluginIdPattern: io.freefair.*
+      newVersion: 9.x
+  - org.openrewrite.gradle.plugins.UpgradePluginVersion:
+      pluginIdPattern: org.sonarqube
+      newVersion: 7.x
+  - org.openrewrite.gradle.plugins.UpgradePluginVersion:
+      pluginIdPattern: com.gorylenko.gradle-git-properties
+      newVersion: 4.x
+  - org.openrewrite.gradle.plugins.UpgradePluginVersion:
+      pluginIdPattern: org.asciidoctor.jvm.*
+      newVersion: 4.x
+  - com.eottabom.rewrite.upstream.catalog.Gradle_9_1

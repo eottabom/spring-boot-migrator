@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=../../schema/boot-guide.schema.json
+source: https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-3.5-Release-Notes
+
+requirements:
+  java: { min: 17, max: 25 }
+  gradle: { "7": "7.6.4", "8": "8.4" }
+  framework: "6.2"
+  springCloud: { train: 2025.0.x, since: "2025.0.0" }
+  springCloudAws: 3.4.x
+
+checklist:
+  - id: task-executor-name
+    title: 자동 설정 TaskExecutor 의 `taskExecutor` 별칭 제거
+    detail: "`@Async(\"taskExecutor\")`, `@Qualifier(\"taskExecutor\")` 처럼 이름으로 찾던 코드가 NoSuchBeanDefinitionException. `applicationTaskExecutor` 로 바꾼다"
+  - id: heapdump
+    title: Actuator heapdump 기본 access 가 none
+    detail: 운영 진단에 heapdump 를 쓰면 노출과 access 를 명시한다
+    when: { dependencies: [org.springframework.boot:spring-boot-actuator*] }
+  - id: strict-enabled
+    title: "`.enabled` 설정값은 true/false 만 허용"
+    detail: "이전에는 false 가 아니면 켜진 것으로 봤다. `enabled: yes`, `enabled: on`, 빈 값 등을 외부 설정까지 확인한다"
+  - id: profile-names
+    title: 프로파일 이름 검증 강화
+    detail: 문자, 숫자, `-`, `_` 만 가능하고 `-`/`_` 로 시작하거나 끝날 수 없다. 배포 파이프라인이 넘기는 프로파일 이름을 확인한다 (`spring.profiles.validate=false` 로 끌 수 있다)
+  - id: redis-url-database
+    title: "`spring.data.redis.url` 이 있으면 `spring.data.redis.database` 무시"
+    detail: DB 번호는 URL 에 넣는다 (`redis://host:6379/2`)
+    when: { dependencies: [org.springframework.data:spring-data-redis] }
+  - id: cleanup-deprecations
+    title: 3.x 마지막 라인, 4.0 전에 deprecated API 정리
+    detail: Boot 4.0 은 3.x 에서 deprecated 된 것을 모두 제거한다. 결과의 [removal]/deprecated 항목 중 대체 레시피로 바뀌지 않은 것을 여기서 정리해야 4.0 stage 가 컴파일된다
+
+failureHints:
+  - pattern: NoSuchBeanDefinitionException.*'taskExecutor'
+    text: Boot 3.5 에서 taskExecutor 별칭이 없어졌어요. applicationTaskExecutor 로 바꿔 주세요

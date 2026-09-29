@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=../../schema/library-guide.schema.json
+library: org.apache.httpcomponents.client5:httpclient5
+
+checklist:
+  - id: httpclient5-5-4
+    title: HttpClient 5.4 기본값 변경
+    detail: TLS upgrade 등 기본 동작이 바뀌어 사이드카 프록시(Envoy/Istio) 뒤에서 실패할 수 있다
+    source: https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-3.4-Release-Notes
+    crosses: "5.4"

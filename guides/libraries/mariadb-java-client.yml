@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=../../schema/library-guide.schema.json
+library: org.mariadb.jdbc:mariadb-java-client
+
+checklist:
+  - id: mariadb-3
+    title: MariaDB Connector/J 3
+    detail: "`jdbc:mariadb:aurora://` 스킴 제거, failover 설정 변경. JDBC URL 을 확인한다"
+    source: https://mariadb.com/kb/en/about-mariadb-connector-j/
+    crosses: "3.0.0"

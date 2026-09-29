@@ -1,0 +1,51 @@
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.misc.UnshadeRelocatedImports
+displayName: 라이브러리 내부에 relocate 된 패키지 import 를 원래 라이브러리로
+description: >-
+  org.testcontainers.shaded.* (Testcontainers 2 에서 제거), net.logstash.logback.encoder.org.apache.* (logstash-logback-encoder 7+ 에서 제거) 는
+  라이브러리 내부용 복사본이라 버전을 올리면 사라진다. 원래 라이브러리 패키지로 바꾸고, 의존성 선언은 DeclareUsedTransitiveDependencies 가 한다.
+recipeList:
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: net.logstash.logback.encoder.org.apache.commons.lang3
+      newPackageName: org.apache.commons.lang3
+      recursive: true
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: net.logstash.logback.encoder.org.apache.commons.io
+      newPackageName: org.apache.commons.io
+      recursive: true
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: org.testcontainers.shaded.org.apache.commons.io
+      newPackageName: org.apache.commons.io
+      recursive: true
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: org.testcontainers.shaded.org.apache.commons.lang3
+      newPackageName: org.apache.commons.lang3
+      recursive: true
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.misc.MigrateCommonsLang2Usages
+displayName: commons-lang 2 사용처를 lang3 로 (단계와 무관)
+description: >-
+  upstream UpgradeApacheCommonsLang_2_3 은 3.0 단계 체인에만 있어서 3.x 에서 시작한 프로젝트는 거치지 않는다.
+  commons-lang 2 가 transitive 로 들어오다 빠지는 단계에서 컴파일이 깨지므로, commons-lang 2 를 쓰는 파일만 매 단계 바꾼다.
+preconditions:
+  # upstream 레시피에는 이미 lang3 를 쓰는 코드까지 바꾸는 레시피(UseStandardCharsets 등)가 있어서 commons-lang 2 사용 파일로 한정한다.
+  # 이 조건 때문에 upstream 의 의존성 변경(ChangeDependency, commons-text AddDependency)은 빌드 스크립트에서 돌지 않는다.
+  # 의존성 선언은 DeclareUsedTransitiveDependencies 가 원본 코드의 사용처를 보고 한다 (commons-lang3, commons-text)
+  - org.openrewrite.java.search.FindTypes:
+      fullyQualifiedTypeName: org.apache.commons.lang..*
+recipeList:
+  - org.openrewrite.apache.commons.lang.UpgradeApacheCommonsLang_2_3
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.misc.RemoveUnusedCommonsLang2
+displayName: 쓰지 않는 commons-lang 2 선언 제거
+description: >-
+  MigrateCommonsLang2Usages 가 코드를 lang3 로 옮겨도 빌드 스크립트의 commons-lang:commons-lang 선언은 남는다
+  (upstream 의 ChangeDependency 가 commons-lang 2 사용 파일로 한정한 조건에 걸려 빌드 스크립트에서 돌지 않는다).
+  commons-lang 2 패키지를 쓰는 코드가 하나도 없을 때만 선언을 지운다. lang3 와 commons-text 는 DeclareUsedTransitiveDependencies 가 선언한다.
+recipeList:
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: commons-lang
+      artifactId: commons-lang
+      unlessUsing: org.apache.commons.lang..*

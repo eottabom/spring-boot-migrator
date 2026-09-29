@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=../../schema/library-guide.schema.json
+library: com.fasterxml.jackson.core:jackson-databind
+
+checklist:
+  - id: jackson-2-15-constraints
+    title: Jackson 2.15 StreamReadConstraints
+    detail: 문자열 길이/중첩 깊이/숫자 길이 제한이 생겼다. 큰 JSON 을 처리하면 `StreamConstraintsException`. `Jackson2ObjectMapperBuilderCustomizer` 로 제한을 조정한다
+    source: https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-3.1-Release-Notes
+    crosses: "2.15.0"

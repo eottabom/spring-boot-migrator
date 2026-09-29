@@ -1,0 +1,171 @@
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.elasticsearch.MigrateToRest5Client
+displayName: Elasticsearch RestClient -> Rest5Client (HttpClient 5)
+description: >-
+  org.elasticsearch.client.RestClient 를 쓰는 파일을 elasticsearch-java 9 의 Rest5Client / Rest5ClientTransport 로 바꾼다.
+  HttpClient 4 코드는 upstream UpgradeApacheHttpClient_5 가 HttpClient 5 로 바꾸고, 남는 API 차이를 커스텀 레시피가 맞춘다.
+preconditions:
+  - org.openrewrite.java.search.FindTypes:
+      fullyQualifiedTypeName: org.elasticsearch.client.RestClient
+recipeList:
+  - org.openrewrite.apache.httpclient5.UpgradeApacheHttpClient_5
+  # 원래 타입(RestClientBuilder)으로 판단해야 하므로 ChangeType 보다 먼저
+  - com.eottabom.rewrite.custom.elasticsearch.Rest5ClientCallbacksToConsumer
+  - com.eottabom.rewrite.custom.httpclient.FixHttpClient5AsyncInterceptors
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.elasticsearch.client.RestClient
+      newFullyQualifiedTypeName: co.elastic.clients.transport.rest5_client.low_level.Rest5Client
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.elasticsearch.client.RestClientBuilder
+      newFullyQualifiedTypeName: co.elastic.clients.transport.rest5_client.low_level.Rest5ClientBuilder
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.elasticsearch.client.Request
+      newFullyQualifiedTypeName: co.elastic.clients.transport.rest5_client.low_level.Request
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.elasticsearch.client.Response
+      newFullyQualifiedTypeName: co.elastic.clients.transport.rest5_client.low_level.Response
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.elasticsearch.client.ResponseException
+      newFullyQualifiedTypeName: co.elastic.clients.transport.rest5_client.low_level.ResponseException
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.elasticsearch.client.ResponseListener
+      newFullyQualifiedTypeName: co.elastic.clients.transport.rest5_client.low_level.ResponseListener
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.elasticsearch.client.RequestOptions
+      newFullyQualifiedTypeName: co.elastic.clients.transport.rest5_client.low_level.RequestOptions
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.elasticsearch.client.Cancellable
+      newFullyQualifiedTypeName: co.elastic.clients.transport.rest5_client.low_level.Cancellable
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.elasticsearch.client.Node
+      newFullyQualifiedTypeName: co.elastic.clients.transport.rest5_client.low_level.Node
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.elasticsearch.client.NodeSelector
+      newFullyQualifiedTypeName: co.elastic.clients.transport.rest5_client.low_level.NodeSelector
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: co.elastic.clients.transport.rest_client.RestClientTransport
+      newFullyQualifiedTypeName: co.elastic.clients.transport.rest5_client.Rest5ClientTransport
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: co.elastic.clients.transport.rest_client.RestClientOptions
+      newFullyQualifiedTypeName: co.elastic.clients.transport.rest5_client.Rest5ClientOptions
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.elasticsearch.ElasticsearchJava9ApiChanges
+displayName: elasticsearch-java 9 API 변경
+description: >-
+  JacksonJsonpMapper 를 Jackson3JsonpMapper 로 바꾸고, 9.x 에서 이름이 바뀐 응답 메서드(valueBody())를 새 이름으로 바꾼다.
+recipeList:
+  # upstream Jackson 3 전환(UpgradeJackson_2_3)이 넘기는 ObjectMapper 를 tools.jackson JsonMapper 로 바꾸는데
+  # JacksonJsonpMapper 는 Jackson 2 매퍼만 받는다. ES 9 의 Jackson3JsonpMapper(JsonMapper) 로 맞춘다
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: co.elastic.clients.json.jackson.JacksonJsonpMapper
+      newFullyQualifiedTypeName: co.elastic.clients.json.jackson.Jackson3JsonpMapper
+  # 8.x 의 valueBody() 가 9.x 에서 응답별 이름으로 바뀌었다 (8.18 / 9.2 jar 비교, 반환 타입이 같은 메서드)
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.AliasesResponse valueBody()
+      newMethodName: aliases
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.AllocationResponse valueBody()
+      newMethodName: allocations
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.ComponentTemplatesResponse valueBody()
+      newMethodName: componentTemplates
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.CountResponse valueBody()
+      newMethodName: countRecords
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.FielddataResponse valueBody()
+      newMethodName: fielddataRecords
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.HealthResponse valueBody()
+      newMethodName: healthRecords
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.IndicesResponse valueBody()
+      newMethodName: indices
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.MasterResponse valueBody()
+      newMethodName: masters
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.MlDataFrameAnalyticsResponse valueBody()
+      newMethodName: dataFrameAnalytics
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.MlDatafeedsResponse valueBody()
+      newMethodName: datafeeds
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.MlJobsResponse valueBody()
+      newMethodName: jobs
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.MlTrainedModelsResponse valueBody()
+      newMethodName: trainedModels
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.NodeattrsResponse valueBody()
+      newMethodName: nodeAttributes
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.NodesResponse valueBody()
+      newMethodName: nodes
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.PendingTasksResponse valueBody()
+      newMethodName: pendingTasks
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.PluginsResponse valueBody()
+      newMethodName: plugins
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.RecoveryResponse valueBody()
+      newMethodName: recoveryRecords
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.RepositoriesResponse valueBody()
+      newMethodName: repositories
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.SegmentsResponse valueBody()
+      newMethodName: segments
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.ShardsResponse valueBody()
+      newMethodName: shards
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.SnapshotsResponse valueBody()
+      newMethodName: snapshots
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.TasksResponse valueBody()
+      newMethodName: tasks
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.TemplatesResponse valueBody()
+      newMethodName: templates
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.ThreadPoolResponse valueBody()
+      newMethodName: threadPools
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cat.TransformsResponse valueBody()
+      newMethodName: transforms
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.cluster.StateResponse valueBody()
+      newMethodName: state
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.core.GetSourceResponse valueBody()
+      newMethodName: source
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.indices.DiskUsageResponse valueBody()
+      newMethodName: diskUsage
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.indices.DownsampleResponse valueBody()
+      newMethodName: result
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.indices.PromoteDataStreamResponse valueBody()
+      newMethodName: result
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.inference.InferenceResponse valueBody()
+      newMethodName: result
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.inference.TextEmbeddingResponse valueBody()
+      newMethodName: inferenceResult
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.ml.PreviewDatafeedResponse valueBody()
+      newMethodName: documents
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.searchable_snapshots.ClearCacheResponse valueBody()
+      newMethodName: result
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.snapshot.RepositoryVerifyIntegrityResponse valueBody()
+      newMethodName: result
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: co.elastic.clients.elasticsearch.ssl.CertificatesResponse valueBody()
+      newMethodName: certificates

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "library-guide.schema.json",
+  "title": "라이브러리 가이드 (guides/libraries/<이름>.yml)",
+  "description": "stage 와 상관없이 resolve 된 버전이 바뀔 때 거는 항목",
+  "type": "object",
+  "required": ["library", "checklist"],
+  "properties": {
+    "library": { "$ref": "guide-defs.schema.json#/$defs/coordinate" },
+    "source": { "type": "string", "format": "uri" },
+    "checklist": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "guide-defs.schema.json#/$defs/libraryChecklistItem" }
+    }
+  },
+  "additionalProperties": false
+}

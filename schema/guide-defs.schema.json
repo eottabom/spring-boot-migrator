@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "guide-defs.schema.json",
+  "title": "가이드 공통 정의",
+  "$defs": {
+    "version": {
+      "description": "버전은 숫자로 읽히지 않도록 따옴표로 감싼다 (\"3.4\", \"8.14\")",
+      "type": "string",
+      "pattern": "^[0-9]+(\\.[0-9]+)*$"
+    },
+    "coordinate": {
+      "description": "group:artifact. * 를 쓸 수 있다",
+      "type": "string",
+      "pattern": "^[^:\\s]+:[^:\\s]+$"
+    },
+    "checklistFields": {
+      "type": "object",
+      "required": ["id", "title"],
+      "properties": {
+        "id": {
+          "description": "파일 안에서 고유한 이름. 결과에는 파일 경로와 합쳐 boot-3.4/mockbean 처럼 쓴다",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9.-]*$"
+        },
+        "title": { "type": "string", "minLength": 1 },
+        "detail": { "type": "string" },
+        "source": {
+          "description": "근거 문서. 없으면 파일의 source 를 쓴다",
+          "type": "string",
+          "format": "uri"
+        },
+        "fix": {
+          "description": "누가 고치는가. auto 는 레시피가 고친다(결과만 확인), assisted 는 레시피가 바꿨지만 사람이 확인한다, manual 은 사람이 처리한다",
+          "enum": ["auto", "assisted", "manual"],
+          "default": "manual"
+        },
+        "recipe": { "description": "고치는 레시피", "type": "string" },
+        "detect": { "description": "위치를 찾는 레시피 (코드를 바꾸지 않는다)", "type": "string" }
+      },
+      "if": { "properties": { "fix": { "const": "auto" } }, "required": ["fix"] },
+      "then": { "required": ["recipe"] }
+    },
+    "checklistItem": {
+      "description": "stage 를 올린 뒤 확인할 항목",
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/checklistFields" }],
+      "properties": {
+        "when": {
+          "description": "stage 전후 classpath 에 이 의존성 중 하나라도 있을 때만",
+          "type": "object",
+          "required": ["dependencies"],
+          "properties": {
+            "dependencies": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/coordinate" } }
+          },
+          "additionalProperties": false
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "libraryChecklistItem": {
+      "description": "resolve 된 라이브러리 버전이 바뀔 때 확인할 항목",
+      "type": "object",
+      "allOf": [{ "$ref": "#/$defs/checklistFields" }],
+      "properties": {
+        "crosses": {
+          "description": "이 버전을 넘어갈 때 (이전 < crosses <= 이후)",
+          "type": "string"
+        },
+        "affected": {
+          "description": "[from, until) 범위에 이후 버전이 들어갈 때",
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      },
+      "oneOf": [{ "required": ["crosses"] }, { "required": ["affected"] }],
+      "unevaluatedProperties": false
+    },
+    "failureHint": {
+      "description": "테스트 실패의 가장 안쪽 예외(이름: 메시지)에 pattern(정규식)이 맞으면 붙는 한 줄. 예외가 뜻하는 것이나 공식 문서에 적힌 변경만 쓴다",
+      "type": "object",
+      "required": ["pattern", "text"],
+      "properties": {
+        "pattern": { "type": "string", "minLength": 1 },
+        "text": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "deprecation": {
+      "description": "javac 의 [removal] / [deprecation] 경고 메시지에 pattern(정규식)이 맞으면 같은 stage 안에서 recipe 로 바꾼다",
+      "type": "object",
+      "required": ["pattern", "recipe"],
+      "properties": {
+        "pattern": { "type": "string", "minLength": 1 },
+        "recipe": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "checklist": { "type": "array", "items": { "$ref": "#/$defs/checklistItem" } },
+    "failureHints": { "type": "array", "items": { "$ref": "#/$defs/failureHint" } },
+    "deprecations": { "type": "array", "items": { "$ref": "#/$defs/deprecation" } }
+  }
+}

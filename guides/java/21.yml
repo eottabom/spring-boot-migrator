@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=../../schema/java-guide.schema.json
+source: https://docs.openrewrite.org/recipes/java/migrate/upgradetojava21
+
+gradle: "8.5"
+
+checklist:
+  - id: outside-repo
+    title: 배포 이미지와 CI 의 JDK 를 21 로
+    detail: Dockerfile 베이스 이미지, CI(setup-java 등), 배포 도구 설정은 저장소 밖이라 레시피가 못 바꾼다. JVM 옵션(제거/변경된 GC, 플래그)도 확인한다
+  - id: mockito-agent
+    title: 동적 agent 로딩 경고 (Mockito inline)
+    detail: JDK 21 은 실행 중 agent 로딩에 경고를 낸다. 앞으로 기본 차단될 예정이므로 테스트 JVM 에 Mockito 를 `-javaagent` 로 붙이는 설정을 검토한다
+    source: https://openjdk.org/jeps/451
+    when: { dependencies: [org.mockito:*] }
+  - id: jacoco-lombok
+    title: JaCoCo / Lombok 최소 버전
+    detail: Java 21 클래스 파일을 읽으려면 JaCoCo 0.8.11+, Lombok 1.18.30+. 레시피가 올린다
+    fix: auto
+    recipe: com.eottabom.rewrite.stage.Java_21

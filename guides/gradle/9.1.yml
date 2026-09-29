@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=../../schema/gradle-guide.schema.json
+source: https://docs.gradle.org/current/userguide/upgrading_major_version_9.html
+
+checklist:
+  - id: plugins
+    title: Gradle 9 에서 제거된 API 를 쓰는 플러그인과 buildSrc
+    detail: JDK 25 위에서 Gradle 을 띄우려면 9.1+ 가 필요하다. Gradle 9 에서 제거된 API 를 쓰는 서드파티 플러그인(구버전 freefair lombok, sonarqube, gradle-git-properties, asciidoctor 등)은 레시피가 올리고, 그 밖의 플러그인과 buildSrc 코드를 확인한다
+    fix: assisted
+    recipe: com.eottabom.rewrite.stage.Gradle_9_1

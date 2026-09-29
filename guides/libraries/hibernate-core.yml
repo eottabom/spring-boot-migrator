@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=../../schema/library-guide.schema.json
+library: org.hibernate.orm:hibernate-core
+
+checklist:
+  - id: hibernate-hhh17294
+    title: HHH-17294 JSON 컬럼 수정이 dirty 로 감지되지 않음
+    detail: JSON 컬럼 객체를 수정해도 UPDATE 가 나가지 않는다 (6.2.14 에서 수정). Hibernate 버전을 고정했다면 올리고, JSON 컬럼 수정 로직을 회귀 테스트한다
+    source: https://hibernate.atlassian.net/browse/HHH-17294
+    affected: ["6.2.9", "6.2.14"]
+  - id: hibernate-hhh18378
+    title: HHH-18378 @EntityGraph fetch 가 where 절 조인을 재사용
+    detail: 조인/결과가 중복된다 (6.5.3 에서 수정)
+    source: https://hibernate.atlassian.net/browse/HHH-18378
+    affected: ["6.0.0", "6.5.3"]
+  - id: hibernate-66
+    title: Hibernate 6.6 검증 강화
+    detail: transient 엔티티 참조는 TransientObjectException, detached 엔티티 merge 대상 행이 없으면 OptimisticLockException
+    source: https://docs.jboss.org/hibernate/orm/6.6/migration-guide/migration-guide.html
+    crosses: "6.6.0"
+  - id: hibernate-7
+    title: Hibernate 7
+    detail: "`@Where` 등 deprecated API 제거, 테스트 DDL 에 enum 네이티브 타입/CHECK 제약 생성 방식 변경"
+    source: https://docs.jboss.org/hibernate/orm/7.0/migration-guide/migration-guide.html
+    crosses: "7.0.0"

@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=../schema/common-guide.schema.json
+failureHints:
+  - pattern: Could not find a valid Docker environment
+    text: Testcontainers 가 Docker 에 연결하지 못했어요. Docker 가 떠 있는지 `docker version` 으로 확인해 주세요
+  - pattern: ContainerLaunchException
+    text: Testcontainers 컨테이너가 뜨지 못했어요. `docker logs` 로 컨테이너 로그를 봐 주세요
+  - pattern: "NoClassDefFoundError: Could not initialize class"
+    text: 이 클래스의 static 초기화가 앞에서 이미 실패했어요. 처음 실패한 테스트의 원인(ExceptionInInitializerError)을 봐 주세요
+  - pattern: UnnecessaryStubbingException
+    text: Mockito strict stubs 가 쓰이지 않는 stubbing 을 막았어요. stubbing 을 지우거나 lenient 로 바꿔 주세요
+
+# 컴파일 경고 메시지(javac 의 "X in Y has been deprecated")에 맞으면 같은 stage 안에서 바로 바꾼다
+deprecations:
+  - pattern: "(MockBean|SpyBean) in org\\.springframework\\.boot\\.test\\.mock\\.mockito has been deprecated"
+    recipe: org.openrewrite.java.spring.boot4.ReplaceMockBeanAndSpyBean
+  - pattern: "Locale\\(String.*\\) in Locale has been deprecated"
+    recipe: org.openrewrite.java.migrate.util.UseLocaleOf
+  - pattern: "URL\\(String.*\\) in URL has been deprecated"
+    recipe: org.openrewrite.java.migrate.net.URLConstructorToURICreate
+  - pattern: "(Integer|Long|Short|Byte|Double|Float|Character|Boolean)\\(\\w+\\) in \\w+ has been deprecated"
+    recipe: org.openrewrite.staticanalysis.PrimitiveWrapperClassConstructorToValueOf
+  - pattern: "ROUND_\\w+ in BigDecimal has been deprecated|(setScale|divide)\\(.*int\\) in BigDecimal has been deprecated"
+    recipe: org.openrewrite.staticanalysis.BigDecimalRoundingConstantsToEnums
+  - pattern: "exec\\(String.*\\) in Runtime has been deprecated"
+    recipe: org.openrewrite.staticanalysis.ReplaceDeprecatedRuntimeExecMethods
+  - pattern: "getRawStatusCode\\(\\) in ResponseStatusException has been deprecated"
+    recipe: org.openrewrite.java.spring.framework.MigrateResponseStatusExceptionGetRawStatusCodeMethod
+  - pattern: "getStatus\\(\\) in ResponseStatusException has been deprecated"
+    recipe: org.openrewrite.java.spring.framework.MigrateResponseStatusExceptionGetStatusCodeMethod
+  - pattern: "authorizeRequests\\(\\) in HttpSecurity has been deprecated"
+    recipe: org.openrewrite.java.spring.security5.AuthorizeHttpRequests
+  - pattern: "(antMatchers|mvcMatchers|regexMatchers)\\(.*\\) in \\w+ has been deprecated"
+    recipe: org.openrewrite.java.spring.security5.UseNewRequestMatchers
+  - pattern: "and\\(\\) in \\w+ has been deprecated"
+    recipe: org.openrewrite.java.spring.boot2.HttpSecurityLambdaDsl
+  - pattern: "Where in org\\.hibernate\\.annotations has been deprecated"
+    recipe: com.eottabom.rewrite.custom.hibernate.MigrateWhereToSQLRestriction

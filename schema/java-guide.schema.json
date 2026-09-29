@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "java-guide.schema.json",
+  "title": "Java 가이드 (guides/java/<버전>.yml)",
+  "description": "LTS 만 둔다. 파일이 있는 버전이 Java stage 가 된다",
+  "type": "object",
+  "required": ["source", "gradle"],
+  "properties": {
+    "source": { "type": "string", "format": "uri" },
+    "gradle": {
+      "description": "이 JDK 위에서 Gradle 을 띄우려면 필요한 최소 버전. 낮으면 Java stage 앞에 Gradle stage 가 들어간다",
+      "$ref": "guide-defs.schema.json#/$defs/version"
+    },
+    "checklist": { "$ref": "guide-defs.schema.json#/$defs/checklist" },
+    "failureHints": { "$ref": "guide-defs.schema.json#/$defs/failureHints" },
+    "deprecations": { "$ref": "guide-defs.schema.json#/$defs/deprecations" }
+  },
+  "additionalProperties": false
+}

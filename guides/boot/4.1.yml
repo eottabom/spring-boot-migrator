@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=../../schema/boot-guide.schema.json
+source: https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.1-Release-Notes
+
+requirements:
+  java: { min: 17, max: 26 }
+  gradle: { "8": "8.14", "9": "9.0" }
+  framework: "7.0"
+  springCloud: { train: 2025.1.x, since: "2025.1.2" }
+  springCloudAws: 4.1.x
+
+checklist:
+  - id: spring-cloud
+    title: Spring Cloud 2025.1.2 이상 필요
+    detail: Boot 4.1 은 2025.1.2 부터 지원한다. 레시피가 2025.1.x 최신으로 올린다. 그보다 낮게 고정돼 있으면 `CompatibilityVerifier` 로 기동이 실패한다
+    fix: assisted
+    source: https://spring.io/projects/spring-cloud
+    when: { dependencies: [org.springframework.cloud:*] }
+  - id: layertools
+    title: layertools jar mode 제거 (Dockerfile 확인)
+    detail: "`java -Djarmode=layertools -jar app.jar extract` 를 쓰는 Dockerfile 은 `-Djarmode=tools extract --layers --launcher` 로 바꾼다"
+  - id: jpa-bootstrap
+    title: Spring Data JPA deferred bootstrap 은 AsyncTaskExecutor 빈 필요
+    detail: "`spring.data.jpa.repositories.bootstrap-mode=deferred` 인데 AsyncTaskExecutor 가 없으면 기동 실패. lazy 모드는 자동 설정 executor 를 쓰지 않는다"
+    when: { dependencies: [org.springframework.data:spring-data-jpa] }
+  - id: jooq-java21
+    title: jOOQ 3.20 은 Java 21 이상 필요
+    detail: Java 17 프로젝트는 `--java=21` 로 함께 올린다
+    when: { dependencies: [org.jooq:*] }
+  - id: derby
+    title: Apache Derby 지원 deprecated
+    detail: 프로젝트가 종료됐다. 테스트 DB 를 H2/HSQL 로 옮긴다
+    when: { dependencies: [org.apache.derby:*] }

@@ -1,0 +1,149 @@
+# yaml-language-server: $schema=../../schema/boot-guide.schema.json
+source: https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide
+
+requirements:
+  java: { min: 17, max: 26 }
+  gradle: { "8": "8.14", "9": "9.0" }
+  framework: "7.0"
+  springCloud: { train: 2025.1.x, since: "2025.1.0" }
+  springCloudAws: 4.0.x
+
+checklist:
+  - id: redis-json-compatibility
+    title: Redis JSON 캐시의 타입 정보와 기존 데이터 호환성
+    detail: GenericJacksonJsonRedisSerializer 는 이전 serializer 와 달리 default typing 을 자동 활성화하지 않는다. RedisSerializer.json() 도 Jackson 3 으로 바뀐다. 기존 캐시를 새 serializer 로 읽는 회귀 테스트와 타입 허용 정책, null 캐시를 확인한다. 일괄 타입 허용이나 캐시 삭제를 자동 적용하지 않는다.
+    detect: com.eottabom.rewrite.detect.redis.FindRedisJsonSerializationCompatibilityRisk
+    source: https://docs.spring.io/spring-data/redis/reference/upgrading.html
+    when: { dependencies: [org.springframework.data:spring-data-redis] }
+  - id: http-message-converter-beans
+    title: HttpMessageConverter 빈 대신 서버/클라이언트 customizer 로 설정
+    detail: Boot 4 는 컨버터 설정을 `ServerHttpMessageConvertersCustomizer` / `ClientHttpMessageConvertersCustomizer` 로 옮기는 중이다(spring-boot#48310). 빈 수집은 당분간 유지되지만 서버와 클라이언트에 함께 적용된다. Jackson 2 와 3 이 함께 있으면 Jackson 3 컨버터가 `application/json` 을 먼저 처리해 직접 등록한 Jackson 2 컨버터가 쓰이지 않을 수 있다. 이 경우 `spring.http.converters.preferred-json-mapper` 를 지정한다.
+    detect: com.eottabom.rewrite.detect.spring.FindUnregisteredHttpMessageConverterBeans
+    source: https://github.com/spring-projects/spring-boot/issues/47989
+    when: { dependencies: [org.springframework:spring-web] }
+  - id: feign-message-converter-customizer
+    title: Boot 컨버터 customizer 가 Feign 에는 적용되지 않음
+    detail: OpenFeign 은 `ClientHttpMessageConvertersCustomizer` 를 Feign 컨버터에 적용하지 않는다(5.0.1 에서 일부 보완, 이슈는 열려 있음). RestClient 용 customizer 만 선언하면 Feign 응답 역직렬화에 다른 JSON 설정이 쓰일 수 있다. Feign 전용 `org.springframework.cloud.openfeign.support.HttpMessageConverterCustomizer` 를 함께 선언하고 Feign 응답을 테스트한다.
+    detect: com.eottabom.rewrite.detect.feign.FindFeignMessageConverterCustomizationGap
+    source: https://github.com/spring-cloud/spring-cloud-openfeign/issues/1293
+    when: { dependencies: [org.springframework.cloud:spring-cloud-openfeign-core] }
+  - id: httpheaders-map
+    title: HttpHeaders 의 MultiValueMap 계약 제거
+    detail: Framework 7 의 HttpHeaders 는 MultiValueMap 을 구현하지 않는다. 같은 파일에서 두 타입을 사용하는 코드를 후보로 표시한다. 대입, 반환, 외부 API 전달을 검토하고 HTTP 헤더의 대소문자 무시 의미를 보존한다. 쿼리/폼 데이터와 헤더를 구분하며 deprecated asMultiValueMap 으로 일괄 우회하지 않는다.
+    detect: com.eottabom.rewrite.detect.httpclient.FindHttpHeadersMapUsage
+    source: https://github.com/spring-projects/spring-framework/wiki/Spring-Framework-7.0-Release-Notes#httpheaders-changes
+    when: { dependencies: [org.springframework:spring-web] }
+  - id: test-listener-scope
+    title: 중첩 테스트와 TestExecutionListener 클래스 범위 변경
+    detail: Framework 7 의 SpringExtension 은 test-method 범위 ExtensionContext 를 사용한다. 커스텀 TestExecutionListener.prepareTestInstance 에서 getTestClass 를 쓰는 경우 실제 인스턴스 클래스가 필요한지 확인한다. 필요한 곳만 getTestInstance().getClass() 로 바꾸고 최상위/Nested 테스트를 검증한다. 검색은 TestExecutionListener 타입과 getTestClass 호출이 같은 파일에 있는 후보를 표시한다.
+    detect: com.eottabom.rewrite.detect.testing.FindTestListenerClassScopeAssumption
+    source: https://github.com/spring-projects/spring-framework/wiki/Spring-Framework-7.0-Release-Notes#springextension-extension-context-scope
+    when: { dependencies: [org.springframework:spring-test] }
+  - id: jackson3
+    title: Jackson 3 기본 (`tools.jackson`)
+    detail: upstream 레시피가 패키지와 API 를 옮긴다. `ObjectMapper` 는 불변(`JsonMapper.builder()`), 커스텀 Serializer/Module 과 `catch (IOException)` 처리를 확인한다. `jackson-annotations` 는 `com.fasterxml.jackson.core` 그대로다. 설정 키 `spring.jackson.read/write.*` → `spring.jackson.json.read/write.*`
+    fix: assisted
+    recipe: com.eottabom.rewrite.custom.jackson.FixJacksonIOExceptionCatch
+  - id: jackson3-dates
+    title: Jackson 3 는 날짜를 기본으로 ISO 문자열로 쓴다
+    detail: "`WRITE_DATES_AS_TIMESTAMPS` 기본값이 false. 직접 만든 `new ObjectMapper()` + JavaTimeModule 로 `[2024,1,1]` 배열을 쓰던 곳(Elasticsearch 문서, Redis 캐시, 외부 연동)은 저장 형식이 바뀐다. Spring 이 만든 매퍼는 원래 문자열이라 영향 없다. 전환 중 Jackson 2 동작이 필요하면 `spring.jackson.use-jackson2-defaults=true`"
+  - id: custom-object-mapper-bean
+    title: "`@Bean ObjectMapper` 로는 자동 설정 매퍼가 대체되지 않음"
+    detail: Boot 4 는 `JsonMapper` 빈을 자동 설정하고 `JsonMapper` 타입 빈이 있을 때만 물러난다. `@Bean ObjectMapper` 는 두 빈이 함께 남고 자동 설정 쪽이 `@Primary` 라서 직접 만든 매퍼의 모듈과 설정이 MVC 와 메시지 컨버터에 적용되지 않는다. `JsonMapper` 를 돌려주는 메서드는 레시피가 반환 타입을 `JsonMapper` 로 바꾼다. `new ObjectMapper()` 를 돌려주는 메서드는 `JsonMapper.builder()` 나 `JsonMapperBuilderCustomizer` 로 직접 옮긴다. classpath 의 Jackson 모듈은 이제 자동 등록된다
+    fix: assisted
+    recipe: com.eottabom.rewrite.custom.jackson.NarrowJsonMapperBeanReturnType
+    source: https://github.com/spring-projects/spring-boot/issues/50870
+  - id: modular-starters
+    title: 모듈형 starter 와 자동 설정 패키지 이동
+    detail: "`spring-boot-starter-web` → `-webmvc`, `-aop` → `-aspectj`, `-oauth2-*` → `-security-oauth2-*`. Flyway/Liquibase/RestClient/WebClient 는 전용 starter 가 필요하다. `org.springframework.boot.autoconfigure.*` 를 직접 import 하던 코드(`EntityScan` 등)는 패키지가 바뀐다. 레시피가 JPA 관련 이동은 보정한다"
+    fix: assisted
+    recipe: com.eottabom.rewrite.custom.spring.Boot4JpaRelocations
+  - id: springboottest-mockmvc
+    title: "@SpringBootTest 가 MockMvc / TestRestTemplate 을 자동으로 주지 않음"
+    detail: "`@AutoConfigureMockMvc`, `@AutoConfigureTestRestTemplate` 또는 `@AutoConfigureRestTestClient` 를 붙인다. TestRestTemplate 은 `spring-boot-resttestclient` 모듈, 패키지 `org.springframework.boot.resttestclient`"
+  - id: mockito-listener
+    title: MockitoTestExecutionListener 제거
+    detail: Spring 테스트(@DataJpaTest 등) 안의 `@Mock`/`@InjectMocks` 가 자동 초기화되지 않는다. 레시피가 lenient MockitoExtension 을 붙인다 (upstream 의 strict 버전은 UnnecessaryStubbingException 을 낸다)
+    fix: auto
+    recipe: com.eottabom.rewrite.custom.testing.AddLenientMockitoExtension
+  - id: spring-retry
+    title: spring-retry 가 Boot BOM 에서 빠짐
+    detail: 레시피가 `spring-retry` 2.0.x 를 선언해 기존 코드를 유지한다. Framework 7 core retry 로 옮길 때는 API 가 다르다. `maxAttempts` 는 재시도 횟수만 센다(spring-retry 의 3 은 첫 시도 포함), 실패는 checked `RetryException` 으로 감싸진다, 리스너에 재시도 횟수가 없다
+    fix: assisted
+    recipe: com.eottabom.rewrite.custom.gradle.DeclareUsedDependency
+    when: { dependencies: [org.springframework.retry:*] }
+  - id: elasticsearch-rest5
+    title: Elasticsearch 저수준 RestClient → Rest5Client (HttpClient 5)
+    detail: 레시피가 Rest5Client 로 옮기고 매퍼를 Jackson 3 용으로 맞춘다. `RestClientBuilderCustomizer` → `Rest5ClientBuilderCustomizer`. 서버 버전 호환과 날짜 형식을 개발 환경에서 확인한다
+    fix: auto
+    recipe: com.eottabom.rewrite.custom.elasticsearch.MigrateToRest5Client
+    when: { dependencies: [co.elastic.clients:*, org.elasticsearch.client:*] }
+  - id: batch-in-memory
+    title: spring-boot-starter-batch 가 기본으로 메타데이터를 DB 에 저장하지 않음
+    detail: 재시작/중복 실행 방지가 DB 메타데이터에 의존하면 `spring-boot-starter-batch-jdbc` 로 바꾼다. 그대로 두면 조용히 in-memory 로 돈다
+    when: { dependencies: [org.springframework.batch:*] }
+  - id: junit4
+    title: JUnit 4 지원 제거
+    detail: vintage engine 이 빠지면 JUnit 4 테스트가 실패하지 않고 조용히 실행되지 않는다. 결과의 테스트 수가 줄었는지 확인하고 JUnit 5 로 옮긴다
+    when: { dependencies: [junit:junit, org.junit.vintage:*] }
+  - id: undertow
+    title: Undertow 제거
+    detail: Servlet 6.1 을 지원하지 않아 빠졌다. Tomcat 또는 Jetty 로 옮긴다
+    when: { dependencies: [io.undertow:*] }
+  - id: hibernate7
+    title: Hibernate 7.1
+    detail: "`@Where` 등 deprecated API 제거, `org.hibernate.annotations.QueryHints` 제거(레시피가 보정), `hibernate-jpamodelgen` → `hibernate-processor`. 테스트 DDL 에서 enum 네이티브 타입/CHECK 제약 생성 방식이 달라진다"
+    fix: assisted
+    recipe: com.eottabom.rewrite.custom.hibernate.ReplaceAnnotationsQueryHints
+    source: https://docs.jboss.org/hibernate/orm/7.0/migration-guide/migration-guide.html
+    when: { dependencies: [org.hibernate.orm:*] }
+  - id: testcontainers2
+    title: Testcontainers 2
+    detail: "`org.testcontainers.shaded.*` 제거(레시피가 원래 라이브러리로 import 를 옮긴다), 일부 모듈명/클래스 변경"
+    fix: assisted
+    recipe: com.eottabom.rewrite.custom.misc.UnshadeRelocatedImports
+    when: { dependencies: [org.testcontainers:*] }
+  - id: playtika
+    title: playtika embedded-* 는 Boot/Cloud 버전에 강하게 묶여 있다
+    detail: Testcontainers + `@ServiceConnection` 으로 옮기는 것을 권장한다
+    when: { dependencies: [com.playtika.testcontainers:*] }
+  - id: kafka-json-serializer
+    title: Spring Kafka 4 JacksonJsonSerializer 는 JsonMapper 만 받는다
+    detail: 레시피가 보정한다. `spring.kafka.retry.topic.backoff.random` → `backoff.jitter`, `StreamBuilderFactoryBeanCustomizer` 제거
+    fix: auto
+    recipe: com.eottabom.rewrite.custom.kafka.UseJsonMapperForJacksonJsonSerializer
+    when: { dependencies: [org.springframework.kafka:*] }
+  - id: mongodb-properties
+    title: MongoDB 설정 키 이동
+    detail: "`spring.data.mongodb.*` 연결 설정 → `spring.mongodb.*`, `management.health.mongo.*` → `mongodb`. UUID/BigDecimal 표현을 명시해야 한다 (`spring.mongodb.representation.uuid`)"
+    fix: assisted
+    when: { dependencies: [org.mongodb:*] }
+  - id: sentry
+    title: Sentry 는 Boot 4 용 artifact 가 다르다
+    detail: "`sentry-spring-boot-starter-jakarta` → `sentry-spring-boot-4`"
+    when: { dependencies: [io.sentry:*] }
+  - id: property-mapper
+    title: PropertyMapper 가 null 값에 매핑을 호출하지 않음
+    detail: 직접 만든 자동 설정에서 `PropertyMapper` 를 쓰면 null 처리 결과가 달라진다. `alwaysApplyingWhenNonNull()` 제거, null 도 넘기려면 `always()`
+  - id: defaults
+    title: 기본값 변경 (health probe, logback charset, devtools)
+    detail: liveness/readiness probe 가 기본으로 켜진다. Logback 파일 인코딩 기본값이 UTF-8. `spring.devtools.livereload.enabled` 기본 false. `spring.dao.exceptiontranslation.enabled` → `spring.persistence.exceptiontranslation.enabled`
+  - id: nullability
+    title: JSpecify null 어노테이션
+    detail: "`org.springframework.lang.Nullable` 대신 `org.jspecify.annotations.Nullable`. NullAway 등 null 검사기를 쓰면 컴파일이 깨질 수 있다. Actuator 엔드포인트 파라미터는 JSpecify 만 인식한다"
+  - id: war-tomcat
+    title: war 배포는 spring-boot-starter-tomcat-runtime
+    detail: 외부 Tomcat 에 war 로 배포하면 starter 를 바꾸고, `server.forward-headers-strategy` 가 적용되지 않는 점을 확인한다
+    when: { dependencies: [org.springframework.boot:spring-boot-starter-tomcat] }
+  - id: jersey-jackson2
+    title: Jersey 는 아직 Jackson 3 미지원
+    detail: "`spring-boot-jackson2` 를 함께 쓴다"
+    when: { dependencies: [org.glassfish.jersey.*:*, org.springframework.boot:spring-boot-starter-jersey] }
+
+failureHints:
+  - pattern: (NoSuchBeanDefinitionException|UnsatisfiedDependencyException).*MockMvc
+    text: Boot 4 의 @SpringBootTest 는 MockMvc 를 주지 않아요. @AutoConfigureMockMvc 를 붙여 주세요
+  - pattern: (NoSuchBeanDefinitionException|UnsatisfiedDependencyException).*TestRestTemplate
+    text: Boot 4 에서는 TestRestTemplate 에 @AutoConfigureTestRestTemplate 과 spring-boot-resttestclient 가 필요해요
+  - pattern: (ClassNotFoundException|NoClassDefFoundError).*org\.springframework\.boot\.(restclient|resttestclient|test\.web\.client)
+    text: Boot 4 에서 RestTemplateBuilder, TestRestTemplate 이 별도 모듈로 나뉘었어요. spring-boot-restclient 와 spring-boot-resttestclient 를 둘 다 선언하고 @AutoConfigureTestRestTemplate 을 붙여 주세요

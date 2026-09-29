@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "result.schema.json",
+  "title": "stage 결과 (.spring-boot-migrator/NN-stage/result.json)",
+  "description": "러너가 쓰고 result.html 이 읽는다",
+  "type": "object",
+  "required": ["stage", "covers", "compile", "build", "buildFailureExisting", "tests", "warnings", "deprecationFixes",
+    "properties", "detect", "changes", "deps", "checklist"],
+  "properties": {
+    "stage": { "description": "3.4, java21, gradle8.14", "type": "string" },
+    "covers": { "description": "이 stage 가 다룬 stage 이름 (--mode=all 이면 여러 개)", "type": "array", "items": { "type": "string" } },
+    "compile": { "$ref": "#/$defs/outcome" },
+    "build": { "$ref": "#/$defs/outcome" },
+    "buildFailureExisting": { "description": "빌드 실패가 원본에서도 실패하던 태스크 때문이다", "type": "boolean" },
+    "tests": {
+      "type": "object",
+      "required": ["total", "failures", "flaky", "unreadable"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "failures": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["className", "testName", "exception", "message", "existing"],
+            "properties": {
+              "className": { "type": "string" },
+              "testName": { "type": "string" },
+              "exception": { "description": "가장 안쪽 예외의 단순 이름", "type": "string" },
+              "message": { "type": "string" },
+              "firstProjectFrame": { "type": ["string", "null"] },
+              "hint": { "description": "guides/ 의 실패 힌트", "type": ["string", "null"] },
+              "existing": { "description": "원본에서도 실패하던 테스트", "type": "boolean" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "flaky": { "description": "실패했다가 다시 돌려 통과한 테스트 id", "type": "array", "items": { "type": "string" } },
+        "unreadable": { "description": "끝까지 읽지 못한 테스트 결과 파일", "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "warnings": {
+      "type": "object",
+      "required": ["removal", "deprecation"],
+      "properties": {
+        "removal": { "$ref": "#/$defs/apiWarnings" },
+        "deprecation": { "$ref": "#/$defs/apiWarnings" }
+      },
+      "additionalProperties": false
+    },
+    "deprecationFixes": { "description": "deprecated API 를 바꾼 대체 레시피", "type": "array", "items": { "type": "string" } },
+    "properties": {
+      "description": "properties-migrator 가 찾은 설정 키 변경",
+      "type": "object",
+      "required": ["renamed", "unsupported"],
+      "properties": {
+        "renamed": { "$ref": "#/$defs/propertyChanges" },
+        "unsupported": { "$ref": "#/$defs/propertyChanges" }
+      },
+      "additionalProperties": false
+    },
+    "detect": {
+      "description": "detect 레시피가 찾은 위치",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "code"],
+        "properties": { "file": { "type": "string" }, "code": { "type": "string" } },
+        "additionalProperties": false
+      }
+    },
+    "changes": {
+      "type": "object",
+      "required": ["custom", "upstream", "files"],
+      "properties": {
+        "custom": {
+          "description": "custom 레시피와 프로젝트 레시피별로 바꾼 파일",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["recipe", "files"],
+            "properties": { "recipe": { "type": "string" }, "files": { "type": "array", "items": { "type": "string" } } },
+            "additionalProperties": false
+          }
+        },
+        "upstream": { "description": "upstream 레시피만 바꾼 파일", "type": "array", "items": { "type": "string" } },
+        "files": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "deps": {
+      "description": "stage 전후 resolve 된 의존성 버전 비교 (transitive 포함)",
+      "type": "object",
+      "required": ["changed", "added", "removed"],
+      "properties": {
+        "changed": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "before", "after", "level"],
+            "properties": {
+              "name": { "type": "string" },
+              "before": { "type": "string" },
+              "after": { "type": "string" },
+              "level": { "enum": ["major", "minor", "patch"] }
+            },
+            "additionalProperties": false
+          }
+        },
+        "added": { "type": "array", "items": { "type": "string" } },
+        "removed": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "checklist": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "fix", "title"],
+        "properties": {
+          "id": { "type": "string" },
+          "fix": { "enum": ["auto", "assisted", "manual"] },
+          "title": { "type": "string" },
+          "detail": { "type": ["string", "null"] },
+          "source": { "type": ["string", "null"] },
+          "recipe": { "type": ["string", "null"] },
+          "detect": { "type": ["string", "null"] },
+          "trigger": { "description": "라이브러리 버전 조건으로 걸린 경우 그 변화", "type": ["string", "null"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "source": { "description": "stage 가이드의 공식 문서", "type": ["string", "null"] }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "outcome": { "enum": ["ok", "fail", "skip"] },
+    "apiWarnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["message", "locations"],
+        "properties": {
+          "message": { "type": "string" },
+          "locations": { "description": "파일:줄", "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    },
+    "propertyChanges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "source"],
+        "properties": {
+          "key": { "type": "string" },
+          "replacement": { "type": ["string", "null"] },
+          "source": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

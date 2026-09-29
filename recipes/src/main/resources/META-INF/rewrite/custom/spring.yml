@@ -1,0 +1,168 @@
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.spring.Boot4JpaRelocations
+displayName: Boot 4 JPA 관련 클래스 패키지 이동 보정
+description: >-
+  Boot 4 모듈 분리로 JPA 관련 클래스가 spring-boot-jpa / spring-boot-hibernate 모듈로 옮겨졌다.
+  upstream 은 JpaProperties 를 hibernate.autoconfigure 로 잘못 옮기고, EntityManagerFactoryBuilder 는 옮기지 않는다.
+  (spring-boot-jpa-4.0.x.jar / spring-boot-hibernate-4.0.x.jar 의 실제 클래스 위치 기준)
+recipeList:
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.springframework.boot.hibernate.autoconfigure.JpaProperties
+      newFullyQualifiedTypeName: org.springframework.boot.jpa.autoconfigure.JpaProperties
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.springframework.boot.autoconfigure.orm.jpa.JpaProperties
+      newFullyQualifiedTypeName: org.springframework.boot.jpa.autoconfigure.JpaProperties
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.springframework.boot.autoconfigure.orm.jpa.HibernateProperties
+      newFullyQualifiedTypeName: org.springframework.boot.hibernate.autoconfigure.HibernateProperties
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.springframework.boot.autoconfigure.orm.jpa.HibernateSettings
+      newFullyQualifiedTypeName: org.springframework.boot.hibernate.autoconfigure.HibernateSettings
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder
+      newFullyQualifiedTypeName: org.springframework.boot.jpa.EntityManagerFactoryBuilder
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.spring.Boot4TestStartersForMainSources
+displayName: Boot 4 테스트 자동 구성 starter (main 소스셋 포함)
+description: >-
+  upstream MigrateToModularStarters 는 테스트 자동 구성(@DataJpaTest 등) 사용처에 test starter 를 testImplementation 으로만 추가한다.
+  테스트 공용 코드를 src/main 에 둔 모듈(testFixtures 대신 별도 모듈)은 빠지므로, 같은 starter 를 쓰는 소스셋에 맞춰 선언한다.
+  패키지 조건은 upstream 과 같다. 버전은 Boot BOM 이 관리한다.
+recipeList:
+  # 스캔은 원본 기준이라 Boot 3 패키지로 판단한다 (Boot 4 패키지는 재실행 시를 위해 같이 적는다)
+  - com.eottabom.rewrite.custom.gradle.DeclareUsedDependency:
+      packageName: org.springframework.boot.test.autoconfigure.orm.jpa, org.springframework.boot.data.jpa.test.autoconfigure
+      groupId: org.springframework.boot
+      artifactId: spring-boot-starter-data-jpa-test
+  - com.eottabom.rewrite.custom.gradle.DeclareUsedDependency:
+      packageName: org.springframework.boot.test.autoconfigure.jdbc, org.springframework.boot.jdbc.test.autoconfigure
+      groupId: org.springframework.boot
+      artifactId: spring-boot-starter-jdbc-test
+  - com.eottabom.rewrite.custom.gradle.DeclareUsedDependency:
+      packageName: org.springframework.boot.test.autoconfigure.web.servlet, org.springframework.boot.webmvc.test.autoconfigure
+      groupId: org.springframework.boot
+      artifactId: spring-boot-starter-webmvc-test
+  - com.eottabom.rewrite.custom.gradle.DeclareUsedDependency:
+      packageName: org.springframework.boot.test.autoconfigure.web.client
+      groupId: org.springframework.boot
+      artifactId: spring-boot-starter-restclient-test
+  - com.eottabom.rewrite.custom.gradle.DeclareUsedDependency:
+      packageName: org.springframework.boot.test.web.client
+      groupId: org.springframework.boot
+      artifactId: spring-boot-resttestclient
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.spring.Boot4RestDocsModule
+displayName: Boot 4 REST Docs 테스트 자동 구성 모듈 분리 대응
+description: >-
+  Boot 4 에서 @AutoConfigureRestDocs 등이 spring-boot-restdocs 모듈의
+  org.springframework.boot.restdocs.test.autoconfigure 패키지로 옮겨졌다. upstream 은 REST Docs 를 처리하지 않는다.
+  패키지를 옮기고, 쓰는 소스셋에 spring-boot-restdocs 의존성을 선언한다.
+recipeList:
+  # 스캔은 원본 기준이라 이동 전 패키지로 판단한다
+  - com.eottabom.rewrite.custom.gradle.DeclareUsedDependency:
+      packageName: org.springframework.boot.test.autoconfigure.restdocs, org.springframework.boot.restdocs.test.autoconfigure
+      groupId: org.springframework.boot
+      artifactId: spring-boot-restdocs
+  - org.openrewrite.java.ChangePackage:
+      oldPackageName: org.springframework.boot.test.autoconfigure.restdocs
+      newPackageName: org.springframework.boot.restdocs.test.autoconfigure
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.spring.AddPropertiesMigrator
+displayName: "spring-boot-properties-migrator 임시 추가"
+description: >-
+  OpenRewrite 는 저장소 안의 application*.yml 만 바꿀 수 있고, 외부 설정 저장소(Spring Cloud Config, Vault, Secrets Manager 등) 에 있는 설정은 보지 못한다.
+  properties-migrator 는 기동 시 실제로 로딩된 설정 중 이름이 바뀌거나 제거된 키를 WARN 로그로 알려주고 가능한 건 임시로 매핑해준다.
+  업그레이드 PR 에 포함해서 개발/스테이징 환경에서 로그를 확인한 뒤, 정리되면 제거한다.
+  (@SpringBootApplication 이 있는 모듈에만 추가된다)
+recipeList:
+  - org.openrewrite.gradle.AddDependency:
+      groupId: org.springframework.boot
+      artifactId: spring-boot-properties-migrator
+      configuration: runtimeOnly
+      onlyIfUsing: org.springframework.boot.autoconfigure.SpringBootApplication
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.spring.UnpinSpringRestDocs
+displayName: Spring REST Docs 버전을 BOM 관리로 복원
+description: spring-restdocs-* 에 명시된 버전을 지워 BOM 관리 버전을 따르게 한다.
+recipeList:
+  - com.eottabom.rewrite.custom.gradle.RemoveDependencyVersion:
+      groupId: org.springframework.restdocs
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.spring.RemoveSpuriousJaxbApi
+displayName: 잘못 추가된 javax.xml.bind:jaxb-api 제거
+description: >-
+  upstream RetainJaxbApiForJackson 은 jackson-module-jaxb-annotations 가 "어느 configuration 에든" 있으면 jaxb-api 를 추가한다.
+  init script 로 붙인 `rewrite` configuration(OpenRewrite 자신의 classpath)에 이 모듈이 있어서 모든 프로젝트가 오탐된다.
+  javax.xml.bind 타입을 코드에서 직접 쓰지 않으면 runtimeOnly 로 추가된 jaxb-api 를 제거한다.
+recipeList:
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: javax.xml.bind
+      artifactId: jaxb-api
+      configuration: runtimeOnly
+      unlessUsing: javax.xml.bind..*
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.spring.Boot3Extras
+displayName: Boot 3.0 전환 시 upstream 이 빠뜨리는 것들
+description: >-
+  REST Docs 3 API 변경, Spring Cloud 2022 설정 키 이동, Boot 3 용으로 artifact 이름이 바뀐 라이브러리.
+recipeList:
+  - com.eottabom.rewrite.custom.spring.UpgradeSpringRestDocs_3
+  - com.eottabom.rewrite.custom.spring.SpringCloud2022PropertyKeys
+  # Boot 2 용 스타터를 그대로 두면 전이 의존성만 2.x 로 올라가 깨진 조합이 된다
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: io.github.resilience4j
+      oldArtifactId: resilience4j-spring-boot2
+      newArtifactId: resilience4j-spring-boot3
+      newVersion: 2.2.x
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.spring.UpgradeSpringRestDocs_3
+displayName: Spring REST Docs 2.0 -> 3.0 API
+description: >-
+  REST Docs 3.0 에서 requestParameters 가 제거되고 queryParameters / formParameters 로 나뉘었다.
+  전부 queryParameters 로 바꾸므로, POST 폼 파라미터를 문서화하는 곳이 있으면 formParameters 로 직접 고친다.
+recipeList:
+  - org.openrewrite.java.ChangeMethodName:
+      methodPattern: org.springframework.restdocs.request.RequestDocumentation requestParameters(..)
+      newMethodName: queryParameters
+      matchOverrides: true
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.springframework.restdocs.request.RequestParametersSnippet
+      newFullyQualifiedTypeName: org.springframework.restdocs.request.QueryParametersSnippet
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.spring.SpringCloud2022PropertyKeys
+displayName: Spring Cloud 2022 에서 이동/제거된 설정 키
+description: >-
+  spring-cloud-openfeign 4.x 는 feign.* 를 spring.cloud.openfeign.* 로 옮겼고, Sleuth 는 Micrometer Tracing 으로 대체됐다.
+  upstream 은 artifact 이름만 바꾸고 yml 키는 옮기지 않는다. (저장소 밖 설정은 properties-migrator 로 확인)
+recipeList:
+  - org.openrewrite.java.spring.ChangeSpringPropertyKey:
+      oldPropertyKey: feign.client
+      newPropertyKey: spring.cloud.openfeign.client
+  - org.openrewrite.java.spring.ChangeSpringPropertyKey:
+      oldPropertyKey: feign.httpclient
+      newPropertyKey: spring.cloud.openfeign.httpclient
+  - org.openrewrite.java.spring.ChangeSpringPropertyKey:
+      oldPropertyKey: feign.compression
+      newPropertyKey: spring.cloud.openfeign.compression
+  - org.openrewrite.java.spring.ChangeSpringPropertyKey:
+      oldPropertyKey: feign.circuitbreaker
+      newPropertyKey: spring.cloud.openfeign.circuitbreaker
+  - org.openrewrite.java.spring.ChangeSpringPropertyKey:
+      oldPropertyKey: spring.sleuth.enabled
+      newPropertyKey: management.tracing.enabled
+  - org.openrewrite.java.spring.ChangeSpringPropertyKey:
+      oldPropertyKey: spring.sleuth.sampler.probability
+      newPropertyKey: management.tracing.sampling.probability
+  - org.openrewrite.java.spring.DeleteSpringProperty:
+      propertyKey: spring.zipkin.enabled
+  - org.openrewrite.java.spring.ChangeSpringPropertyKey:
+      oldPropertyKey: spring.zipkin.base-url
+      newPropertyKey: management.zipkin.tracing.endpoint

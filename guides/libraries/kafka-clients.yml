@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=../../schema/library-guide.schema.json
+library: org.apache.kafka:kafka-clients
+
+checklist:
+  - id: kafka-clients-4
+    title: Kafka 4 클라이언트
+    detail: 제거된 설정/API 를 확인한다. clients / streams / test-utils 버전을 섞지 않는다. 브로커 최소 버전도 확인한다
+    source: https://kafka.apache.org/documentation/#upgrade
+    crosses: "4.0.0"

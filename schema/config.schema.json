@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "config.schema.json",
+  "title": "spring-boot-migrator 설정",
+  "description": "대상 프로젝트 루트의 spring-boot-migrator.yml (또는 --config 로 준 파일). 모든 값은 선택이고, CLI 옵션이 파일보다 우선한다",
+  "type": "object",
+  "properties": {
+    "target": {
+      "type": "object",
+      "properties": {
+        "boot": {
+          "description": "목표 Boot (--boot). 비우면 guides/boot/ 의 마지막 버전. 3.4.5 처럼 patch 까지 적으면 minor 로 맞춘다",
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$"
+        },
+        "java": {
+          "description": "목표 Java (--java). latest 는 목표 Boot 가 지원하는 가장 높은 LTS, keep 은 지원하면 유지, none 은 올리지 않는다",
+          "type": ["string", "integer"],
+          "pattern": "^(latest|keep|none|[0-9]+)$",
+          "default": "latest"
+        }
+      },
+      "additionalProperties": false
+    },
+    "mode": {
+      "description": "staged 는 stage 마다 게이트, all 은 목표까지 한 번에 적용하고 게이트 한 번, preview 는 소스를 바꾸지 않고 patch 만 (--mode)",
+      "enum": ["staged", "all", "preview"],
+      "default": "staged"
+    },
+    "gate": {
+      "type": "object",
+      "properties": {
+        "level": {
+          "description": "stage 마다 확인하는 범위 (--gate). build 는 컴파일, 전체 테스트, 패키징과 검사 태스크",
+          "enum": ["compile", "build", "none"],
+          "default": "build"
+        },
+        "testRetries": {
+          "description": "stage 에서 새로 실패한 테스트를 다시 돌리는 횟수. 다시 돌려 통과하면 불안정한 테스트로 보고 막지 않는다",
+          "type": "integer",
+          "minimum": 0,
+          "default": 1
+        },
+        "baselineTests": {
+          "description": "원본 빌드에서도 테스트를 돌려 원래 실패하던 테스트를 기록한다. false 면 stage 의 테스트 실패는 모두 새 실패로 본다",
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "recipes": {
+      "type": "object",
+      "properties": {
+        "custom": {
+          "description": "custom 레시피를 붙인다. false 면 upstream 만 (비교용)",
+          "type": "boolean",
+          "default": true
+        },
+        "project": {
+          "description": "대상 프로젝트의 .rewrite/ 레시피를 붙인다",
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "build": {
+      "type": "object",
+      "properties": {
+        "jdk": {
+          "description": "auto 는 프로젝트의 Java 버전에 맞는 JDK 를 찾아 쓴다. current 는 지금 JAVA_HOME 그대로",
+          "enum": ["auto", "current"],
+          "default": "auto"
+        },
+        "jvmArgs": {
+          "description": "대상 Gradle 데몬 JVM 옵션. 비우면 대상의 org.gradle.jvmargs 에서 -Xmx(장비 메모리의 절반, 최대 6g) 와 MaxMetaspaceSize 만 바꾼다",
+          "type": "string"
+        },
+        "timeoutMinutes": {
+          "description": "대상 Gradle 한 번 실행의 제한 시간 (분). 0 이면 제한 없음",
+          "type": "integer",
+          "minimum": 0,
+          "default": 180
+        }
+      },
+      "additionalProperties": false
+    },
+    "commit": {
+      "description": "게이트를 통과한 stage 마다 git commit (--commit)",
+      "type": "boolean",
+      "default": false
+    },
+    "allowDirty": {
+      "description": "커밋되지 않은 변경이 있어도 시작한다 (--allow-dirty)",
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,4 @@
+# yaml-language-server: $schema=../../schema/java-guide.schema.json
+source: https://docs.openrewrite.org/recipes/java/migrate/upgradetojava17
+
+gradle: "7.3"

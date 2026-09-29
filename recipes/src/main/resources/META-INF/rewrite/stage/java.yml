@@ -1,0 +1,32 @@
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.stage.Java_17
+displayName: Java 17 stage
+description: upstream UpgradeToJava17.
+recipeList:
+  - org.openrewrite.java.migrate.UpgradeToJava17
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.stage.Java_21
+displayName: Java 21 업그레이드
+description: >-
+  upstream UpgradeToJava21 (빌드 설정, 플러그인, 문법) + JaCoCo toolVersion.
+  JaCoCo 는 Java 21 클래스 파일을 읽으려면 0.8.11 이상이 필요하다.
+recipeList:
+  - org.openrewrite.java.migrate.UpgradeToJava21
+  - org.openrewrite.java.migrate.jacoco.UpgradeJaCoCo
+  - com.eottabom.rewrite.custom.gradle.UpgradeJacocoToolVersion:
+      version: 0.8.15
+  - com.eottabom.rewrite.upstream.catalog.Java_21
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.stage.Java_25
+displayName: Java 25 업그레이드
+description: >-
+  upstream UpgradeToJava25 (빌드 설정, 플러그인, 문법) + JaCoCo toolVersion.
+  Gradle 9.1 과 서드파티 플러그인 정렬은 앞의 Gradle stage(stage.Gradle_9_1) 가 맡는다.
+recipeList:
+  - org.openrewrite.java.migrate.UpgradeToJava25
+  - org.openrewrite.java.migrate.jacoco.UpgradeJaCoCo
+  - com.eottabom.rewrite.custom.gradle.UpgradeJacocoToolVersion:
+      version: 0.8.15
+  - com.eottabom.rewrite.upstream.catalog.Java_25

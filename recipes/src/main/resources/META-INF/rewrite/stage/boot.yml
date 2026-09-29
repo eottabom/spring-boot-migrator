@@ -1,0 +1,175 @@
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.stage.Boot_3_0
+displayName: "Spring Boot 3.0 단계 (이 단계의 변경만)"
+description: Spring Boot 2.7 -> 3.0. javax -> jakarta, Hibernate 6.1, Spring Cloud 2022.0, Spring Cloud AWS 3.0.
+preconditions:
+  - org.openrewrite.Singleton
+recipeList:
+  # "2.x 에서 올라오는지" 를 원본 의존성으로 판단해야 해서 upstream 보다 먼저 둔다
+  - com.eottabom.rewrite.custom.hibernate.KeepLegacyIdGeneratorNaming
+  - com.eottabom.rewrite.upstream.Boot_3_0
+  # upstream UpgradeApacheHttpClient_5 가 Elasticsearch 저수준 RestClient(HttpClient 4 기반) 코드까지 HttpClient 5 로 바꾸는 것을 되돌린다.
+  # elasticsearch-java 8.x (Boot 3.x BOM) 의 RestClient 는 HttpClient 4 를 쓴다. 아래 인터셉터 보정보다 먼저 되돌려야 ES 코드가 HttpClient 5 형태로 바뀌지 않는다
+  - com.eottabom.rewrite.custom.httpclient.RevertHttpClient5ForElasticsearchRestClient
+  # opensearch-java / rest-client 3.x (HttpClient 5). upstream UpgradeApacheHttpClient_5 (위 체인 안) 와 같은 단계에서 맞춘다
+  - com.eottabom.rewrite.custom.search.UpgradeOpenSearchJava_3
+  # upstream UpgradeSpringBoot_3_0 이 BOM 관리 중이던 restdocs 에 2.0.6.RELEASE 를 명시 고정하는 문제 보정
+  - com.eottabom.rewrite.custom.spring.UnpinSpringRestDocs
+  - com.eottabom.rewrite.custom.aws.MigrateSpringCloudAws_2_to_3
+  - com.eottabom.rewrite.custom.querydsl.MigrateQuerydslToJakarta
+  - com.eottabom.rewrite.custom.logging.UpgradeLogstashEncoder_7
+  - com.eottabom.rewrite.custom.spring.Boot3Extras
+  # Boot 3.0 은 Mockito 4 라서 final/static mock 에 mockito-inline 이 아직 필요하다. 구버전 고정만 4.x 로 맞춘다 (제거는 3.1)
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.mockito
+      artifactId: mockito-inline
+      newVersion: 4.x
+  - com.eottabom.rewrite.custom.spring.AddPropertiesMigrator
+  - com.eottabom.rewrite.upstream.catalog.Boot_3_0
+  - com.eottabom.rewrite.custom.CommonFixes
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.stage.Boot_3_1
+displayName: "Spring Boot 3.1 단계 (이 단계의 변경만)"
+description: Spring Boot 3.0 -> 3.1. Hibernate 6.2, Mockito 5.
+preconditions:
+  - org.openrewrite.Singleton
+recipeList:
+  - com.eottabom.rewrite.upstream.Boot_3_1
+  # Mockito 5 부터 inline mock maker 가 기본값이라 mockito-inline 은 불필요
+  - org.openrewrite.java.dependencies.RemoveDependency:
+      groupId: org.mockito
+      artifactId: mockito-inline
+  - com.eottabom.rewrite.custom.aws.UpgradeSpringCloudAws_3_0
+  - com.eottabom.rewrite.custom.spring.AddPropertiesMigrator
+  - com.eottabom.rewrite.upstream.catalog.Boot_3_1
+  - com.eottabom.rewrite.custom.CommonFixes
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.stage.Boot_3_2
+displayName: "Spring Boot 3.2 단계 (이 단계의 변경만)"
+description: Spring Boot 3.1 -> 3.2. Spring Cloud 2023.0, Spring Cloud AWS 3.1, Hibernate 6.4.
+preconditions:
+  - org.openrewrite.Singleton
+recipeList:
+  - com.eottabom.rewrite.upstream.Boot_3_2
+  - com.eottabom.rewrite.custom.hibernate.MigrateWhereToSQLRestriction
+  # Feign 12.2+ (Spring Cloud 2023) 에서 RetryableException 에 Long 생성자가 생긴다. 그 전 단계에서 바꾸면 컴파일이 깨진다
+  - com.eottabom.rewrite.custom.feign.DisambiguateRetryableExceptionNull
+  - com.eottabom.rewrite.custom.aws.UpgradeSpringCloudAws_3_1
+  - com.eottabom.rewrite.custom.spring.AddPropertiesMigrator
+  - com.eottabom.rewrite.upstream.catalog.Boot_3_2
+  - com.eottabom.rewrite.custom.CommonFixes
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.stage.Boot_3_3
+displayName: "Spring Boot 3.3 단계 (이 단계의 변경만)"
+description: Spring Boot 3.2 -> 3.3. Spring Cloud AWS 3.2, logback 1.5 대응(logstash-logback-encoder 8).
+preconditions:
+  - org.openrewrite.Singleton
+recipeList:
+  - com.eottabom.rewrite.upstream.Boot_3_3
+  - com.eottabom.rewrite.custom.aws.UpgradeSpringCloudAws_3_2
+  - com.eottabom.rewrite.custom.logging.UpgradeLogstashEncoder_8
+  - com.eottabom.rewrite.custom.spring.AddPropertiesMigrator
+  - com.eottabom.rewrite.upstream.catalog.Boot_3_3
+  - com.eottabom.rewrite.custom.CommonFixes
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.stage.Boot_3_4
+displayName: "Spring Boot 3.4 단계 (이 단계의 변경만)"
+description: Spring Boot 3.3 -> 3.4. Spring Cloud 2024.0, Spring Cloud AWS 3.3.
+preconditions:
+  - org.openrewrite.Singleton
+recipeList:
+  - com.eottabom.rewrite.upstream.Boot_3_4
+  # @MockBean/@SpyBean 은 3.4 에서 deprecated, 4.0 에서 제거. @MockitoBean 은 Framework 6.2(Boot 3.4)부터 있으므로 여기서 미리 전환
+  - org.openrewrite.java.spring.boot4.ReplaceMockBeanAndSpyBean
+  - com.eottabom.rewrite.custom.aws.UpgradeSpringCloudAws_3_3
+  # Boot 3.4 BOM 이 elasticsearch-java 를 8.15 로 올린다. 8.15 에서 RangeQuery 의 field/gte/lte 가 UntypedRangeQuery 로 옮겨졌다
+  - com.eottabom.rewrite.custom.elasticsearch.MigrateRangeQueryToUntyped
+  # 3.4 부터 @ConditionalOn(Missing)Bean(annotation = ..) 이 @Bean 반환 타입을 기본으로 보지 않는다. value 로 명시해 이전 동작 유지
+  - com.eottabom.rewrite.custom.spring.PreserveConditionalBeanReturnType
+  - com.eottabom.rewrite.custom.spring.AddPropertiesMigrator
+  - com.eottabom.rewrite.upstream.catalog.Boot_3_4
+  - com.eottabom.rewrite.custom.CommonFixes
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.stage.Boot_3_5
+displayName: "Spring Boot 3.5 단계 (이 단계의 변경만)"
+description: Spring Boot 3.4 -> 3.5. Spring Cloud 2025.0, Spring Cloud AWS 3.4.
+preconditions:
+  - org.openrewrite.Singleton
+recipeList:
+  - com.eottabom.rewrite.upstream.Boot_3_5
+  - com.eottabom.rewrite.custom.aws.UpgradeSpringCloudAws_3_4
+  - com.eottabom.rewrite.custom.spring.AddPropertiesMigrator
+  - com.eottabom.rewrite.upstream.catalog.Boot_3_5
+  - com.eottabom.rewrite.custom.CommonFixes
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.stage.Boot_4_0
+displayName: "Spring Boot 4.0 단계 (이 단계의 변경만)"
+description: >-
+  Spring Boot 3.5 -> 4.0. Spring Framework 7, Spring Cloud 2025.1, Spring Cloud AWS 4.0, Hibernate 7.1, Gradle 8.14+,
+  Testcontainers 2, 모듈형 starter, logstash-logback-encoder 9.
+  Jackson 2 -> 3 코드 전환은 upstream UpgradeSpringFramework_7_0 이 UpgradeJackson_2_3 을 포함해서 이 단계에서 함께 된다.
+preconditions:
+  - org.openrewrite.Singleton
+recipeList:
+  # Boot 4.0 은 Gradle 8.14+ 가 필요하다. 러너는 compatibility.yml 을 보고 이 단계 전에 Gradle 단계를 따로 돌리므로
+  # 보통은 이미 맞춰져 있고, 레시피를 단독으로 실행할 때를 위해 남겨 둔다 (이미 8.14 이상이면 바뀌지 않는다)
+  - com.eottabom.rewrite.stage.Gradle_8_14
+  - com.eottabom.rewrite.upstream.Boot_4_0
+  - com.eottabom.rewrite.custom.spring.Boot4JpaRelocations
+  # Hibernate 7 에서 org.hibernate.annotations.QueryHints 제거
+  - com.eottabom.rewrite.custom.hibernate.ReplaceAnnotationsQueryHints
+  # Boot 4 BOM 이 spring-retry 를 관리하지 않아 transitive 로 받던 프로젝트에서 사라진다 (Framework 7 에 core retry 가 생김)
+  - com.eottabom.rewrite.custom.gradle.DeclareUsedDependency:
+      packageName: org.springframework.retry
+      groupId: org.springframework.retry
+      artifactId: spring-retry
+      version: 2.0.x
+  # RestTemplateBuilder 는 spring-boot-restclient 모듈로 옮겨졌고 spring-boot-resttestclient 는 이 모듈을 가져오지 않는다.
+  # TestRestTemplate 만 선언한 테스트는 컴파일은 되고 실행 때 ClassNotFoundException 이 난다. upstream 이 같은 실행 안에서 옮기기 전 패키지도 적는다
+  - com.eottabom.rewrite.custom.gradle.DeclareUsedDependency:
+      packageName: org.springframework.boot.restclient, org.springframework.boot.resttestclient, org.springframework.boot.web.client, org.springframework.boot.test.web.client
+      groupId: org.springframework.boot
+      artifactId: spring-boot-restclient
+  - com.eottabom.rewrite.custom.spring.Boot4RestDocsModule
+  - com.eottabom.rewrite.custom.spring.Boot4TestStartersForMainSources
+  # Boot 4 에서 MockitoTestExecutionListener 가 제거돼 Spring 테스트(@DataJpaTest 등) 안의 @Mock/@InjectMocks 가 더 이상 자동 초기화되지 않는다
+  # (upstream AddMockitoExtensionIfAnnotationsUsed 는 strict 모드라 기존 테스트가 UnnecessaryStubbingException 으로 깨진다)
+  - com.eottabom.rewrite.custom.testing.AddLenientMockitoExtension
+  - com.eottabom.rewrite.custom.logging.FixLogstashDecoratorForJackson3
+  # upstream Jackson 3 전환이 catch (IOException) 를 catch (JacksonException) 로 바꿀 때 Files.readString 같은 진짜 IOException 을 놓치는 경우
+  - com.eottabom.rewrite.custom.jackson.FixJacksonIOExceptionCatch
+  # Boot 4 는 JsonMapper 타입 빈이 있을 때만 자동 설정 매퍼가 물러난다. JsonMapper 를 돌려주는 @Bean ObjectMapper 의 반환 타입을 좁힌다
+  - com.eottabom.rewrite.custom.jackson.NarrowJsonMapperBeanReturnType
+  # Boot 4 BOM 이 elasticsearch-java 를 9.x 로 올린다. HttpClient 5 기반 Rest5Client 로 옮기고, 매퍼를 Jackson 3 용으로 맞춘다
+  - com.eottabom.rewrite.custom.elasticsearch.MigrateToRest5Client
+  - com.eottabom.rewrite.custom.elasticsearch.ElasticsearchJava9ApiChanges
+  # Spring Kafka 4 의 JacksonJsonSerializer 는 JsonMapper 만 받는다
+  - com.eottabom.rewrite.custom.kafka.UseJsonMapperForJacksonJsonSerializer
+  - com.eottabom.rewrite.custom.aws.UpgradeSpringCloudAws_4_0
+  - com.eottabom.rewrite.custom.logging.UpgradeLogstashEncoder_9
+  - com.eottabom.rewrite.custom.spring.UnpinSpringRestDocs
+  - com.eottabom.rewrite.custom.spring.AddPropertiesMigrator
+  - com.eottabom.rewrite.upstream.catalog.Boot_4_0
+  - com.eottabom.rewrite.custom.CommonFixes
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.stage.Boot_4_1
+displayName: "Spring Boot 4.1 단계 (이 단계의 변경만)"
+description: >-
+  Spring Boot 4.0 -> 4.1. rewrite-spring 에 UpgradeSpringBoot_4_1 이 아직 없어서 4.1 프로퍼티 변경 + 버전 업그레이드로 구성한다.
+  Spring Cloud 는 2025.1.2 부터 Boot 4.1 을 지원하므로 2025.1.x 최신으로 올린다.
+  Spring Cloud 는 기동 시 Boot 버전 호환성을 검사하므로(CompatibilityVerifier) 그보다 낮게 고정돼 있으면 기동이 실패한다.
+preconditions:
+  - org.openrewrite.Singleton
+recipeList:
+  - com.eottabom.rewrite.upstream.Boot_4_1
+  - com.eottabom.rewrite.custom.aws.UpgradeSpringCloudAws_4_1
+  - com.eottabom.rewrite.custom.spring.AddPropertiesMigrator
+  - com.eottabom.rewrite.upstream.catalog.Boot_4_1
+  - com.eottabom.rewrite.custom.CommonFixes

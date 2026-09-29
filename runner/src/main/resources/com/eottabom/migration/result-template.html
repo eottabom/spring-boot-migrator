@@ -1,0 +1,624 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>마이그레이션 결과</title>
+<style>
+:root {
+  --paper: #ffffff; --ink: #1c2127; --muted: #5a636d; --rule: #dcdfe3; --sunk: #f5f6f8; --raised: #ffffff;
+  --pass: #2d7a46; --fail: #c4302b; --caution: #946200; --link: #1f5fae;
+  --add-line: #e6f4ea; --add-word: #b7e1c2; --add-num: #d2ecd9;
+  --del-line: #fbe9e8; --del-word: #f4c2bf; --del-num: #f6d7d5;
+  --hunk: #eef3fb; --hunk-ink: #4a5a70;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #14171b; --ink: #e4e7ea; --muted: #9aa3ad; --rule: #2d333a; --sunk: #1b1f24; --raised: #191d22;
+    --pass: #5cb87a; --fail: #ef7b73; --caution: #d9a441; --link: #7eb0f2;
+    --add-line: #16301f; --add-word: #23583a; --add-num: #1b3a26;
+    --del-line: #3a1d1c; --del-word: #6a2c29; --del-num: #452221;
+    --hunk: #1a2433; --hunk-ink: #9fb3cf;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink);
+  font: 15px/1.6 Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif; }
+code, pre, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+.body code, .meta code, .title code { background: var(--sunk); padding: 1px 4px; border-radius: 3px; }
+a { color: var(--link); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 36px 16px 72px; }
+
+header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 24px; }
+header h1 { font-size: 22px; font-weight: 650; margin: 0; letter-spacing: -0.01em; }
+header .sub { color: var(--muted); margin: 2px 0 0; }
+header .when { color: var(--muted); font-size: 13px; }
+
+/* 업그레이드 경로: 시작 버전에서 stage 마다 한 칸씩. 선 색이 그 stage 의 결과다 */
+.rail { position: relative; list-style: none; margin: 28px 0 0; padding: 0 0 4px; display: flex; overflow-x: auto; }
+.station { position: relative; flex: 1 0 96px; text-align: center; }
+.station + .station::before { content: ""; position: absolute; top: 15px; right: 50%; width: 100%; height: 3px; background: var(--rule); }
+.station.ok::before { background: var(--pass); }
+.station.fail::before { background: var(--fail); }
+.station.warn::before { background: var(--caution); }
+.station button, .station .start { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  width: 100%; padding: 8px 4px 6px; border: 0; background: none; cursor: pointer; }
+.station .start { cursor: default; }
+.node { width: 17px; height: 17px; border-radius: 50%; background: var(--paper); border: 3px solid var(--rule); }
+.ok .node { background: var(--pass); border-color: var(--pass); }
+.fail .node { background: var(--paper); border-color: var(--fail); border-width: 5px; }
+.warn .node { border-color: var(--caution); }
+.station .label { font-weight: 600; margin-top: 4px; }
+.station .state { font-size: 12.5px; color: var(--muted); }
+.fail .state { color: var(--fail); }
+.station button[aria-pressed="true"] .label { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 5px; }
+
+.stage-head { margin: 28px 0 0; padding-top: 22px; border-top: 1px solid var(--rule); }
+.stage-head h2 { font-size: 19px; font-weight: 650; margin: 0 0 12px; }
+.stage-head .covers { color: var(--muted); font-size: 13px; font-weight: 400; margin-left: 8px; }
+.facts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px 24px; margin: 0; }
+.facts dt { color: var(--muted); font-size: 13px; }
+.facts dd { margin: 0; font-weight: 600; }
+.facts .ok { color: var(--pass); } .facts .fail { color: var(--fail); } .facts .warn { color: var(--caution); }
+@media (max-width: 720px) { .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.logs { margin: 14px 0 0; color: var(--muted); font-size: 13.5px; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+
+.tabs { display: flex; gap: 4px; margin: 26px 0 0; border-bottom: 1px solid var(--rule); overflow-x: auto; }
+.tabs button { border: 0; background: none; padding: 9px 14px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent;
+  margin-bottom: -1px; white-space: nowrap; }
+.tabs button[aria-selected="true"] { color: var(--ink); font-weight: 600; border-bottom-color: var(--ink); }
+.tabs .badge { font-size: 12px; margin-left: 6px; padding: 0 6px; border-radius: 9px; background: var(--sunk); color: var(--muted); }
+.tabs .badge.fail { background: color-mix(in srgb, var(--fail) 16%, transparent); color: var(--fail); }
+
+section.part { margin: 26px 0 0; }
+section.part > h2 { font-size: 16px; font-weight: 650; margin: 0 0 2px; display: flex; gap: 10px; align-items: baseline; }
+section.part > .desc { color: var(--muted); margin: 0 0 8px; max-width: 72ch; }
+section.part.blocker { padding-left: 14px; border-left: 3px solid var(--fail); }
+section.part.blocker > h2 { color: var(--fail); }
+section.part h3 { font-size: 14px; font-weight: 650; margin: 20px 0 4px; }
+.count { color: var(--muted); font-weight: 400; font-size: 14px; }
+.empty, .desc { color: var(--muted); }
+.empty { margin: 4px 0; }
+
+details.entry, .item { border-top: 1px solid var(--rule); }
+section.part > details.entry:last-child, section.part > .item:last-child { border-bottom: 1px solid var(--rule); }
+details > summary { cursor: pointer; list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+details.entry > summary, details.fold > summary { padding: 9px 0; display: flex; gap: 8px; align-items: baseline; }
+details.entry > summary::before, details.fold > summary::before { content: "▸"; color: var(--muted); width: 12px; flex: none; }
+details.entry[open] > summary::before, details.fold[open] > summary::before { content: "▾"; }
+summary .grow { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.item { padding: 9px 0 9px 20px; }
+.item .title, .entry .title { font-weight: 600; }
+.meta { color: var(--muted); font-size: 13.5px; }
+.entry .body { padding: 0 0 12px 20px; max-width: 80ch; overflow-wrap: anywhere; }
+.entry .body > * + * { margin-top: 6px; }
+.hint { padding-left: 10px; border-left: 2px solid var(--rule); }
+.classes { margin-top: 10px; }
+table.tests { margin: 0 0 8px 20px; width: calc(100% - 20px); font-size: 14px; border-collapse: collapse; }
+table.tests td { border-top: 1px solid var(--rule); padding: 5px 16px 5px 0; }
+table.tests td.where { color: var(--muted); white-space: nowrap; text-align: right; padding-right: 0; }
+.body, .meta, .title { min-width: 0; overflow-wrap: anywhere; }
+.tag { font-size: 12.5px; font-weight: 700; margin-right: 8px; }
+.tag.FAIL { color: var(--fail); } .tag.assisted { color: var(--link); } .tag.manual { color: var(--caution); } .tag.auto { color: var(--pass); }
+.locs { margin: 0 0 10px 20px; padding: 0; list-style: none; color: var(--muted); }
+.locs li { overflow-wrap: anywhere; }
+table.plain { border-collapse: collapse; width: 100%; margin: 4px 0 8px; table-layout: fixed; }
+table.plain th:first-child, table.plain td:first-child { width: 52%; }
+table.plain th, table.plain td { text-align: left; padding: 6px 12px 6px 0; border-top: 1px solid var(--rule); vertical-align: top; overflow-wrap: anywhere; }
+table.plain th { color: var(--muted); font-weight: 400; font-size: 13px; border-top: 0; }
+.level { display: inline-block; padding: 0 7px; border: 1px solid currentColor; border-radius: 3px; font-size: 12px; font-weight: 600; line-height: 1.6; }
+.level.major { color: var(--caution); } .level.minor { color: var(--link); } .level.patch { color: var(--muted); }
+
+/* 변경 사항: git diff 처럼 파일 목록과 파일별 diff */
+.diffbar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 18px 0 12px; }
+.diffbar .total { font-weight: 600; }
+.diffbar .total .a { color: var(--pass); } .diffbar .total .d { color: var(--fail); }
+.diffbar .spacer { flex: 1; }
+.diffbar input { width: 240px; max-width: 100%; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: none; padding: 5px 11px; cursor: pointer; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--sunk); color: var(--ink); font-weight: 600; }
+.plainbtn { border: 1px solid var(--rule); border-radius: 6px; background: none; padding: 5px 11px; cursor: pointer; }
+.changes { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 900px) { .changes { grid-template-columns: minmax(0, 1fr); } .filetree { position: static !important; max-height: none !important; } }
+.filetree { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; border: 1px solid var(--rule); border-radius: 8px; padding: 6px 0; }
+.filetree .dir { padding: 6px 12px 2px; color: var(--muted); font-size: 12.5px; overflow-wrap: anywhere; }
+.filetree a { display: flex; gap: 6px; align-items: baseline; padding: 3px 12px 3px 20px; text-decoration: none; color: var(--ink); font-size: 13px; }
+.filetree a:hover { background: var(--sunk); }
+.filetree .name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.st { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; font-weight: 700; width: 14px; flex: none; }
+.st.A { color: var(--pass); } .st.D { color: var(--fail); } .st.M { color: var(--caution); } .st.R { color: var(--link); }
+.stat { font-size: 12px; white-space: nowrap; } .stat .a { color: var(--pass); } .stat .d { color: var(--fail); }
+.file { border: 1px solid var(--rule); border-radius: 8px; margin: 0 0 14px; overflow: hidden; background: var(--raised); }
+.file > summary { display: flex; gap: 10px; align-items: center; padding: 8px 12px; background: var(--sunk); border-bottom: 1px solid var(--rule); }
+.file:not([open]) > summary { border-bottom: 0; }
+.file > summary::before { content: "▾"; color: var(--muted); width: 12px; }
+.file:not([open]) > summary::before { content: "▸"; }
+.file .path { flex: 1; min-width: 0; font-family: ui-monospace, Menlo, monospace; font-size: 13px; overflow-wrap: anywhere; font-weight: 600; }
+.origin { font-size: 11.5px; padding: 1px 7px; border-radius: 9px; border: 1px solid var(--rule); color: var(--muted); white-space: nowrap; }
+.origin.custom { color: var(--link); border-color: color-mix(in srgb, var(--link) 40%, transparent); }
+.diffwrap { overflow-x: auto; }
+table.diff { border-collapse: collapse; width: 100%; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; line-height: 1.5; }
+table.diff td { padding: 0 8px; vertical-align: top; white-space: pre; }
+table.diff td.num { width: 1%; min-width: 44px; text-align: right; color: var(--muted); user-select: none; border-right: 1px solid var(--rule); }
+table.diff td.sign { width: 1%; padding: 0 2px 0 8px; user-select: none; color: var(--muted); }
+table.diff tr.add td { background: var(--add-line); } table.diff tr.add td.num { background: var(--add-num); }
+table.diff tr.del td { background: var(--del-line); } table.diff tr.del td.num { background: var(--del-num); }
+table.diff td.add { background: var(--add-line); } table.diff td.num.add { background: var(--add-num); }
+table.diff td.del { background: var(--del-line); } table.diff td.num.del { background: var(--del-num); }
+table.diff td.blank { background: var(--sunk); }
+table.diff tr.hunk td { background: var(--hunk); color: var(--hunk-ink); padding-top: 3px; padding-bottom: 3px; }
+table.diff mark { background: none; border-radius: 2px; }
+table.diff .add mark, table.diff tr.add mark { background: var(--add-word); }
+table.diff .del mark, table.diff tr.del mark { background: var(--del-word); }
+table.diff.split td.code { width: 50%; }
+.more { padding: 10px 12px; color: var(--muted); font-size: 13px; }
+.more button { border: 0; background: none; color: var(--link); cursor: pointer; padding: 0; }
+.hidden { display: none !important; }
+footer { color: var(--muted); font-size: 13px; margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--rule); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="title">마이그레이션 결과</h1>
+      <p class="sub" id="subtitle"></p>
+    </div>
+    <span class="when" id="when"></span>
+  </header>
+  <nav aria-label="업그레이드 경로"><ol class="rail" id="rail"></ol></nav>
+  <div id="head"></div>
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <main id="stage"></main>
+  <footer id="footer"></footer>
+</div>
+<script id="data" type="application/json">/*__DATA__*/</script>
+<script>
+(function () {
+  const DATA = JSON.parse(document.getElementById('data').textContent);
+  const $ = (tag, attrs, ...children) => {
+    const el = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (v == null || v === false) continue;
+      if (k === 'class') el.className = v; else if (k.startsWith('on')) el.addEventListener(k.slice(2), v); else el.setAttribute(k, v === true ? '' : v);
+    }
+    for (const c of children.flat()) if (c != null && c !== false) el.append(c instanceof Node ? c : document.createTextNode(String(c)));
+    return el;
+  };
+  const code = (t) => $('code', null, t);
+  // result.html 과 같은 폴더의 파일 (stage 폴더의 로그와 patch)
+  const fileLink = (name) => $('a', { href: encodeURI(name), class: 'mono' }, name);
+  const line = (...parts) => $('span', null, ...parts);
+  // 가이드 문장 안의 `코드` 를 코드 표기로
+  const rich = (t) => {
+    if (t == null) return null;
+    const span = $('span');
+    String(t).split('`').forEach((part, i) => span.append(i % 2 ? code(part) : document.createTextNode(part)));
+    return span;
+  };
+  const shortRecipe = (name) => name.replace(/^com\.eottabom\.rewrite\./, '');
+
+  function status(r) {
+    if (!r) return 'warn';
+    if (r.compile === 'fail') return 'fail';
+    if ((r.tests.failures || []).some(f => !f.existing) || (r.tests.unreadable || []).length) return 'fail';
+    if (r.build === 'fail' && !r.buildFailureExisting) return 'fail';
+    return 'ok';
+  }
+  const STATE = { ok: '통과', fail: '멈춤', warn: '결과 없음' };
+
+  document.getElementById('title').textContent = DATA.project;
+  document.getElementById('subtitle').textContent =
+    'Spring Boot ' + DATA.startBoot + '에서 ' + DATA.currentBoot + '까지, ' + DATA.stages.length + '개 stage';
+  document.getElementById('when').textContent = DATA.generatedAt + ' 기준';
+  document.getElementById('footer').textContent =
+    '같은 내용이 이 폴더의 stage 폴더(result.md, stage.patch, cumulative.patch, 로그)와 history.md 에도 있어요.';
+
+  const rail = document.getElementById('rail');
+  let current = DATA.stages.length - 1;
+  let tab = 'check';
+  rail.append($('li', { class: 'station' }, $('span', { class: 'start' },
+    $('span', { class: 'node' }), $('span', { class: 'label' }, DATA.startBoot), $('span', { class: 'state' }, '시작'))));
+  DATA.stages.forEach((s, i) => {
+    const st = status(s.result);
+    rail.append($('li', { class: 'station ' + st },
+      $('button', { type: 'button', 'aria-pressed': String(i === current), onclick: () => select(i) },
+        $('span', { class: 'node' }), $('span', { class: 'label' }, s.name), $('span', { class: 'state' }, STATE[st]))));
+  });
+
+  function select(i) {
+    current = i;
+    const buttons = rail.querySelectorAll('button');
+    buttons.forEach((c, j) => c.setAttribute('aria-pressed', String(j === i)));
+    // 좁은 화면에서도 고른 stage 가 경로 가운데 보이게 한다
+    const li = buttons[i].parentElement;
+    rail.scrollLeft = li.offsetLeft - (rail.clientWidth - li.offsetWidth) / 2;
+    render(DATA.stages[i]);
+  }
+
+  function card(title, count, desc, ...body) {
+    return $('section', { class: 'part' },
+      $('h2', null, title, count != null ? $('span', { class: 'count' }, count) : null),
+      desc ? $('p', { class: 'desc' }, desc) : null, ...body);
+  }
+
+  // 제목만 한 줄로 보이고, 펼치면 설명과 위치가 나온다. open 이면 처음부터 펼쳐 둔다
+  function entry(tag, title, body, meta, open) {
+    return $('details', { class: 'entry', open: open || null },
+      $('summary', null, $('span', { class: 'grow title' }, tag ? $('span', { class: 'tag ' + tag }, tagLabel(tag)) : null, typeof title === 'string' ? rich(title) : title)),
+      $('div', { class: 'body' },
+        body ? $('div', null, typeof body === 'string' ? rich(body) : body) : null,
+        meta ? $('div', { class: 'meta' }, typeof meta === 'string' ? rich(meta) : meta) : null));
+  }
+  const tagLabel = (t) => ({ manual: '사람', assisted: '확인', auto: '자동', FAIL: '실패' }[t] || t);
+
+  // ---------------------------------------------------------------- diff
+  function parsePatch(text) {
+    const files = [];
+    let cur = null, hunk = null, oldNo = 0, newNo = 0;
+    for (const raw of (text || '').split('\n')) {
+      if (raw.startsWith('diff --git ')) {
+        const m = raw.match(/^diff --git a\/(.*) b\/(.*)$/);
+        cur = { path: m ? m[2] : raw.slice(11), from: m ? m[1] : null, status: 'M', hunks: [], add: 0, del: 0, binary: false };
+        files.push(cur); hunk = null;
+        continue;
+      }
+      if (!cur) continue;
+      if (!hunk) {
+        if (raw.startsWith('new file')) { cur.status = 'A'; continue; }
+        if (raw.startsWith('deleted file')) { cur.status = 'D'; continue; }
+        if (raw.startsWith('rename from')) { cur.status = 'R'; cur.from = raw.slice(12); continue; }
+        if (raw.startsWith('Binary files')) { cur.binary = true; continue; }
+        if (!raw.startsWith('@@')) continue;
+      }
+      if (raw.startsWith('@@')) {
+        const m = raw.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@(.*)$/);
+        oldNo = m ? +m[1] : 0; newNo = m ? +m[2] : 0;
+        hunk = { header: raw, lines: [] };
+        cur.hunks.push(hunk);
+        continue;
+      }
+      if (raw.startsWith('\\')) continue;
+      if (raw.startsWith('+')) { hunk.lines.push({ t: 'add', n: null, m: newNo++, s: raw.slice(1) }); cur.add++; }
+      else if (raw.startsWith('-')) { hunk.lines.push({ t: 'del', n: oldNo++, m: null, s: raw.slice(1) }); cur.del++; }
+      // 빈 문맥 줄도 공백 하나로 시작한다. 아무것도 없는 줄은 patch 의 마지막 개행이다
+      else if (raw.startsWith(' ')) { hunk.lines.push({ t: 'ctx', n: oldNo++, m: newNo++, s: raw.slice(1) }); }
+    }
+    return files;
+  }
+
+  // 바꾼 줄 쌍에서 앞뒤로 같은 부분을 빼고 가운데만 강조한다
+  function wordDiff(a, b) {
+    let p = 0;
+    while (p < a.length && p < b.length && a[p] === b[p]) p++;
+    let s = 0;
+    while (s < a.length - p && s < b.length - p && a[a.length - 1 - s] === b[b.length - 1 - s]) s++;
+    return [[a.slice(0, p), a.slice(p, a.length - s), a.slice(a.length - s)], [b.slice(0, p), b.slice(p, b.length - s), b.slice(b.length - s)]];
+  }
+  function marked(parts) {
+    const td = $('td', { class: 'code' });
+    if (!parts[1] || (parts[0].length === 0 && parts[2].length === 0)) { td.append(parts.join('')); return td; }
+    td.append(parts[0], $('mark', null, parts[1]), parts[2]);
+    return td;
+  }
+  function plain(text) { return $('td', { class: 'code' }, text); }
+
+  // 한 hunk 안의 연속된 삭제와 추가를 짝지어 강조한다
+  function pairs(lines) {
+    const out = [];
+    for (let i = 0; i < lines.length;) {
+      if (lines[i].t !== 'del') { out.push({ one: lines[i] }); i++; continue; }
+      const dels = []; while (i < lines.length && lines[i].t === 'del') dels.push(lines[i++]);
+      const adds = []; while (i < lines.length && lines[i].t === 'add') adds.push(lines[i++]);
+      for (let k = 0; k < Math.max(dels.length, adds.length); k++) out.push({ del: dels[k], add: adds[k] });
+    }
+    return out;
+  }
+
+  function unifiedTable(f) {
+    const table = $('table', { class: 'diff' });
+    const body = $('tbody');
+    for (const h of f.hunks) {
+      body.append($('tr', { class: 'hunk' }, $('td', { class: 'num' }), $('td', { class: 'num' }), $('td', { colspan: 2 }, h.header)));
+      const rowsDel = [], rowsAdd = [];
+      const flush = () => { body.append(...rowsDel, ...rowsAdd); rowsDel.length = 0; rowsAdd.length = 0; };
+      for (const p of pairs(h.lines)) {
+        if (p.one) {
+          flush();
+          const l = p.one;
+          body.append($('tr', { class: l.t === 'ctx' ? '' : l.t }, $('td', { class: 'num' }, l.n ?? ''), $('td', { class: 'num' }, l.m ?? ''),
+            $('td', { class: 'sign' }, l.t === 'add' ? '+' : l.t === 'del' ? '-' : ' '), plain(l.s)));
+          continue;
+        }
+        const [a, b] = (p.del && p.add) ? wordDiff(p.del.s, p.add.s) : [null, null];
+        if (p.del) rowsDel.push($('tr', { class: 'del' }, $('td', { class: 'num' }, p.del.n), $('td', { class: 'num' }), $('td', { class: 'sign' }, '-'), a ? marked(a) : plain(p.del.s)));
+        if (p.add) rowsAdd.push($('tr', { class: 'add' }, $('td', { class: 'num' }), $('td', { class: 'num' }, p.add.m), $('td', { class: 'sign' }, '+'), b ? marked(b) : plain(p.add.s)));
+      }
+      flush();
+    }
+    table.append(body);
+    return table;
+  }
+
+  function splitTable(f) {
+    const table = $('table', { class: 'diff split' });
+    const body = $('tbody');
+    for (const h of f.hunks) {
+      body.append($('tr', { class: 'hunk' }, $('td', { class: 'num' }), $('td', { colspan: 2 }, h.header), $('td', { class: 'num' }), $('td', { colspan: 2 })));
+      for (const p of pairs(h.lines)) {
+        if (p.one && p.one.t === 'ctx') {
+          const l = p.one;
+          body.append($('tr', null, $('td', { class: 'num' }, l.n), $('td', { class: 'sign' }, ' '), plain(l.s), $('td', { class: 'num' }, l.m), $('td', { class: 'sign' }, ' '), plain(l.s)));
+          continue;
+        }
+        const del = p.one ? (p.one.t === 'del' ? p.one : null) : p.del;
+        const add = p.one ? (p.one.t === 'add' ? p.one : null) : p.add;
+        const [a, b] = (del && add) ? wordDiff(del.s, add.s) : [null, null];
+        const left = del ? [$('td', { class: 'num del' }, del.n), $('td', { class: 'sign del' }, '-'), (a ? marked(a) : plain(del.s))]
+          : [$('td', { class: 'num blank' }), $('td', { class: 'sign blank' }), $('td', { class: 'code blank' })];
+        const right = add ? [$('td', { class: 'num add' }, add.m), $('td', { class: 'sign add' }, '+'), (b ? marked(b) : plain(add.s))]
+          : [$('td', { class: 'num blank' }), $('td', { class: 'sign blank' }), $('td', { class: 'code blank' })];
+        if (del && left[2]) left[2].classList.add('del');
+        if (add && right[2]) right[2].classList.add('add');
+        body.append($('tr', null, ...left, ...right));
+      }
+    }
+    table.append(body);
+    return table;
+  }
+
+  const DIFF = { split: false, filter: '' };
+  // 줄이 많은 파일은 처음에 접어 둔다
+  const LARGE = 400;
+
+  function changesView(s, r) {
+    const files = parsePatch(s.patch);
+    const container = $('div');
+    const origin = new Map();
+    for (const c of (r.changes && r.changes.custom) || []) for (const f of c.files) origin.set(f, shortRecipe(c.recipe));
+    const adds = files.reduce((n, f) => n + f.add, 0), dels = files.reduce((n, f) => n + f.del, 0);
+
+    const custom = (r.changes && r.changes.custom) || [];
+    const upstream = (r.changes && r.changes.upstream) || [];
+    if (custom.length || upstream.length || (r.deprecationFixes || []).length) {
+      const who = [];
+      if (custom.length) who.push($('h3', null, 'custom 레시피'), ...custom.map(c => $('details', { class: 'entry' },
+        $('summary', null, $('span', { class: 'grow mono' }, shortRecipe(c.recipe)), $('span', { class: 'count' }, c.files.length + '개 파일')),
+        $('ul', { class: 'locs' }, c.files.map(x => $('li', { class: 'mono' }, x))))));
+      if (upstream.length) who.push($('h3', null, 'upstream 레시피만 바꾼 파일'), $('details', { class: 'entry' },
+        $('summary', null, $('span', { class: 'grow' }, 'upstream'), $('span', { class: 'count' }, upstream.length + '개 파일')),
+        $('ul', { class: 'locs' }, upstream.map(x => $('li', { class: 'mono' }, x)))));
+      if ((r.deprecationFixes || []).length) who.push($('h3', null, 'deprecated API 대체 레시피'),
+        $('ul', { class: 'locs' }, r.deprecationFixes.map(x => $('li', { class: 'mono' }, shortRecipe(x)))));
+      container.append(card('레시피 변경', null, '어떤 레시피가 어떤 파일을 바꿨는지. 아래 diff 의 파일마다 표시도 붙어 있어요.', ...who));
+    }
+
+    if (!files.length) {
+      container.append(card('diff', null, null, $('p', { class: 'empty' }, s.patch == null
+        ? line('이 stage 의 diff 가 없어요 (git 저장소가 아니거나 예전 버전으로 실행). 누적 변경은 ', fileLink(s.tag + '/cumulative.patch'))
+        : '바뀐 파일이 없어요.')));
+      return container;
+    }
+
+    const list = $('div');
+    const tree = $('nav', { class: 'filetree', 'aria-label': '바뀐 파일' });
+    const cards = [];
+    const dirs = new Map();
+    files.forEach((f, i) => {
+      const id = 'f' + current + '-' + i;
+      const slash = f.path.lastIndexOf('/');
+      const dir = slash >= 0 ? f.path.slice(0, slash) : '';
+      if (!dirs.has(dir)) dirs.set(dir, []);
+      dirs.get(dir).push({ f, id });
+      const who = origin.get(f.path);
+      const body = $('div', { class: 'diffwrap' });
+      const total = f.add + f.del;
+      const draw = () => body.replaceChildren(f.binary ? $('div', { class: 'more' }, '바이너리 파일') : (DIFF.split ? splitTable(f) : unifiedTable(f)));
+      const details = $('details', { class: 'file', id, open: total <= LARGE || null },
+        $('summary', null,
+          $('span', { class: 'st ' + f.status }, f.status),
+          $('span', { class: 'path' }, f.status === 'R' && f.from ? f.from + ' → ' + f.path : f.path),
+          $('span', { class: 'origin' + (who ? ' custom' : '') }, who || 'upstream'),
+          $('span', { class: 'stat' }, $('span', { class: 'a' }, '+' + f.add), ' ', $('span', { class: 'd' }, '-' + f.del))),
+        body);
+      if (details.open) draw();
+      details.addEventListener('toggle', () => { if (details.open && !body.firstChild) draw(); });
+      details._draw = draw; details._body = body; details._path = f.path;
+      cards.push(details);
+      list.append(details);
+    });
+    for (const [dir, entries] of [...dirs.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+      if (dir) tree.append($('div', { class: 'dir' }, dir + '/'));
+      for (const { f, id } of entries) {
+        tree.append($('a', { href: '#' + id, 'data-path': f.path, onclick: (e) => { e.preventDefault(); const el = document.getElementById(id); el.open = true; el.scrollIntoView({ block: 'start' }); } },
+          $('span', { class: 'st ' + f.status }, f.status),
+          $('span', { class: 'name' }, f.path.slice(dir ? dir.length + 1 : 0)),
+          $('span', { class: 'stat' }, $('span', { class: 'a' }, '+' + f.add), ' ', $('span', { class: 'd' }, '-' + f.del))));
+      }
+    }
+
+    const redraw = () => cards.forEach(c => { if (c.open) c._draw(); else c._body.replaceChildren(); });
+    const seg = $('div', { class: 'seg', role: 'group', 'aria-label': 'diff 보기 방식' });
+    const unifiedBtn = $('button', { type: 'button', 'aria-pressed': String(!DIFF.split), onclick: () => { DIFF.split = false; unifiedBtn.setAttribute('aria-pressed', 'true'); splitBtn.setAttribute('aria-pressed', 'false'); redraw(); } }, '한 줄 보기');
+    const splitBtn = $('button', { type: 'button', 'aria-pressed': String(DIFF.split), onclick: () => { DIFF.split = true; splitBtn.setAttribute('aria-pressed', 'true'); unifiedBtn.setAttribute('aria-pressed', 'false'); redraw(); } }, '나란히 보기');
+    seg.append(unifiedBtn, splitBtn);
+    const filter = $('input', { type: 'search', placeholder: '파일 이름으로 거르기', 'aria-label': '파일 이름으로 거르기', value: DIFF.filter });
+    const applyFilter = () => {
+      DIFF.filter = filter.value.trim().toLowerCase();
+      cards.forEach(c => c.classList.toggle('hidden', !!DIFF.filter && !c._path.toLowerCase().includes(DIFF.filter)));
+      tree.querySelectorAll('a').forEach(a => a.classList.toggle('hidden', !!DIFF.filter && !a.dataset.path.toLowerCase().includes(DIFF.filter)));
+    };
+    filter.addEventListener('input', applyFilter);
+    const expand = $('button', { type: 'button', class: 'plainbtn', onclick: () => cards.forEach(c => { c.open = true; }) }, '모두 펼치기');
+    const collapse = $('button', { type: 'button', class: 'plainbtn', onclick: () => cards.forEach(c => { c.open = false; }) }, '모두 접기');
+    container.append($('div', { class: 'diffbar' },
+      $('span', { class: 'total' }, files.length + '개 파일, ', $('span', { class: 'a' }, '+' + adds), ' ', $('span', { class: 'd' }, '-' + dels)),
+      $('span', { class: 'spacer' }), filter, seg, expand, collapse));
+    if (s.patchTruncated) container.append($('p', { class: 'desc' }, line('diff 가 커서 앞부분만 보여 줘요. 전체는 ', fileLink(s.tag + '/stage.patch'))));
+    container.append($('div', { class: 'changes' }, tree, list));
+    applyFilter();
+    return container;
+  }
+
+  // ---------------------------------------------------------------- 확인할 것, 참고
+  function checksView(s, r) {
+    const main = $('div');
+    const failures = (r.tests.failures || []).filter(f => !f.existing);
+    const existing = (r.tests.failures || []).filter(f => f.existing);
+    const blockers = [];
+    if (r.compile === 'fail') blockers.push(entry('FAIL', '컴파일 실패', line('에러는 ', fileLink(s.tag + '/compile.log'), ' 에 있어요. 고치고 같은 명령을 다시 실행하면 이어서 진행해요.'), null, true));
+    if (r.build === 'fail' && !r.buildFailureExisting) blockers.push(entry('FAIL', '빌드 실패 (테스트 외의 패키징, 플러그인, 검사)', line('로그는 ', fileLink(s.tag + '/build.log'), ' 에 있어요. 실패한 태스크는 ', fileLink(s.tag + '/failed-tasks.txt')), null, true));
+    if ((r.tests.unreadable || []).length) blockers.push(entry('FAIL', '테스트 결과 ' + r.tests.unreadable.length + '개를 읽지 못함', '결과가 실제보다 적게 집계될 수 있어 stage 를 막았어요.', r.tests.unreadable.join(', '), true));
+    // 같은 원인은 한 묶음으로 본다. 힌트가 붙었으면 힌트로, 아니면 예외와 메시지로 묶고 큰 묶음부터 보여 준다
+    const clean = (m) => (m || '').replace(/\s*\[in thread "[^"]*"\]$/, '');
+    const byCause = new Map();
+    for (const f of failures) {
+      const key = f.hint || (f.exception + '|' + clean(f.message));
+      if (!byCause.has(key)) byCause.set(key, []);
+      byCause.get(key).push(f);
+    }
+    [...byCause.values()].sort((a, b) => b.length - a.length).forEach((list, n) => {
+      const f = list[0];
+      const [cause, ...todo] = (f.hint || '').split(/(?<=\.)\s+/);
+      const title = f.hint ? cause : f.exception + (f.message ? ': ' + clean(f.message) : '');
+      const byClass = {};
+      for (const x of list) (byClass[x.className.split('.').pop()] ||= []).push(x);
+      const classes = Object.entries(byClass).sort((a, b) => b[1].length - a[1].length);
+      blockers.push(entry('FAIL', $('span', null, rich(title), ' ', $('span', { class: 'count' }, '테스트 ' + list.length + '개')),
+        $('div', null,
+          todo.length ? $('div', { class: 'hint' }, rich(todo.join(' '))) : null,
+          f.hint && f.message ? $('div', { class: 'mono' }, f.exception + ': ' + clean(f.message)) : null,
+          $('div', { class: 'classes' }, classes.map(([c, xs]) => $('details', { class: 'fold' },
+            $('summary', null, $('span', { class: 'grow mono' }, c), $('span', { class: 'count' }, xs.length + '개')),
+            $('table', { class: 'tests' }, $('tbody', null, xs.map(x => $('tr', null,
+              $('td', null, x.testName), $('td', { class: 'mono where', title: '스택의 첫 프로젝트 코드 프레임' }, x.firstProjectFrame || ''))))))))),
+        null, n < 2));
+    });
+    if (blockers.length) {
+      const c = card('실패', blockers.length + '건', '고치고 같은 명령을 다시 실행하면 이 stage 검증부터 다시 하고, 통과하면 다음 stage 로 넘어가요.', ...blockers);
+      c.classList.add('blocker');
+      main.append(c);
+    }
+    const checks = [];
+    const flaky = r.tests.flaky || [];
+    if (flaky.length) checks.push(entry('assisted', '다시 돌려 통과한 테스트 ' + flaky.length + '건',
+      '실패했다가 다시 돌려서 통과한 테스트라 stage 를 막지 않았어요. 불안정한 테스트인지 봐 주세요.',
+      flaky.slice(0, 5).map(id => id.split('#')[0].split('.').pop() + ' ' + id.split('#')[1]).join(' / ') + (flaky.length > 5 ? ' …' : '')));
+    if (existing.length) checks.push(entry('manual', '원본에서도 실패하던 테스트 ' + existing.length + '건',
+      '마이그레이션 전부터 실패하던 테스트라 stage 를 막지 않아요.',
+      existing.slice(0, 5).map(x => x.className.split('.').pop() + ' ' + x.testName).join(' / ') + (existing.length > 5 ? ' …' : '')));
+    for (const i of (r.checklist || []).filter(i => i.fix !== 'auto')) {
+      checks.push(entry(i.fix, i.title,
+        $('div', null, rich(i.detail || ''), i.trigger ? $('div', { class: 'meta' }, rich(i.trigger)) : null,
+          i.detect ? $('div', { class: 'meta' }, '검색 레시피 ', code(shortRecipe(i.detect)), ' 가 찾은 위치는 참고 탭에 있어요.') : null),
+        i.source ? $('a', { href: i.source, target: '_blank', rel: 'noopener' }, '원문 보기') : null));
+    }
+    for (const w of r.warnings.removal || []) {
+      checks.push(entry('assisted', '제거 예정 API 사용 (' + w.message + ')',
+        '대체 레시피가 없는 API 라 직접 정리해 주세요. 다음 stage 에서 컴파일이 깨질 수 있어요. ' + w.locations.length + '곳', w.locations.slice(0, 5).join(', ') + (w.locations.length > 5 ? ' …' : '')));
+    }
+    for (const kind of ['renamed', 'unsupported']) {
+      for (const p of r.properties[kind] || []) {
+        checks.push(entry('assisted', '설정 키 ' + (kind === 'renamed' ? '이름 변경 ' : '지원 중단 ') + p.key + (p.replacement ? ' → ' + p.replacement : ''), p.source));
+      }
+    }
+    const auto = (r.checklist || []).filter(i => i.fix === 'auto');
+    for (const i of auto) checks.push(entry('auto', i.title, rich(i.detail || ''), i.recipe ? code(shortRecipe(i.recipe)) : null));
+    main.append(card('확인할 것', checks.length ? checks.length + '건' : null,
+      '테스트가 통과해도 동작이 바뀔 수 있는 것, 바뀐 설정 키, 다음 stage 에서 깨질 API예요. 제목을 누르면 설명이 열려요.',
+      checks.length ? null : $('p', { class: 'empty' }, '확인할 게 없어요.'), ...checks));
+    return main;
+  }
+
+  function refsView(s, r) {
+    const main = $('div');
+    const dep = r.deps || { changed: [], added: [], removed: [] };
+    const important = dep.changed.filter(d => d.level !== 'patch');
+    if (dep.changed.length || dep.added.length || dep.removed.length) {
+      const parts = [$('p', { class: 'desc' }, '변경 ' + dep.changed.length + ', 추가 ' + dep.added.length + ', 제거 ' + dep.removed.length + '. 라이브러리 버그는 주로 major/minor 변경에서 나와요.')];
+      if (important.length) parts.push($('table', { class: 'plain' }, $('thead', null, $('tr', null, $('th', null, '라이브러리'), $('th', null, '이전'), $('th', null, '이후'), $('th', null, '구분'))),
+        $('tbody', null, important.map(d => $('tr', null, $('td', { class: 'mono' }, d.name), $('td', null, d.before), $('td', null, d.after), $('td', null, $('span', { class: 'level ' + d.level }, d.level)))))));
+      const rest = dep.changed.filter(d => d.level === 'patch');
+      if (rest.length) parts.push($('details', { class: 'entry' }, $('summary', null, $('span', { class: 'grow' }, 'patch 버전 변경'), $('span', { class: 'count' }, rest.length + '개')),
+        $('ul', { class: 'locs' }, rest.map(d => $('li', { class: 'mono' }, d.name + ' ' + d.before + ' → ' + d.after)))));
+      for (const [label, list] of [['추가', dep.added], ['제거', dep.removed]]) {
+        if (list.length) parts.push($('details', { class: 'entry' }, $('summary', null, $('span', { class: 'grow' }, label + '된 의존성'), $('span', { class: 'count' }, list.length + '개')),
+          $('ul', { class: 'locs' }, list.map(x => $('li', { class: 'mono' }, x)))));
+      }
+      main.append(card('의존성 버전 변경 (transitive 포함)', null, null, ...parts));
+    }
+    const detect = r.detect || [];
+    if (detect.length) {
+      const byFile = {};
+      for (const m of detect) (byFile[m.file] ||= []).push(m.code);
+      main.append(card('검색 결과 (detect)', detect.length + '곳', '레시피가 자동으로 바꾸지 않는 코드를 검색으로 찾은 위치예요. 문제인지는 판정하지 않아요.',
+        ...Object.entries(byFile).map(([file, lines]) => $('details', { class: 'entry' }, $('summary', null, $('span', { class: 'grow mono' }, file), $('span', { class: 'count' }, lines.length + '곳')),
+          $('ul', { class: 'locs' }, lines.map(x => $('li', { class: 'mono' }, x)))))));
+    }
+    const deprecated = r.warnings.deprecation || [];
+    if (deprecated.length) {
+      main.append(card('deprecated API 사용', deprecated.length + '종류', '대체 레시피가 없어 남은 것이에요. 지금은 괜찮지만 이후 버전에서 없어질 수 있어요.',
+        ...deprecated.map(w => $('details', { class: 'entry' }, $('summary', null, $('span', { class: 'grow' }, w.message), $('span', { class: 'count' }, w.locations.length + '곳')),
+          $('ul', { class: 'locs' }, w.locations.map(x => $('li', { class: 'mono' }, x)))))));
+    }
+    if (r.source) main.append(card('공식 가이드', null, null, $('p', null, $('a', { href: r.source, target: '_blank', rel: 'noopener' }, r.source))));
+    if (!main.childNodes.length) main.append(card('참고', null, null, $('p', { class: 'empty' }, '참고할 게 없어요.')));
+    return main;
+  }
+
+  function render(s) {
+    const main = document.getElementById('stage');
+    const head = document.getElementById('head');
+    const tabs = document.getElementById('tabs');
+    main.replaceChildren(); head.replaceChildren(); tabs.replaceChildren();
+    const r = s.result;
+    if (!r) {
+      head.append($('div', { class: 'stage-head' }, $('h2', null, s.name + ' stage')));
+      main.append(card('결과 없음', null, line('이 stage 는 ', fileLink(s.tag + '/result.md'), ' 에서 확인해 주세요.')));
+      return;
+    }
+    const failures = (r.tests.failures || []).filter(f => !f.existing);
+    const existing = (r.tests.failures || []).filter(f => f.existing);
+    const fact = (label, value, cls) => $('div', null, $('dt', null, label), $('dd', { class: cls || null }, value));
+    const tests = !r.tests.total ? fact('테스트', '실행 안 함')
+      : fact('테스트', r.tests.total + '개 중 ' + (failures.length ? failures.length + '개 실패' : '모두 통과') + (existing.length ? ', 기존 실패 ' + existing.length + '개' : ''), failures.length ? 'fail' : 'ok');
+    const build = r.build === 'ok' ? fact('빌드', '통과', 'ok')
+      : r.build === 'fail' ? fact('빌드', r.buildFailureExisting ? '실패 (원본에서도 실패)' : '실패', r.buildFailureExisting ? 'warn' : 'fail')
+      : fact('빌드', '실행 안 함');
+    const covers = (r.covers || []).length > 1 ? $('span', { class: 'covers' }, r.covers.join(' → ')) : null;
+    head.append($('div', { class: 'stage-head' },
+      $('h2', null, (/^\d/.test(s.name) ? 'Spring Boot ' : '') + s.name + ' stage', covers),
+      $('dl', { class: 'facts' },
+        fact('컴파일', { ok: '통과', fail: '실패', skip: '실행 안 함' }[r.compile], r.compile === 'ok' ? 'ok' : r.compile === 'fail' ? 'fail' : null),
+        tests, build, fact('바뀐 파일', ((r.changes && r.changes.files) || []).length + '개'),
+        fact('deprecated 대체', (r.deprecationFixes || []).length + '개')),
+      $('p', { class: 'logs' }, '파일 ',
+        r.compile !== 'skip' ? fileLink(s.tag + '/compile.log') : null,
+        r.build !== 'skip' ? fileLink(s.tag + '/build.log') : null,
+        fileLink(s.tag + '/rewrite.log'), fileLink(s.tag + '/result.md'), fileLink(s.tag + '/stage.patch'))));
+
+    const blocking = status(r) === 'fail';
+    const checkCount = (r.checklist || []).length + (r.warnings.removal || []).length + (r.properties.renamed || []).length + (r.properties.unsupported || []).length;
+    const changed = parsePatch(s.patch).length;
+    const TABS = [
+      ['check', '확인할 것', blocking ? '실패' : String(checkCount), blocking],
+      ['changes', '변경 사항', String(changed), false],
+      ['refs', '참고', null, false],
+    ];
+    for (const [id, label, badge, bad] of TABS) {
+      tabs.append($('button', { type: 'button', role: 'tab', 'aria-selected': String(tab === id), onclick: () => { tab = id; render(s); } },
+        label, badge != null ? $('span', { class: 'badge' + (bad ? ' fail' : '') }, badge) : null));
+    }
+    main.append(tab === 'changes' ? changesView(s, r) : tab === 'refs' ? refsView(s, r) : checksView(s, r));
+  }
+
+  if (DATA.stages.length) select(current);
+  else document.getElementById('stage').append(card('아직 실행한 stage 가 없어요', null, 'migrationRun 을 실행하면 stage 가 끝날 때마다 이 페이지가 갱신돼요.'));
+})();
+</script>
+</body>
+</html>

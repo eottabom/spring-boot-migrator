@@ -1,0 +1,103 @@
+/*
+ * 마이그레이션 검증용 Gradle init script. 대상 프로젝트의 Gradle 안에서 돌기 때문에 Groovy 로 두고,
+ * 대상 빌드 모델이 필요한 것만 한다. 결과는 러너(StageResult)가 이 스크립트가 남긴 파일을 읽어 만든다.
+ *
+ *  - javac 에 -Xlint:deprecation,removal 을 켜서 "다음 버전에서 제거될 API" 사용처를 경고로 남긴다
+ *  - 테스트가 실패해도 끝까지 돌고 결과 XML 을 남기도록 한다 (실패한 테스트만 다시 돌리는 --tests 필터도 허용)
+ *  - 실패한 태스크를 -PmigrationFailedTasksOut 파일로 남긴다
+ *  - 테스트를 돌린 Test 태스크의 결과 XML 디렉토리를 -PmigrationTestResultsOut 파일로 남긴다
+ *  - migrationResolvedVersions: 전 모듈의 runtime/test classpath 에서 resolve 된 group:artifact=version 목록
+ */
+allprojects {
+    tasks.withType(JavaCompile).configureEach {
+        options.deprecation = true
+        options.compilerArgs.addAll(['-Xlint:deprecation', '-Xlint:removal', '-Xmaxwarns', '10000'])
+    }
+}
+
+// 실패한 태스크를 파일로 남긴다 (-PmigrationFailedTasksOut). 러너는 이 파일을 먼저 읽고, 없을 때만 로그 문구로 찾는다
+// (로그의 "Execution failed for task" 는 Gradle 버전과 출력 언어에 따라 달라질 수 있다)
+def failedTasksOut = gradle.startParameter.projectProperties['migrationFailedTasksOut']
+if (failedTasksOut) {
+    def out = new File(failedTasksOut)
+    out.parentFile.mkdirs()
+    out.text = ''
+    gradle.taskGraph.afterTask { Task task, TaskState state ->
+        if (state.failure != null) {
+            synchronized (out) {
+                out << task.path << '\n'
+            }
+        }
+    }
+}
+
+// 테스트를 하나 이상 돌린 Test 태스크의 결과 XML 디렉토리를 남긴다 (-PmigrationTestResultsOut). buildDir 이나 junitXml 위치를 바꾼
+// 프로젝트도 러너가 결과를 찾고, 테스트가 돌았는데 결과가 없는 태스크를 알아챈다. 테스트가 0개인 태스크(도우미 클래스만 있는 모듈,
+// 아무것도 걸리지 않는 필터)는 결과 XML 을 쓰지 않으므로 남기지 않는다
+def testResultsOut = gradle.startParameter.projectProperties['migrationTestResultsOut']
+def testResultsFile = null
+if (testResultsOut) {
+    testResultsFile = new File(testResultsOut)
+    testResultsFile.parentFile.mkdirs()
+    testResultsFile.text = ''
+}
+
+// 프로젝트의 test { } 블록이 이 설정을 덮어쓰지 않도록 모든 설정이 끝난 뒤에 적용한다
+gradle.taskGraph.whenReady { graph ->
+    graph.allTasks.findAll { it instanceof Test }.each { Test t ->
+        t.ignoreFailures = true
+        t.failFast = false
+        t.reports.junitXml.required = true
+        // 실패한 테스트만 다시 돌릴 때(--tests) 그 클래스가 없는 모듈은 실패하지 않게 한다
+        t.filter.failOnNoMatchingTests = false
+        if (testResultsFile != null) {
+            def dir = t.reports.junitXml.outputLocation.get().asFile.absolutePath
+            // 부모가 없는 suite 가 태스크 전체의 결과다
+            t.afterSuite { TestDescriptor suite, TestResult result ->
+                if (suite.parent == null && result.testCount > 0) {
+                    synchronized (testResultsFile) {
+                        testResultsFile << dir << '\n'
+                    }
+                }
+            }
+        }
+    }
+}
+
+def ver = { String v -> (v ?: '0').tokenize('.-').collect { it.isInteger() ? it.toInteger() : 0 } }
+def cmp = { String a, String b ->
+    def x = ver(a), y = ver(b)
+    for (int i = 0; i < Math.max(x.size(), y.size()); i++) {
+        int d = (i < x.size() ? x[i] : 0) <=> (i < y.size() ? y[i] : 0)
+        if (d != 0) return d
+    }
+    return 0
+}
+
+rootProject {
+    tasks.register('migrationResolvedVersions') {
+        group = 'migration'
+        description = '전 모듈의 resolve 된 의존성 버전 목록'
+        doLast {
+            def versions = new TreeMap<String, String>()
+            rootProject.allprojects.each { p ->
+                ['runtimeClasspath', 'testRuntimeClasspath'].each { name ->
+                    def c = p.configurations.findByName(name)
+                    if (c == null || !c.canBeResolved) return
+                    try {
+                        c.incoming.resolutionResult.allComponents.each { comp ->
+                            def id = comp.moduleVersion
+                            if (id == null || !(comp.id instanceof org.gradle.api.artifacts.component.ModuleComponentIdentifier)) return
+                            String key = "${id.group}:${id.name}"
+                            if (!versions[key] || cmp(id.version, versions[key]) > 0) versions[key] = id.version
+                        }
+                    } catch (ignored) { }
+                }
+            }
+            File out = file(findProperty('migrationVersionsOut') ?: "${rootDir}/build/resolved-versions.txt")
+            out.parentFile.mkdirs()
+            out.text = versions.collect { k, v -> "${k}=${v}" }.join('\n')
+            println "RESOLVED_VERSIONS=${out.absolutePath} (${versions.size()})"
+        }
+    }
+}

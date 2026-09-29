@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=../../schema/library-guide.schema.json
+library: org.mockito:mockito-core
+
+checklist:
+  - id: mockito-5
+    title: Mockito 5
+    detail: inline mock maker 가 기본이라 final 클래스/메서드도 mock 된다. mockito-inline 은 필요 없다
+    crosses: "5.0.0"

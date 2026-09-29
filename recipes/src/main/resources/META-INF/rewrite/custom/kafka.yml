@@ -1,0 +1,13 @@
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.kafka.UseJsonMapperForJacksonJsonSerializer
+displayName: Spring Kafka 4 JacksonJson(De)Serializer 에 JsonMapper 전달
+description: >-
+  Spring Kafka 4 의 JacksonJsonSerializer / JacksonJsonDeserializer 는 Jackson 3 JsonMapper 만 받는다.
+  이 클래스를 쓰는 파일에서 upstream Jackson 3 전환이 남긴 ObjectMapper 를 하위 타입인 JsonMapper 로 바꾼다 (Boot 4 는 JsonMapper 빈을 등록한다).
+preconditions:
+  - org.openrewrite.java.search.FindTypes:
+      fullyQualifiedTypeName: org.springframework.kafka.support.serializer.JacksonJson*
+recipeList:
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: tools.jackson.databind.ObjectMapper
+      newFullyQualifiedTypeName: tools.jackson.databind.json.JsonMapper

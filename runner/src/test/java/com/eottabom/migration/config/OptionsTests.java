@@ -1,0 +1,54 @@
+package com.eottabom.migration.config;
+
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+class OptionsTests {
+
+	@ParameterizedTest(name = "[{index}] --gate={0} -> {1}")
+	@CsvSource({ "compile, COMPILE, true, false", "build, BUILD, true, true", "none, NONE, false, false",
+			"NONE, NONE, false, false" })
+	void parsesGate(String option, Gate expected, boolean compiles, boolean builds) {
+		Gate gate = Gate.parse(option);
+
+		assertThat(gate).isEqualTo(expected);
+		assertThat(gate.compiles()).isEqualTo(compiles);
+		assertThat(gate.builds()).isEqualTo(builds);
+		assertThat(gate.option()).isEqualTo(expected.name().toLowerCase());
+	}
+
+	@ParameterizedTest(name = "[{index}] --java={0} -> {1} {2}")
+	@CsvSource(nullValues = "null", value = { "keep, KEEP, null, keep", "latest, LATEST, null, latest",
+			"none, NONE, null, none", "21, VERSION, 21, 21" })
+	void parsesJavaTarget(String option, JavaTarget.Kind kind, Integer version, String display) {
+		JavaTarget java = JavaTarget.parse(option);
+
+		assertThat(java.kind()).isEqualTo(kind);
+		assertThat(java.version()).isEqualTo(version);
+		assertThat(java).hasToString(display);
+	}
+
+	@ParameterizedTest(name = "[{index}] --mode={0} -> {1}")
+	@CsvSource({ "staged, STAGED", "ALL, ALL", "preview, PREVIEW" })
+	void parsesMode(String option, Mode expected) {
+		assertThat(Mode.parse(option)).isEqualTo(expected);
+		assertThat(expected.option()).isEqualTo(expected.name().toLowerCase());
+	}
+
+	@ParameterizedTest(name = "[{index}] {0}")
+	@ValueSource(strings = { "fast", "", "test" })
+	void rejectsUnknownGate(String option) {
+		assertThatThrownBy(() -> Gate.parse(option)).hasMessageContaining("--gate");
+	}
+
+	@ParameterizedTest(name = "[{index}] {0}")
+	@ValueSource(strings = { "java21", "", "newest", "auto" })
+	void rejectsUnknownJavaTarget(String option) {
+		assertThatThrownBy(() -> JavaTarget.parse(option)).hasMessageContaining("--java");
+	}
+
+}

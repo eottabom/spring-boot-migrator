@@ -1,0 +1,56 @@
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.logging.UpgradeLogstashEncoder_7
+displayName: logstash-logback-encoder 7.4
+description: logback 1.4 (Spring Boot 3.0~3.2) 호환 버전으로 업그레이드
+recipeList:
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: net.logstash.logback
+      artifactId: logstash-logback-encoder
+      newVersion: 7.4
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.logging.UpgradeLogstashEncoder_8
+displayName: logstash-logback-encoder 8.x
+description: logback 1.5 (Spring Boot 3.3~3.5) 호환 버전으로 업그레이드
+recipeList:
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: net.logstash.logback
+      artifactId: logstash-logback-encoder
+      newVersion: 8.x
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.logging.FixLogstashDecoratorForJackson3
+displayName: logstash JsonGeneratorDecorator 의 ObjectMapper 변경 코드 제거 (Jackson 3)
+description: >-
+  Jackson 2 시절 decorator 안에서 `(ObjectMapper) generator.getCodec()` 을 꺼내 feature 를 켜던 코드.
+  Jackson 3 의 ObjectMapper 는 불변이라 enable/disable/configure 가 없고, upstream 이 바꾼
+  `(ObjectMapper) generator.objectWriteContext()` 는 런타임에 ClassCastException 이 난다.
+  decorator 안의 해당 호출과, 그래서 안 쓰이게 된 ObjectMapper 지역 변수를 함께 제거한다.
+  generator 에 역직렬화 feature 를 켜던 코드라 원래도 출력에는 효과가 없었다. 필요하면 logstash encoder 의 jsonFactory 설정으로 옮긴다.
+preconditions:
+  - org.openrewrite.java.search.FindImplementations:
+      typeName: net.logstash.logback.decorate.JsonGeneratorDecorator
+recipeList:
+  - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: "*..ObjectMapper enable(..)"
+  - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: "*..ObjectMapper disable(..)"
+  - org.openrewrite.java.RemoveMethodInvocations:
+      methodPattern: "*..ObjectMapper configure(..)"
+  - org.openrewrite.staticanalysis.RemoveUnusedLocalVariables:
+      withType: tools.jackson.databind.ObjectMapper
+      withSideEffects: true
+  - org.openrewrite.staticanalysis.RemoveUnusedLocalVariables:
+      withType: com.fasterxml.jackson.databind.ObjectMapper
+      withSideEffects: true
+  - org.openrewrite.java.RemoveUnusedImports
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.logging.UpgradeLogstashEncoder_9
+displayName: logstash-logback-encoder 9.x
+description: Jackson 3 (Spring Boot 4.0) 기반 버전으로 업그레이드
+recipeList:
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: net.logstash.logback
+      artifactId: logstash-logback-encoder
+      newVersion: 9.x

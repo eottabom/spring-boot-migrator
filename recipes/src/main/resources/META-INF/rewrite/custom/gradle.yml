@@ -1,0 +1,45 @@
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.gradle.DeclareUsedTransitiveDependencies
+displayName: transitive 로만 들어오던 의존성 직접 선언
+description: >-
+  코드에서 import 하는데 build.gradle 에 선언이 없는 것들. Boot / Spring Cloud 를 올리며 의존성 그래프가 바뀌면 사라져 컴파일이 깨진다.
+  새 라이브러리가 필요하면 여기 한 줄씩 추가한다.
+  packageName 에 쉼표로 적은 두 번째 이후 패키지는 "같은 실행 안에서 upstream 이 첫 번째 패키지로 바꾸는 것" 이다.
+  스캔은 편집 전 원본 기준이라 바뀌기 전 패키지도 알아야 한다.
+recipeList:
+  # commons-lang 2 는 upstream UpgradeApacheCommonsLang_2_3 이 lang3 로 패키지를 바꾼다 (의존성은 추가하지 않음)
+  # logstash-logback-encoder 6.x 처럼 lang3 클래스를 jar 에 번들한 라이브러리 덕에 컴파일되던 경우도 여기서 잡힌다
+  - com.eottabom.rewrite.custom.gradle.DeclareUsedDependency:
+      packageName: org.apache.commons.lang3, org.apache.commons.lang, org.testcontainers.shaded.org.apache.commons.lang3, net.logstash.logback.encoder.org.apache.commons.lang3
+      groupId: org.apache.commons
+      artifactId: commons-lang3
+  # WordUtils, lang3.text.* 는 MigrateCommonsLang2Usages(upstream WordUtilsToCommonsText) 가 commons-text 로 옮긴다. upstream 의
+  # AddDependency 는 commons-lang 2 사용 파일로 한정한 precondition 에 걸려 빌드 스크립트에서 돌지 않으므로 여기서 선언한다
+  - com.eottabom.rewrite.custom.gradle.DeclareUsedDependency:
+      packageName: org.apache.commons.text, org.apache.commons.lang.WordUtils, org.apache.commons.lang3.text.
+      groupId: org.apache.commons
+      artifactId: commons-text
+      version: 1.x
+  - com.eottabom.rewrite.custom.gradle.DeclareUsedDependency:
+      packageName: org.apache.commons.io, org.testcontainers.shaded.org.apache.commons.io, net.logstash.logback.encoder.org.apache.commons.io
+      groupId: commons-io
+      artifactId: commons-io
+      version: 2.x
+  - com.eottabom.rewrite.custom.gradle.DeclareUsedDependency:
+      packageName: org.apache.commons.collections4
+      groupId: org.apache.commons
+      artifactId: commons-collections4
+      version: 4.x
+  # Guava 는 BOM 이 관리하지 않아 버전이 필요하다. 버전은 "33.4.8-jre" 형식이라 -jre 패턴을 준다
+  - com.eottabom.rewrite.custom.gradle.DeclareUsedDependency:
+      packageName: com.google.common
+      groupId: com.google.guava
+      artifactId: guava
+      version: 33.x
+      versionPattern: -jre
+  # Boot 4 에서 TestRestTemplate(spring-boot-resttestclient) 은 RestTemplateBuilder(spring-boot-restclient) 를 가져오지 않는다.
+  # 이미 Boot 4 인 프로젝트도 다음 단계에서 맞춰지도록 공통 보정에 둔다. 두 패키지는 Boot 4 에만 있어서 3.x 단계에는 영향이 없다
+  - com.eottabom.rewrite.custom.gradle.DeclareUsedDependency:
+      packageName: org.springframework.boot.restclient, org.springframework.boot.resttestclient
+      groupId: org.springframework.boot
+      artifactId: spring-boot-restclient

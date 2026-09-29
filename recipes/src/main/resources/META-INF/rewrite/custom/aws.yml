@@ -1,0 +1,109 @@
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.aws.UnpinAwsSdkVersions
+displayName: AWS SDK 고정 버전 제거 (Spring Cloud AWS BOM 에 맡김)
+description: >-
+  Spring Cloud AWS BOM 은 AWS SDK BOM 을 import 한다. software.amazon.awssdk:s3:2.21.12 처럼 일부만 버전을 박아두면
+  Spring Cloud AWS 를 올릴 때 sdk-core 만 올라가 IncompatibleClassChangeError (overrides final method setOverrides) 가 난다.
+  Spring Cloud AWS 를 쓰는 모듈에서만 버전을 지운다. (BOM 좌표 platform("...:bom:x") 는 유지)
+preconditions:
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: io.awspring.cloud
+      artifactIdPattern: "*"
+recipeList:
+  - com.eottabom.rewrite.custom.gradle.RemoveDependencyVersion:
+      groupId: software.amazon.awssdk
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.aws.MigrateSpringCloudAws_2_to_3
+displayName: Spring Cloud AWS 2.x -> 3.0 (artifact 이름 변경)
+description: >-
+  Spring Cloud AWS 3.0 에서 바뀐 starter artifact 이름으로 교체한다. (Boot 2.7 -> 3.0 전환 시 필요)
+  SQS/SNS messaging 은 API 자체가 바뀌므로 artifact 교체 후 코드 수정이 필요하다.
+recipeList:
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: io.awspring.cloud
+      oldArtifactId: spring-cloud-starter-aws-secrets-manager-config
+      newArtifactId: spring-cloud-aws-starter-secrets-manager
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: io.awspring.cloud
+      oldArtifactId: spring-cloud-starter-aws-parameter-store-config
+      newArtifactId: spring-cloud-aws-starter-parameter-store
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: io.awspring.cloud
+      oldArtifactId: spring-cloud-starter-aws-messaging
+      newArtifactId: spring-cloud-aws-starter-sqs
+  - org.openrewrite.java.dependencies.ChangeDependency:
+      oldGroupId: io.awspring.cloud
+      oldArtifactId: spring-cloud-starter-aws
+      newArtifactId: spring-cloud-aws-starter
+  - com.eottabom.rewrite.custom.aws.UpgradeSpringCloudAws_3_0
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.aws.UpgradeSpringCloudAws_3_0
+displayName: Spring Cloud AWS 3.0.x
+description: Spring Boot 3.0 / 3.1 호환 Spring Cloud AWS 3.0.x 로 업그레이드
+recipeList:
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: io.awspring.cloud
+      artifactId: "*"
+      newVersion: 3.0.x
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.aws.UpgradeSpringCloudAws_3_1
+displayName: Spring Cloud AWS 3.1.x
+description: Spring Boot 3.2 호환 Spring Cloud AWS 3.1.x 로 업그레이드
+recipeList:
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: io.awspring.cloud
+      artifactId: "*"
+      newVersion: 3.1.x
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.aws.UpgradeSpringCloudAws_3_2
+displayName: Spring Cloud AWS 3.2.x
+description: Spring Boot 3.3 호환 Spring Cloud AWS 3.2.x 로 업그레이드
+recipeList:
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: io.awspring.cloud
+      artifactId: "*"
+      newVersion: 3.2.x
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.aws.UpgradeSpringCloudAws_3_3
+displayName: Spring Cloud AWS 3.3.x
+description: Spring Boot 3.4 호환 Spring Cloud AWS 3.3.x 로 업그레이드
+recipeList:
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: io.awspring.cloud
+      artifactId: "*"
+      newVersion: 3.3.x
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.aws.UpgradeSpringCloudAws_3_4
+displayName: Spring Cloud AWS 3.4.x
+description: Spring Boot 3.5 호환 Spring Cloud AWS 3.4.x 로 업그레이드
+recipeList:
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: io.awspring.cloud
+      artifactId: "*"
+      newVersion: 3.4.x
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.aws.UpgradeSpringCloudAws_4_0
+displayName: Spring Cloud AWS 4.0.x
+description: Spring Boot 4.0 호환 Spring Cloud AWS 4.0.x 로 업그레이드
+recipeList:
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: io.awspring.cloud
+      artifactId: "*"
+      newVersion: 4.0.x
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.aws.UpgradeSpringCloudAws_4_1
+displayName: Spring Cloud AWS 4.1.x
+description: Spring Cloud AWS 4.x 최신 라인으로 업그레이드
+recipeList:
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: io.awspring.cloud
+      artifactId: "*"
+      newVersion: 4.1.x

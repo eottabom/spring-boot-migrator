@@ -1,0 +1,9 @@
+# yaml-language-server: $schema=../../schema/library-guide.schema.json
+library: org.flywaydb:flyway-core
+
+checklist:
+  - id: flyway-10
+    title: Flyway 10, DB 별 모듈 필요
+    detail: DB 모듈(`flyway-database-postgresql`, `flyway-mysql` 등)을 선언한다
+    source: https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-3.3-Release-Notes
+    crosses: "10.0.0"

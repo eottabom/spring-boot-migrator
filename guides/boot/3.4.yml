@@ -1,0 +1,86 @@
+# yaml-language-server: $schema=../../schema/boot-guide.schema.json
+source: https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-3.4-Release-Notes
+
+requirements:
+  java: { min: 17, max: 24 }
+  gradle: { "7": "7.6.4", "8": "8.4" }
+  framework: "6.2"
+  springCloud: { train: 2024.0.x, since: "2024.0.0" }
+  springCloudAws: 3.3.x
+
+checklist:
+  - id: spy-caching-proxy
+    title: 캐시 프록시를 거치는 spy stubbing 이 기본값을 캐시할 수 있음
+    detail: "`@MockitoSpyBean` 은 원래 빈을 spy 로 감싸고 그 바깥에 `@Cacheable` 같은 AOP 프록시가 만들어진다. 주입된 빈으로 `when(spy.find(..))` 처럼 stubbing 하면 stubbing 중의 호출 결과가 캐시되어 이후 호출이 spy 에 닿지 않는다. `AopTestUtils.getUltimateTargetObject(..)` 로 spy 를 꺼내 stubbing 한다. 새 버전에서 생긴 동작은 아니고, 이 단계에서 `@SpyBean` 이 `@MockitoSpyBean` 으로 바뀔 때 함께 확인한다."
+    detect: com.eottabom.rewrite.detect.testing.FindSpyStubbingThroughCachingProxy
+    source: https://github.com/spring-projects/spring-framework/issues/37121
+    when: { dependencies: [org.springframework:spring-test] }
+  - id: conditional-component-scan
+    title: 빈 등록 단계 조건과 ComponentScan 조합의 기동 실패
+    detail: Framework 6.2 는 ComponentScan 과 REGISTER_BEAN 단계 조건의 조합을 거부한다. ConditionalOnBean/ConditionalOnMissingBean 과 같은 파일의 스캔을 검토 후보로 표시한다. 합성 어노테이션이나 다른 파일의 상위 설정에 숨은 조건은 추가 검토한다. 조건부 설정을 분리하거나 명시적 Import 로 전환하되 스캔 범위를 임의 변경하지 않는다.
+    detect: com.eottabom.rewrite.detect.spring.FindLateConditionalComponentScan
+    source: https://github.com/spring-projects/spring-framework/issues/23206
+  - id: mockbean
+    title: "@MockBean/@SpyBean → @MockitoBean/@MockitoSpyBean"
+    detail: 레시피가 전환한다. `@MockitoBean` 은 `@Configuration` 클래스에서 쓸 수 없으므로 설정 클래스에 선언한 mock 을 확인한다
+    fix: auto
+    recipe: org.openrewrite.java.spring.boot4.ReplaceMockBeanAndSpyBean
+  - id: http-client-detection
+    title: RestTemplate/RestClient 기본 HTTP 클라이언트 자동 선택과 리다이렉트 변경
+    detail: 우선순위 HttpComponents > Jetty > Reactor Netty > JDK. 클래스패스에 HttpComponents 가 있으면 그걸 쓰고, 모든 클라이언트가 기본으로 리다이렉트를 따라간다. 타임아웃/커넥션 풀/리다이렉트를 확인한다 (`spring.http.client.factory`, `spring.http.client.redirects`)
+    fix: assisted
+  - id: httpclient5-envoy
+    title: HttpComponents 기본값 변경으로 Envoy/Istio 환경 오류 가능
+    detail: HTTP/1.1 TLS upgrade 기본 동작이 바뀌어 사이드카 프록시 뒤에서 요청이 실패할 수 있다. `HttpComponentsClientHttpRequestFactoryBuilder.withDefaultRequestConfigCustomizer()` 로 이전 동작을 복원한다
+    when: { dependencies: [org.apache.httpcomponents.client5:*] }
+  - id: nested-validation
+    title: "@ConfigurationProperties 중첩 객체 검증이 `@Valid` 없으면 조용히 빠짐"
+    detail: 중첩 필드에 `@Valid` 가 없으면 그 안의 `@NotNull` 등이 더 이상 검사되지 않는다. 잘못된 설정으로도 기동되므로 검증이 필요한 중첩 필드에 `@Valid` 를 붙인다
+  - id: graceful-shutdown
+    title: graceful shutdown 기본 활성화
+    detail: 종료 시 처리 중 요청을 기다린다 (`spring.lifecycle.timeout-per-shutdown-phase` 기본 30초). 배포 환경의 종료 유예 시간(Kubernetes terminationGracePeriodSeconds 등)보다 짧은지 확인한다. 끄려면 `server.shutdown=immediate`
+  - id: conditional-on-bean
+    title: "@ConditionalOnBean/@ConditionalOnMissingBean 에 annotation 을 주면 반환 타입을 기본으로 쓰지 않음"
+    detail: "`@Bean` 메서드에 `annotation` 만 지정한 조건에 레시피가 `value = 반환타입.class` 를 추가해 이전 동작을 유지한다. 클래스 수준 조건과 합성 어노테이션 안의 조건은 바꾸지 않으므로 직접 만든 자동 설정의 빈 등록 여부를 확인한다"
+    fix: auto
+    recipe: com.eottabom.rewrite.custom.spring.PreserveConditionalBeanReturnType
+  - id: hibernate66
+    title: Hibernate 6.6 검증 강화
+    detail: flush 시 저장 안 된(transient) 엔티티를 참조하면 `TransientObjectException`. `@GeneratedValue` id 를 직접 넣은 엔티티를 save 하면 merge 로 처리되고 대상 행이 없으면 `OptimisticLockException`. cascade 설정과 저장 순서, 테스트 픽스처의 id 지정을 코드에서 정리한다
+    source: https://docs.jboss.org/hibernate/orm/6.6/migration-guide/migration-guide.html
+    when: { dependencies: [org.hibernate.orm:*] }
+  - id: actuator-access
+    title: Actuator `enabled` → `access`
+    detail: "`management.endpoint.<id>.enabled` → `management.endpoint.<id>.access` (none|read-only|unrestricted). 레시피가 저장소 yml 은 바꾼다. 외부 설정 저장소의 키는 properties-migrator 로 확인한다"
+    fix: assisted
+    when: { dependencies: [org.springframework.boot:spring-boot-actuator*] }
+  - id: testcontainers-dynamic-properties
+    title: "@Bean 메서드에 DynamicPropertyRegistry 주입 deprecated"
+    detail: "`DynamicPropertyRegistrar` 빈으로 옮긴다. `@AutoConfigureTestDatabase` 는 컨테이너 DB 를 자동 인식해 `replace=NONE` 이 필요 없어졌다"
+    when: { dependencies: [org.testcontainers:*] }
+  - id: elasticsearch-range-query
+    title: elasticsearch-java 8.15, RangeQuery 필드 이동
+    detail: Boot 3.4 BOM 이 8.15 로 올린다. `RangeQuery` 의 field/gte/lte 가 `UntypedRangeQuery` 로 옮겨졌고 레시피가 전환한다. 서버 버전 호환을 확인한다
+    fix: auto
+    recipe: com.eottabom.rewrite.custom.elasticsearch.MigrateRangeQueryToUntyped
+    when: { dependencies: [co.elastic.clients:*] }
+  - id: empty-yaml-maps
+    title: YAML 의 빈 맵이 무시됨
+    detail: "`foo: {}` 처럼 빈 맵으로 기본값을 덮어쓰던 설정이 더 이상 적용되지 않는다 (properties 파일과 동작을 맞춤)"
+  - id: htmlunit
+    title: HtmlUnit 좌표/패키지 변경
+    detail: "`net.sourceforge.htmlunit:htmlunit` → `org.htmlunit:htmlunit`, `com.gargoylesoftware.htmlunit.*` → `org.htmlunit.*`, `htmlunit-driver` → `htmlunit3-driver`"
+    fix: assisted
+    when: { dependencies: [net.sourceforge.htmlunit:*, org.seleniumhq.selenium:htmlunit-driver] }
+  - id: okhttp
+    title: OkHttp 버전을 Boot 가 더 이상 관리하지 않음
+    detail: 버전 없이 선언했다면 직접 버전을 지정한다
+    when: { dependencies: [com.squareup.okhttp3:*] }
+  - id: redisson
+    title: redisson-spring-data-XX 를 Spring Data 버전에 맞춘다
+    detail: Boot 3.4 = redisson-spring-data-34, 3.5 = 35, 4.0 = redisson 4.x. artifact 이름이 버전을 담고 있어 자동으로 올리지 않는다
+    when: { dependencies: [org.redisson:*] }
+
+failureHints:
+  - pattern: TransientObjectException
+    text: 저장 안 된(transient) 엔티티를 참조한 채 flush 했어요. Hibernate 6.6 부터 이 검사가 강화됐어요

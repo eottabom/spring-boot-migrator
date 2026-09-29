@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "boot-guide.schema.json",
+  "title": "Spring Boot 가이드 (guides/boot/<버전>.yml)",
+  "description": "그 Boot 버전으로 올릴 때 보는 것. 버전은 파일 이름에서 읽는다",
+  "type": "object",
+  "required": ["source", "requirements"],
+  "properties": {
+    "source": { "description": "공식 마이그레이션 가이드나 릴리스 노트", "type": "string", "format": "uri" },
+    "requirements": {
+      "description": "시스템 요구 사항 (https://docs.spring.io/spring-boot/<버전>/system-requirements.html)",
+      "type": "object",
+      "required": ["java", "gradle", "framework", "springCloud", "springCloudAws"],
+      "properties": {
+        "java": {
+          "description": "지원하는 Java 범위 (max 는 compatible up to and including)",
+          "type": "object",
+          "required": ["min", "max"],
+          "properties": { "min": { "type": "integer" }, "max": { "type": "integer" } },
+          "additionalProperties": false
+        },
+        "gradle": {
+          "description": "Gradle major 별 최소 버전. 목록에 없는 major 는 공식 지원 밖",
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": { "pattern": "^[0-9]+$" },
+          "additionalProperties": { "$ref": "guide-defs.schema.json#/$defs/version" }
+        },
+        "framework": { "$ref": "guide-defs.schema.json#/$defs/version" },
+        "springCloud": {
+          "description": "호환 Spring Cloud 릴리스 트레인. since 는 그 트레인에서 이 Boot 를 지원하기 시작한 버전",
+          "type": "object",
+          "required": ["train", "since"],
+          "properties": { "train": { "type": "string" }, "since": { "type": "string" } },
+          "additionalProperties": false
+        },
+        "springCloudAws": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "raises": {
+      "description": "이 stage 의 upstream 레시피가 함께 올리는 Gradle wrapper, Java 버전 (올린 뒤의 최소값)",
+      "type": "object",
+      "properties": {
+        "gradle": { "$ref": "guide-defs.schema.json#/$defs/version" },
+        "java": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "checklist": { "$ref": "guide-defs.schema.json#/$defs/checklist" },
+    "failureHints": { "$ref": "guide-defs.schema.json#/$defs/failureHints" },
+    "deprecations": { "$ref": "guide-defs.schema.json#/$defs/deprecations" }
+  },
+  "additionalProperties": false
+}

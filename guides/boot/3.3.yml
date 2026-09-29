@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=../../schema/boot-guide.schema.json
+source: https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-3.3-Release-Notes
+
+requirements:
+  java: { min: 17, max: 23 }
+  gradle: { "7": "7.5", "8": "8.0" }
+  framework: "6.1"
+  springCloud: { train: 2023.0.x, since: "2023.0.2" }
+  springCloudAws: 3.2.x
+
+checklist:
+  - id: logback15
+    title: Logback 1.5, logstash-logback-encoder 8 필요
+    detail: 레시피가 encoder 를 올린다. 커스텀 appender/encoder 가 있으면 출력 형식을 확인한다
+    fix: auto
+    recipe: com.eottabom.rewrite.custom.logging.UpgradeLogstashEncoder_8
+    when: { dependencies: [net.logstash.logback:*] }
+  - id: flyway10
+    title: Flyway 10, DB 별 모듈 필요
+    detail: PostgreSQL 은 `flyway-database-postgresql`, MySQL/MariaDB 는 `flyway-mysql` 등 DB 모듈을 선언하지 않으면 기동 시 `Unsupported Database` 로 실패한다
+    when: { dependencies: [org.flywaydb:*] }
+  - id: prometheus-client1
+    title: Prometheus client 1.x 로 전환
+    detail: 메트릭 노출 형식이 일부 달라진다. 대시보드/알람 쿼리를 확인한다. 0.x 를 유지하려면 `micrometer-registry-prometheus-simpleclient`
+    when: { dependencies: [io.micrometer:micrometer-registry-prometheus] }
+  - id: entitygraph
+    title: "@EntityGraph + 조건 조회 회귀 테스트"
+    detail: Hibernate 6.5 초기 패치(HHH-18378)에서 fetch 가 where 절 조인을 재사용해 결과가 중복됐다. 최신 패치로 올라가면 해결되지만, Hibernate 버전을 고정한 프로젝트는 확인한다 (수동 검토 대상에 위치 표시)
+    source: https://hibernate.atlassian.net/browse/HHH-18378
+    when: { dependencies: [org.hibernate.orm:*] }
+
+failureHints:
+  - pattern: Unsupported Database
+    text: Flyway 10 부터 DB 별 모듈이 따로 있어요. flyway-database-postgresql, flyway-mysql 같은 모듈을 선언해 주세요

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gradle-guide.schema.json",
+  "title": "Gradle 가이드 (guides/gradle/<버전>.yml)",
+  "description": "파일이 있는 버전이 Gradle stage 가 된다. Boot 나 Java 가 요구하는 Gradle 보다 낮으면 가장 낮은 충분한 버전으로 올린다",
+  "type": "object",
+  "required": ["source"],
+  "properties": {
+    "source": { "type": "string", "format": "uri" },
+    "checklist": { "$ref": "guide-defs.schema.json#/$defs/checklist" },
+    "failureHints": { "$ref": "guide-defs.schema.json#/$defs/failureHints" },
+    "deprecations": { "$ref": "guide-defs.schema.json#/$defs/deprecations" }
+  },
+  "additionalProperties": false
+}

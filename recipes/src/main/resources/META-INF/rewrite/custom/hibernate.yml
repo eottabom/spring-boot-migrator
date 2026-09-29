@@ -1,0 +1,95 @@
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.hibernate.KeepLegacyIdGeneratorNaming
+displayName: Hibernate 6 ID 시퀀스 이름을 Hibernate 5 방식으로 유지
+description: >-
+  Hibernate 6 는 @GeneratedValue(AUTO/SEQUENCE) 의 시퀀스를 엔티티별 `<entity>_SEQ` 로 찾는다. Hibernate 5 에서 쓰던
+  `hibernate_sequence` 를 그대로 쓰도록 legacy 전략을 설정한다. (운영 DB 에서 시퀀스/테이블을 못 찾는 문제 방지)
+  Boot 2.x 에서 올라오는 모듈에만 적용한다. 이미 Boot 3 인 모듈은 현재 동작을 바꾸지 않는다.
+preconditions:
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: org.springframework.boot
+      artifactIdPattern: spring-boot
+      version: "[2.0,3.0)"
+  - org.openrewrite.java.dependencies.search.ModuleHasDependency:
+      groupIdPattern: org.hibernate*
+      artifactIdPattern: hibernate-core
+recipeList:
+  - org.openrewrite.java.spring.AddSpringProperty:
+      property: spring.jpa.properties.hibernate.id.db_structure_naming_strategy
+      value: legacy
+      comment: "Hibernate 6: Hibernate 5 의 hibernate_sequence 를 그대로 사용 (Boot 3 마이그레이션 시 추가)"
+      pathExpressions:
+        - "**/src/main/resources/application.yml"
+        - "**/src/main/resources/application.yaml"
+        - "**/src/main/resources/application.properties"
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.hibernate.MigrateWhereToSQLRestriction
+displayName: "@Where / @WhereJoinTable -> @SQLRestriction / @SQLJoinTableRestriction"
+description: >-
+  Hibernate 6.3 에서 deprecated, Hibernate 7 (Boot 4) 에서 제거. 대체 어노테이션은 6.3 부터 있으므로 Boot 3.2 (Hibernate 6.4) 단계에서 미리 바꾼다.
+recipeList:
+  - org.openrewrite.java.ChangeAnnotationAttributeName:
+      annotationType: org.hibernate.annotations.Where
+      oldAttributeName: clause
+      newAttributeName: value
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.hibernate.annotations.Where
+      newFullyQualifiedTypeName: org.hibernate.annotations.SQLRestriction
+  - org.openrewrite.java.ChangeAnnotationAttributeName:
+      annotationType: org.hibernate.annotations.WhereJoinTable
+      oldAttributeName: clause
+      newAttributeName: value
+  - org.openrewrite.java.ChangeType:
+      oldFullyQualifiedTypeName: org.hibernate.annotations.WhereJoinTable
+      newFullyQualifiedTypeName: org.hibernate.annotations.SQLJoinTableRestriction
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.hibernate.ReplaceAnnotationsQueryHints
+displayName: org.hibernate.annotations.QueryHints -> HibernateHints
+description: >-
+  Hibernate 7 에서 제거된 org.hibernate.annotations.QueryHints 상수를 같은 값의 org.hibernate.jpa.HibernateHints / SpecHints 상수로 바꾼다.
+  TIMEOUT_JPA 의 javax 키는 jakarta 키로 바뀐다 (Hibernate 7 은 javax 키를 읽지 않는다).
+recipeList:
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.hibernate.annotations.QueryHints.READ_ONLY
+      fullyQualifiedConstantName: org.hibernate.jpa.HibernateHints.HINT_READ_ONLY
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.hibernate.annotations.QueryHints.CACHEABLE
+      fullyQualifiedConstantName: org.hibernate.jpa.HibernateHints.HINT_CACHEABLE
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.hibernate.annotations.QueryHints.CACHE_MODE
+      fullyQualifiedConstantName: org.hibernate.jpa.HibernateHints.HINT_CACHE_MODE
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.hibernate.annotations.QueryHints.CACHE_REGION
+      fullyQualifiedConstantName: org.hibernate.jpa.HibernateHints.HINT_CACHE_REGION
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.hibernate.annotations.QueryHints.COMMENT
+      fullyQualifiedConstantName: org.hibernate.jpa.HibernateHints.HINT_COMMENT
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.hibernate.annotations.QueryHints.FETCH_SIZE
+      fullyQualifiedConstantName: org.hibernate.jpa.HibernateHints.HINT_FETCH_SIZE
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.hibernate.annotations.QueryHints.FLUSH_MODE
+      fullyQualifiedConstantName: org.hibernate.jpa.HibernateHints.HINT_FLUSH_MODE
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.hibernate.annotations.QueryHints.TIMEOUT_HIBERNATE
+      fullyQualifiedConstantName: org.hibernate.jpa.HibernateHints.HINT_TIMEOUT
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.hibernate.annotations.QueryHints.NATIVE_LOCKMODE
+      fullyQualifiedConstantName: org.hibernate.jpa.HibernateHints.HINT_NATIVE_LOCK_MODE
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.hibernate.annotations.QueryHints.FOLLOW_ON_LOCKING
+      fullyQualifiedConstantName: org.hibernate.jpa.HibernateHints.HINT_FOLLOW_ON_LOCKING
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.hibernate.annotations.QueryHints.NATIVE_SPACES
+      fullyQualifiedConstantName: org.hibernate.jpa.HibernateHints.HINT_NATIVE_SPACES
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.hibernate.annotations.QueryHints.CALLABLE_FUNCTION
+      fullyQualifiedConstantName: org.hibernate.jpa.HibernateHints.HINT_CALLABLE_FUNCTION
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.hibernate.annotations.QueryHints.TIMEOUT_JAKARTA_JPA
+      fullyQualifiedConstantName: org.hibernate.jpa.SpecHints.HINT_SPEC_QUERY_TIMEOUT
+  - org.openrewrite.java.ReplaceConstantWithAnotherConstant:
+      existingFullyQualifiedConstantName: org.hibernate.annotations.QueryHints.TIMEOUT_JPA
+      fullyQualifiedConstantName: org.hibernate.jpa.SpecHints.HINT_SPEC_QUERY_TIMEOUT

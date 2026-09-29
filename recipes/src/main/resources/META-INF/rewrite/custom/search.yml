@@ -1,0 +1,16 @@
+type: specs.openrewrite.org/v1beta/recipe
+name: com.eottabom.rewrite.custom.search.UpgradeOpenSearchJava_3
+displayName: opensearch-java 3.x
+description: >-
+  opensearch-java, opensearch-rest-client 를 3.x 최신으로 올린다. 이미 3.x 이상이면 변경하지 않는다.
+  rest-client 를 쓰는 코드는 upstream 이 HttpClient 5 타입으로 바꾸고, 남는 인터셉터 API 차이를 FixHttpClient5AsyncInterceptors 가 맞춘다.
+recipeList:
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.opensearch.client
+      artifactId: opensearch-java
+      newVersion: 3.x
+  - org.openrewrite.java.dependencies.UpgradeDependencyVersion:
+      groupId: org.opensearch.client
+      artifactId: opensearch-rest-client
+      newVersion: 3.x
+  - com.eottabom.rewrite.custom.httpclient.FixHttpClient5AsyncInterceptors

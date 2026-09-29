@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=../../schema/library-guide.schema.json
+library: net.logstash.logback:logstash-logback-encoder
+
+checklist:
+  - id: logstash-7
+    title: logstash-logback-encoder 7 은 commons-lang3 등을 번들하지 않음
+    detail: 번들 클래스에 기대 컴파일되던 코드는 레시피가 의존성을 선언하고 import 를 원래 패키지로 옮긴다
+    fix: auto
+    recipe: com.eottabom.rewrite.custom.gradle.DeclareUsedTransitiveDependencies
+    crosses: "7.0"
+  - id: logstash-9
+    title: logstash-logback-encoder 9 는 Jackson 3 기반
+    detail: 커스텀 JsonGeneratorDecorator/Provider 를 확인한다. decorator 는 레시피가 보정한다
+    fix: assisted
+    recipe: com.eottabom.rewrite.custom.logging.FixLogstashDecoratorForJackson3
+    crosses: "9.0"

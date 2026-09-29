@@ -1,0 +1,94 @@
+# yaml-language-server: $schema=../../schema/boot-guide.schema.json
+source: https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-3.0-Migration-Guide
+
+requirements:
+  java: { min: 17, max: 21 }
+  gradle: { "7": "7.5", "8": "8.0" }
+  framework: "6.0"
+  springCloud: { train: 2022.0.x, since: "2022.0.0" }
+  springCloudAws: 3.0.x
+
+raises: { gradle: "7.6.4", java: 17 }
+
+checklist:
+  - id: security-context-save
+    title: 수동 로그인 후 SecurityContext 명시적 저장 확인
+    detail: Security 6 기본 설정에서는 SecurityContextHolder 에 인증을 넣는 것만으로 다음 요청까지 저장되지 않는다. 세션 기반 수동 로그인은 선택한 SecurityContextRepository.saveContext 를 확인한다. stateless 인증이나 이미 저장하는 경로는 수정하지 않는다. 동일 세션의 후속 보호 API 요청을 테스트한다.
+    detect: com.eottabom.rewrite.detect.security.FindSecurityContextPersistenceGap
+    source: https://docs.spring.io/spring-security/reference/6.5/migration/servlet/session-management.html
+    when: { dependencies: [org.springframework.security:spring-security-web] }
+  - id: spa-csrf
+    title: SPA CSRF 토큰 지연 로딩 및 BREACH 보호 전환
+    detail: Security 6 은 CSRF 토큰 지연 로딩과 BREACH 보호를 기본 적용한다. CookieCsrfTokenRepository 를 사용하는 SPA 의 토큰 발급 및 request handler 를 확인한다. 최초 요청, 로그인 직후, 로그아웃 후 POST 를 테스트한다. 쿠키 사용만으로 결함을 단정하거나 CSRF 를 비활성화하지 않는다.
+    detect: com.eottabom.rewrite.detect.security.FindSpaCsrfMigrationGap
+    source: https://docs.spring.io/spring-security/reference/6.5/servlet/exploits/csrf.html
+    when: { dependencies: [org.springframework.security:spring-security-web] }
+  - id: trailing-slash
+    title: URL 끝 슬래시 매칭 기본 비활성화
+    detail: "`/api/foo/` 가 더 이상 `/api/foo` 에 매칭되지 않는다. 클라이언트/게이트웨이가 끝 슬래시를 붙여 호출하는지 확인하고, 필요하면 `WebMvcConfigurer.configurePathMatch()` 로 명시한다"
+  - id: log-date-format
+    title: 기본 로그 날짜 형식이 ISO-8601 로 변경
+    detail: "`yyyy-MM-dd HH:mm:ss.SSS` → `yyyy-MM-dd'T'HH:mm:ss.SSSXXX`. 로그 수집기(Fluentd/Logstash) 파싱 패턴이 깨질 수 있다. 유지하려면 `logging.pattern.dateformat`"
+  - id: hibernate6
+    title: Hibernate 6.1 전환
+    detail: "`@Type`/`@TypeDef` 문자열 기반 타입 제거, HQL 문법 엄격화. ID 시퀀스 이름(hibernate_sequence → 엔티티별 _seq) 변경은 레시피가 legacy 로 유지한다 (KeepLegacyIdGeneratorNaming)"
+    fix: assisted
+    recipe: com.eottabom.rewrite.custom.hibernate.KeepLegacyIdGeneratorNaming
+    source: https://github.com/hibernate/hibernate-orm/blob/6.0/migration-guide.adoc
+    when: { dependencies: [org.hibernate.orm:*, org.hibernate:*] }
+  - id: native-query-scalar-type
+    title: 네이티브 쿼리 스칼라 결과 타입 변화
+    detail: Hibernate 6 은 네이티브 쿼리 결과를 JDBC 드라이버 타입 그대로 돌려준다. `(BigInteger) query.getSingleResult()` 처럼 캐스팅하던 COUNT/SUM 결과가 `Long`/`BigDecimal` 로 와서 ClassCastException 이 난다. `Number` 로 받아 변환한다
+    source: https://github.com/hibernate/hibernate-orm/blob/6.0/migration-guide.adoc
+    when: { dependencies: [org.hibernate.orm:*, org.hibernate:*] }
+  - id: hypersistence-json-dates
+    title: Hypersistence JSON 컬럼 안의 날짜 형식
+    detail: Hypersistence 는 Spring 이 아닌 자체 ObjectMapper 를 써서 JSON 컬럼 안의 `LocalDate`/`LocalDateTime` 이 `[2024,1,1]` 배열로 저장될 수 있다. 기존 데이터와 이를 읽는 다른 시스템의 형식을 확인한다
+    when: { dependencies: [io.hypersistence:*, com.vladmihalcea:*] }
+  - id: properties-rename
+    title: 설정 키 이름 변경 (spring.redis.* → spring.data.redis.* 등)
+    detail: upstream 레시피가 저장소 안 application*.yml 은 바꾼다. 외부 설정 저장소(Spring Cloud Config, Vault, Secrets Manager 등)의 키는 properties-migrator 경고로 확인한다. 그 밖에 `server.max-http-header-size` → `server.max-http-request-header-size`, `management.metrics.export.<product>` → `management.<product>.metrics.export`
+    fix: assisted
+  - id: tracing-propagation
+    title: Sleuth 제거 → Micrometer Tracing, 기본 전파 형식 W3C
+    detail: Sleuth 의 B3 헤더 대신 W3C traceparent 가 기본이다. 아직 Boot 2 인 서비스와 trace 가 끊긴다. 섞여 있는 동안은 `management.tracing.propagation.type=b3,w3c` 로 맞춘다. 설정 키는 `management.tracing.*`
+    when: { dependencies: [org.springframework.cloud:spring-cloud-starter-sleuth, org.springframework.cloud:spring-cloud-sleuth-*, io.micrometer:micrometer-tracing*] }
+  - id: actuator-sanitize
+    title: Actuator /env, /configprops 값이 기본으로 가려짐, JMX 는 health 만 노출
+    detail: "`management.endpoint.env.show-values` / `configprops.show-values` (NEVER|ALWAYS|WHEN_AUTHORIZED). 운영 도구가 이 값을 읽고 있었다면 설정이 필요하다. Actuator 는 별도 ObjectMapper 를 쓴다 (`management.endpoints.jackson.isolated-object-mapper`)"
+    when: { dependencies: [org.springframework.boot:spring-boot-actuator*] }
+  - id: security-dispatcher
+    title: Spring Security 6 필터가 모든 dispatch type 에 적용
+    detail: ERROR/FORWARD dispatch 에도 인가가 걸려 에러 페이지가 401/403 으로 바뀔 수 있다. `authorizeHttpRequests` 로 바뀌면서 기본 거부 규칙도 달라졌다. 인가 규칙 테스트를 확인한다 (`spring.security.filter.dispatcher-types`)
+    source: https://docs.spring.io/spring-security/reference/6.0/migration/index.html
+    when: { dependencies: [org.springframework.security:*] }
+  - id: httpclient4
+    title: RestTemplate 의 Apache HttpClient 4 지원 제거
+    detail: upstream 레시피가 HttpClient 5 로 옮긴다. Elasticsearch 저수준 RestClient 처럼 HttpClient 4 가 계속 필요한 곳은 레시피가 되돌린다. 타임아웃/커넥션 풀 설정이 새 API 로 옮겨졌는지 확인한다
+    fix: assisted
+    recipe: com.eottabom.rewrite.custom.httpclient.RevertHttpClient5ForElasticsearchRestClient
+    when: { dependencies: [org.apache.httpcomponents:httpclient] }
+  - id: mysql-coordinates
+    title: MySQL 드라이버 좌표 변경
+    detail: "`mysql:mysql-connector-java` → `com.mysql:mysql-connector-j`. Boot BOM 은 새 좌표만 관리한다"
+    fix: assisted
+    when: { dependencies: [mysql:mysql-connector-java] }
+  - id: batch
+    title: Spring Batch 5 자동 설정 변경
+    detail: "`@EnableBatchProcessing` 을 쓰면 Boot 자동 설정이 꺼진다. Job 이 여러 개면 `spring.batch.job.name` 이 필요하다. 메타데이터 스키마도 바뀌었다"
+    when: { dependencies: [org.springframework.batch:*] }
+  - id: graceful-shutdown-phase
+    title: 종료 단계(SmartLifecycle phase) 변경
+    detail: graceful shutdown 은 `DEFAULT_PHASE - 2048`, 웹 서버 종료는 `DEFAULT_PHASE - 1024`. 직접 만든 SmartLifecycle(컨슈머 정지 등) 순서를 확인한다
+  - id: springdoc
+    title: springdoc 1.x 는 Boot 3 에서 동작하지 않음
+    detail: "`springdoc-openapi-starter-webmvc-ui` 2.x 로 옮긴다. 설정 키도 일부 바뀐다"
+    when: { dependencies: [org.springdoc:springdoc-openapi-ui, org.springdoc:springdoc-openapi-webmvc-core] }
+  - id: sentry
+    title: Sentry 는 Boot 3 용 artifact 가 다르다
+    detail: "`sentry-spring-boot-starter` → `sentry-spring-boot-starter-jakarta`"
+    when: { dependencies: [io.sentry:*] }
+
+failureHints:
+  - pattern: (BeanCurrentlyInCreationException|circular reference|Circular reference)
+    text: Boot 2.6 부터 빈 순환 참조를 기본으로 막아요. 생성자 주입 구조를 정리해 주세요
