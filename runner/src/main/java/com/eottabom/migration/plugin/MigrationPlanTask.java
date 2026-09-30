@@ -25,8 +25,7 @@ public abstract class MigrationPlanTask extends MigrationTask {
 
 	@TaskAction
 	public void execute() {
-		MigrationConfig config = config();
-		perform(config);
+		run(this::perform);
 	}
 
 	protected void perform(MigrationConfig config) {

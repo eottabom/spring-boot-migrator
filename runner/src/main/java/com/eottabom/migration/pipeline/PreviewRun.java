@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 
+import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.console.RunnerConsole;
 import com.eottabom.migration.gradle.ProjectGradle;
 import com.eottabom.migration.io.TextFiles;
@@ -20,7 +21,6 @@ import com.eottabom.migration.stage.StageTag;
 import com.eottabom.migration.workspace.Git;
 import com.eottabom.migration.workspace.MigrationWorkspace;
 import com.eottabom.migration.workspace.StageFiles;
-import org.gradle.api.GradleException;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -41,7 +41,7 @@ record PreviewRun(RunnerPaths paths, ProjectGradle.Factory gradleFactory, Projec
 		Path tempDir = createTempDir();
 		Path worktree = tempDir.resolve(projectName);
 		if (!git.addWorktree(worktree)) {
-			throw new GradleException("preview 용 임시 worktree 를 만들지 못했어요 → " + worktree);
+			throw new MigrationException("preview 용 임시 worktree 를 만들지 못했어요 → " + worktree);
 		}
 		try {
 			ProjectGradle gradle = this.gradleFactory.create(worktree, javaHome);
@@ -57,12 +57,12 @@ record PreviewRun(RunnerPaths paths, ProjectGradle.Factory gradleFactory, Projec
 						+ RunnerConsole.projectRecipeSuffix(projectRecipes, stage) + " (preview)");
 				if (!gradle.rewrite(files.rewriteLog(), "rewriteRun", assembled.name(), this.paths.rewriteInit(),
 						this.paths.recipeLibs(), assembled.file())) {
-					throw new GradleException("preview 실패 → " + files.rewriteLog());
+					throw new MigrationException("preview 실패 → " + files.rewriteLog());
 				}
 				String current = worktreeGit.commitAll("preview " + stage.name());
 				Path patch = files.previewPatch();
 				if (current == null || !worktreeGit.diffTrees(previous, current, patch)) {
-					throw new GradleException("preview patch 를 만들지 못했어요 → " + patch);
+					throw new MigrationException("preview patch 를 만들지 못했어요 → " + patch);
 				}
 				previous = current;
 				this.console.line("   Boot {}, {} files → {}",
@@ -87,7 +87,7 @@ record PreviewRun(RunnerPaths paths, ProjectGradle.Factory gradleFactory, Projec
 		this.console.heading("[" + stage.name() + "] " + stage.recipeNames() + " (preview)");
 		if (!gradle.rewrite(files.rewriteLog(), "rewriteDryRun", assembled.name(), this.paths.rewriteInit(),
 				this.paths.recipeLibs(), assembled.file())) {
-			throw new GradleException("preview 실패 → " + files.rewriteLog());
+			throw new MigrationException("preview 실패 → " + files.rewriteLog());
 		}
 		if (MigrationWorkspace.copyOrEmpty(ProjectScanner.rewritePatch(projectDir), files.previewPatch())) {
 			this.console.line("   {} files → {}", TextFiles.countMatches(files.previewPatch(), "^diff --git"),

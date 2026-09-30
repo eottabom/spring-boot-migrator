@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.version.Versions;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -74,7 +75,7 @@ final class GuideReader {
 			return YAML.treeToValue(object, type);
 		}
 		catch (IOException ex) {
-			throw new IllegalArgumentException(file + ": " + ex.getMessage(), ex);
+			throw new MigrationException(file + ": " + ex.getMessage(), ex);
 		}
 	}
 
@@ -85,7 +86,7 @@ final class GuideReader {
 			return (node == null || node.isMissingNode()) ? YAML.createObjectNode() : node;
 		}
 		catch (IOException ex) {
-			throw new IllegalArgumentException(file + " 을 읽지 못했어요: " + ex.getMessage(), ex);
+			throw new MigrationException(file + " 을 읽지 못했어요: " + ex.getMessage(), ex);
 		}
 	}
 
@@ -94,7 +95,7 @@ final class GuideReader {
 			.getSchema(SchemaLocation.of(this.schemaDir.resolve(schema + ".schema.json").toUri().toString()));
 		Set<ValidationMessage> errors = jsonSchema.validate(node);
 		if (!errors.isEmpty()) {
-			throw new IllegalArgumentException(file + " 이 " + schema + ".schema.json 에 맞지 않아요\n  "
+			throw new MigrationException(file + " 이 " + schema + ".schema.json 에 맞지 않아요\n  "
 					+ errors.stream().map(ValidationMessage::getMessage).sorted().collect(Collectors.joining("\n  ")));
 		}
 	}

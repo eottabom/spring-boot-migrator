@@ -1,6 +1,5 @@
 package com.eottabom.migration.plugin;
 
-import com.eottabom.migration.config.MigrationConfig;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Internal;
@@ -16,8 +15,7 @@ public abstract class MigrationVerifyTask extends MigrationTask {
 
 	@TaskAction
 	public void verify() {
-		MigrationConfig config = config();
-		runner(config).verify(config);
+		run((config) -> runner(config).verify(config));
 	}
 
 	@Override

@@ -3,10 +3,10 @@ package com.eottabom.migration.pipeline.step;
 import java.nio.file.Path;
 import java.util.Set;
 
+import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.gradle.ProjectGradle;
 import com.eottabom.migration.recipe.AssembledRecipe.Assembled;
 import com.eottabom.migration.workspace.Git;
-import org.gradle.api.GradleException;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -27,7 +27,7 @@ public record RecipeRun(ProjectGradle gradle, Path rewriteInit, Path recipeLibs,
 		Set<String> untrackedBefore = (this.git != null) ? this.git.untracked() : Set.of();
 		if (!this.gradle.rewrite(log, "rewriteRun", assembled.name(), this.rewriteInit, this.recipeLibs,
 				assembled.file())) {
-			throw new GradleException("rewriteRun 실패 → " + log);
+			throw new MigrationException("rewriteRun 실패 → " + log);
 		}
 		if (this.git == null) {
 			return Set.of();

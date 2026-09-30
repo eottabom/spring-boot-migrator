@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.config.MigrationConfig.BuildSettings;
 import com.eottabom.migration.config.MigrationConfig.GateSettings;
 import com.eottabom.migration.config.MigrationConfig.Jdk;
@@ -49,7 +50,7 @@ public final class ConfigLoader {
 	public MigrationConfig load(Path projectDir, @Nullable Path configFile, ObjectNode cli) {
 		Path file = (configFile != null) ? configFile : projectDir.resolve(FILE_NAME);
 		if (configFile != null && !Files.isRegularFile(configFile)) {
-			throw new IllegalArgumentException("설정 파일이 없어요: " + configFile);
+			throw new MigrationException("설정 파일이 없어요: " + configFile);
 		}
 		ObjectNode merged = Files.isRegularFile(file) ? read(file) : YAML.createObjectNode();
 		merge(merged, cli);
@@ -64,12 +65,12 @@ public final class ConfigLoader {
 				return YAML.createObjectNode();
 			}
 			if (!(node instanceof ObjectNode object)) {
-				throw new IllegalArgumentException(file + " 은 키와 값으로 된 YAML 이어야 해요");
+				throw new MigrationException(file + " 은 키와 값으로 된 YAML 이어야 해요");
 			}
 			return object;
 		}
 		catch (IOException ex) {
-			throw new IllegalArgumentException(file + " 을 읽지 못했어요: " + ex.getMessage(), ex);
+			throw new MigrationException(file + " 을 읽지 못했어요: " + ex.getMessage(), ex);
 		}
 	}
 
@@ -91,7 +92,7 @@ public final class ConfigLoader {
 			.getSchema(SchemaLocation.of(this.schemaDir.resolve("config.schema.json").toUri().toString()));
 		Set<ValidationMessage> errors = schema.validate(config);
 		if (!errors.isEmpty()) {
-			throw new IllegalArgumentException(source + " 의 값이 맞지 않아요 (schema/config.schema.json)\n  "
+			throw new MigrationException(source + " 의 값이 맞지 않아요 (schema/config.schema.json)\n  "
 					+ errors.stream().map(ValidationMessage::getMessage).sorted().collect(Collectors.joining("\n  ")));
 		}
 	}

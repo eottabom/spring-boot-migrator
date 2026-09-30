@@ -7,8 +7,8 @@ import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
 import java.nio.file.StandardOpenOption;
 
+import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.workspace.MigrationWorkspace;
-import org.gradle.api.GradleException;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -33,7 +33,7 @@ final class RunLock implements AutoCloseable {
 			FileLock lock = tryLock(channel);
 			if (lock == null) {
 				channel.close();
-				throw new GradleException("같은 프로젝트에서 migrationRun 이 이미 실행 중이에요 (" + ws.lock() + ")");
+				throw new MigrationException("같은 프로젝트에서 migrationRun 이 이미 실행 중이에요 (" + ws.lock() + ")");
 			}
 			return new RunLock(channel, lock);
 		}

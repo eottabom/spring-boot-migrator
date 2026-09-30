@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import com.eottabom.migration.GitFixture;
+import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.config.GateLevel;
 import com.eottabom.migration.config.JavaTarget;
 import com.eottabom.migration.config.MigrationConfig;
@@ -22,7 +23,6 @@ import com.eottabom.migration.config.MigrationConfig.Target;
 import com.eottabom.migration.config.Mode;
 import com.eottabom.migration.gradle.FakeProjectGradle;
 import com.eottabom.migration.gradle.FakeProjectGradle.BuildOutcome;
-import org.gradle.api.GradleException;
 import org.gradle.api.logging.Logging;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -120,7 +120,7 @@ class MigrationRunnerFlowTests {
 	@Test
 	void resumeAfterFixedCompileRunsBuildGateBeforeCommit() throws IOException {
 		this.fake.compiles.add(false);
-		assertThatThrownBy(() -> this.runner.run(request("3.5", true))).isInstanceOf(GradleException.class)
+		assertThatThrownBy(() -> this.runner.run(request("3.5", true))).isInstanceOf(MigrationException.class)
 			.hasMessageContaining("컴파일 실패");
 		assertThat(migrationCommits()).isEmpty();
 		assertThat(read(".spring-boot-migrator/run-state.json")).contains("\"reason\" : \"compile\"");

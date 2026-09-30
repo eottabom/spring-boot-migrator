@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.io.AtomicFiles;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -43,12 +44,12 @@ public record RunStateStore(Path file, Path projectDir, Path schemaDir) {
 			node = JSON.readTree(this.file.toFile());
 		}
 		catch (IOException ex) {
-			throw new IllegalStateException(this.file + " 을 읽지 못했어요. 지우고 다시 실행해 주세요: " + ex.getMessage(), ex);
+			throw new MigrationException(this.file + " 을 읽지 못했어요. 지우고 다시 실행해 주세요: " + ex.getMessage(), ex);
 		}
 		validate(node);
 		RunState state = JSON.convertValue(node, RunState.class);
 		if (!state.project().equals(project())) {
-			throw new IllegalStateException(this.file + " 은 다른 프로젝트(" + state.project() + ")의 기록이에요. "
+			throw new MigrationException(this.file + " 은 다른 프로젝트(" + state.project() + ")의 기록이에요. "
 					+ "이 프로젝트의 기록이 아니면 run-state.json 을 지우고 다시 실행해 주세요");
 		}
 		return Optional.of(state);
@@ -72,8 +73,7 @@ public record RunStateStore(Path file, Path projectDir, Path schemaDir) {
 			.getSchema(SchemaLocation.of(this.schemaDir.resolve("run-state.schema.json").toUri().toString()));
 		Set<ValidationMessage> errors = schema.validate(node);
 		if (!errors.isEmpty()) {
-			throw new IllegalStateException(this.file
-					+ " 이 run-state.schema.json 에 맞지 않아요. 예전 버전의 기록이면 지우고 다시 실행해 주세요\n  "
+			throw new MigrationException(this.file + " 이 run-state.schema.json 에 맞지 않아요. 예전 버전의 기록이면 지우고 다시 실행해 주세요\n  "
 					+ errors.stream().map(ValidationMessage::getMessage).sorted().collect(Collectors.joining("\n  ")));
 		}
 	}

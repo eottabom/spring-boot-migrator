@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.console.RunnerConsole;
 import com.eottabom.migration.gradle.FailedTasks;
 import com.eottabom.migration.gradle.ProjectGradle;
@@ -12,7 +13,6 @@ import com.eottabom.migration.gradle.VerifyInitScript;
 import com.eottabom.migration.result.TestResults;
 import com.eottabom.migration.workspace.RunFiles;
 import com.eottabom.migration.workspace.RunState.Baseline;
-import org.gradle.api.GradleException;
 
 /**
  * 원본 빌드를 한 번 돌려 원래부터 실패하던 태스크와 테스트를 모은다. stage 에서는 여기 없는 실패만 막는다. 원본 컴파일이 깨지면 레시피를 돌릴 수
@@ -35,7 +35,7 @@ public record BaselineBuild(ProjectGradle gradle, VerifyInitScript verifyInit, R
 				start.baselineTestDirs(), args, true);
 		Set<String> failedTasks = run.built() ? Set.of() : FailedTasks.read(start.baselineFailedTasks(), log);
 		if (FailedTasks.anyCompileTask(failedTasks)) {
-			throw new GradleException("현재 소스가 컴파일되지 않아요. 컴파일 에러를 고치고 다시 실행해 주세요 → " + log);
+			throw new MigrationException("현재 소스가 컴파일되지 않아요. 컴파일 에러를 고치고 다시 실행해 주세요 → " + log);
 		}
 		TestResults.Results tests = run.tests();
 		if (!tests.complete()) {

@@ -12,7 +12,6 @@ import com.eottabom.migration.project.ProjectState;
 import com.eottabom.migration.recipe.ProjectRecipes;
 import com.eottabom.migration.workspace.MigrationWorkspace;
 import com.eottabom.migration.workspace.RunFiles;
-import org.gradle.api.GradleException;
 import org.gradle.api.logging.Logger;
 
 /**
@@ -57,7 +56,7 @@ public final class MigrationRunner {
 	/** 실행할 stage 만 보여준다. 대상 프로젝트의 Gradle 을 띄우지 않는다. */
 	public MigrationPlan plan(MigrationConfig config) {
 		ProjectState project = this.components.inspector().inspect(config.projectDir());
-		MigrationPlan plan = planOrFail(project, config);
+		MigrationPlan plan = this.components.planner().plan(project, config);
 		new PlanPrinter(this.components.console(), this.components.guides()).print(project, plan,
 				projectRecipes(config));
 		return plan;
@@ -110,15 +109,6 @@ public final class MigrationRunner {
 		this.components.console().line("   빌드 파일에서 Boot 버전을 찾지 못해 대상 Gradle 이 resolve 한 버전을 읽을게요");
 		String resolved = this.components.scanner().resolvedBootVersion(gradle, files);
 		return (resolved != null) ? project.withBootVersion(resolved) : project;
-	}
-
-	MigrationPlan planOrFail(ProjectState project, MigrationConfig config) {
-		try {
-			return this.components.planner().plan(project, config);
-		}
-		catch (IllegalArgumentException ex) {
-			throw new GradleException(String.valueOf(ex.getMessage()));
-		}
 	}
 
 	/** custom 레시피를 끄면 upstream 결과만 비교하는 것이라 프로젝트 레시피도 붙이지 않는다 */

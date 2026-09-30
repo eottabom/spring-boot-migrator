@@ -3,10 +3,10 @@ package com.eottabom.migration.pipeline.step;
 import java.nio.file.Path;
 import java.util.Collection;
 
+import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.console.RunnerConsole;
 import com.eottabom.migration.workspace.Git;
 import com.eottabom.migration.workspace.StageFiles;
-import org.gradle.api.GradleException;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -25,7 +25,7 @@ public record StagePatches(RunnerConsole console, Git git) {
 		String treeAfter = this.git.snapshotTree(createdFiles, tempIndex);
 		// 누적 patch 가 없거나 틀리면 재개와 되돌리기가 사용자 변경을 잃는다. 결과와 달리 실패하면 멈춘다
 		if (treeAfter == null || !this.git.diffTrees(start, treeAfter, files.cumulativePatch())) {
-			throw new GradleException("누적 patch 를 만들지 못했어요: " + files.cumulativePatch());
+			throw new MigrationException("누적 patch 를 만들지 못했어요: " + files.cumulativePatch());
 		}
 		if (treeBefore == null || !this.git.diffTrees(treeBefore, treeAfter, files.stagePatch())) {
 			this.console.error("이 stage 의 diff 를 만들지 못해 결과에서 변경 보기가 빠져요: " + files.stagePatch());

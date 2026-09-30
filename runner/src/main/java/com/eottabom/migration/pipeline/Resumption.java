@@ -6,10 +6,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
+import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.workspace.RunState;
 import com.eottabom.migration.workspace.RunState.Reason;
 import com.eottabom.migration.workspace.RunState.Stopped;
-import org.gradle.api.GradleException;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -20,13 +20,7 @@ import org.jspecify.annotations.Nullable;
 record Resumption(RunSession session, StageRunner stages) {
 
 	Resumed resume() {
-		Optional<RunState> saved;
-		try {
-			saved = session().store().read();
-		}
-		catch (IllegalStateException ex) {
-			throw new GradleException(String.valueOf(ex.getMessage()), ex);
-		}
+		Optional<RunState> saved = session().store().read();
 		if (saved.isEmpty() || saved.get().stopped() == null) {
 			return Resumed.NONE;
 		}
@@ -61,11 +55,11 @@ record Resumption(RunSession session, StageRunner stages) {
 	private void checkResumable(Stopped stopped) {
 		Path cumulative = session().ws().stage(stopped.tag()).cumulativePatch();
 		if (!Files.exists(cumulative)) {
-			throw new GradleException(stopped.stage() + " stage 의 누적 patch(" + cumulative
+			throw new MigrationException(stopped.stage() + " stage 의 누적 patch(" + cumulative
 					+ ")가 없어 재개할 수 없어요. run-state.json 을 지우고 다시 실행해 주세요");
 		}
 		if (!session().git().isAncestorOfHead(session().state().baseRevision())) {
-			throw new GradleException("마이그레이션을 시작한 커밋(" + session().state().baseRevision()
+			throw new MigrationException("마이그레이션을 시작한 커밋(" + session().state().baseRevision()
 					+ ")이 지금 HEAD 의 조상이 아니에요. 브랜치를 바꿨다면 원래 브랜치로 돌아가 다시 실행해 주세요");
 		}
 	}
@@ -78,7 +72,7 @@ record Resumption(RunSession session, StageRunner stages) {
 			.rollback(session().ws().stage(stopped.tag()).cumulativePatch(), previous, session().state().createdFiles(),
 					session().ws().tempIndex())) {
 			// 되돌리는 명령은 출력하지 않는다 (복사해서 실행하다 작업 내용을 지우는 일이 없도록)
-			throw new GradleException(
+			throw new MigrationException(
 					stopped.stage() + " stage 전 상태로 되돌리지 못했어요 (실패 이후 소스가 바뀌었어요). 작업 트리는 그대로예요. 컴파일 에러를 고치고 다시 실행해 주세요");
 		}
 		session().console().line("   {} stage 전 상태로 되돌렸어요. {} stage 부터 다시 시도할게요", stopped.stage(), stopped.stage());
@@ -88,7 +82,7 @@ record Resumption(RunSession session, StageRunner stages) {
 
 	/** git 저장소가 아니면 stage 전 상태로 되돌릴 수 없어, 고칠 때까지 같은 stage 에서 멈춘다 */
 	private Resumed stillBroken(Stopped stopped) {
-		throw new GradleException(
+		throw new MigrationException(
 				"[" + stopped.stage() + "] 컴파일 에러가 남아 있어요. 에러는 " + session().ws().stage(stopped.tag()).compileLog()
 						+ "\n" + "   git 저장소가 아니라 stage 전 상태로 되돌릴 수 없어요. 고치고 같은 명령을 다시 실행해 주세요");
 	}

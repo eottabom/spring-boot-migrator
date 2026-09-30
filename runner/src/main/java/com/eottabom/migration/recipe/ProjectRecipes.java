@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.stage.StageId;
 import org.yaml.snakeyaml.Yaml;
 
@@ -99,7 +100,7 @@ public record ProjectRecipes(List<Path> files, List<RecipeDocument> documents, L
 				String stage = text.substring(STAGE_TAG.length()).trim();
 				// 오타(4.0.x, java-21)는 어느 stage 에도 붙지 않고 조용히 빠지므로 막는다
 				if (!STAGE_KEY.matcher(stage).matches()) {
-					throw new IllegalArgumentException(file + ": " + name + " 의 " + text
+					throw new MigrationException(file + ": " + name + " 의 " + text
 							+ " 는 stage 키가 아니에요 (예: migration-stage:3.4, migration-stage:java21, migration-stage:gradle, migration-stage:*)");
 				}
 				stages.add(stage);
@@ -110,7 +111,7 @@ public record ProjectRecipes(List<Path> files, List<RecipeDocument> documents, L
 					order = Order.valueOf(value.toUpperCase(Locale.ROOT));
 				}
 				catch (IllegalArgumentException ex) {
-					throw new IllegalArgumentException(
+					throw new MigrationException(
 							file + ": " + name + " 의 " + text + " 는 migration-order:before 또는 migration-order:after",
 							ex);
 				}
@@ -130,7 +131,7 @@ public record ProjectRecipes(List<Path> files, List<RecipeDocument> documents, L
 					docs.add(new RecipeDocument((Map<String, Object>) map));
 				}
 				else if (doc != null) {
-					throw new IllegalArgumentException(file + ": YAML 문서가 맵이 아니에요");
+					throw new MigrationException(file + ": YAML 문서가 맵이 아니에요");
 				}
 			}
 		}
@@ -138,7 +139,7 @@ public record ProjectRecipes(List<Path> files, List<RecipeDocument> documents, L
 			throw new UncheckedIOException(ex);
 		}
 		catch (RuntimeException ex) {
-			throw new IllegalArgumentException("프로젝트 레시피를 읽지 못했어요: " + file + " (" + ex.getMessage() + ")", ex);
+			throw new MigrationException("프로젝트 레시피를 읽지 못했어요: " + file + " (" + ex.getMessage() + ")", ex);
 		}
 		return docs;
 	}

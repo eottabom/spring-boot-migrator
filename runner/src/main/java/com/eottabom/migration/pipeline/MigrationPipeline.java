@@ -4,6 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
 
+import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.config.MigrationConfig;
 import com.eottabom.migration.console.RunnerConsole;
 import com.eottabom.migration.io.TextFiles;
@@ -15,7 +16,6 @@ import com.eottabom.migration.project.ProjectState;
 import com.eottabom.migration.recipe.AssembledRecipe;
 import com.eottabom.migration.workspace.MigrationWorkspace;
 import com.eottabom.migration.workspace.RunState;
-import org.gradle.api.GradleException;
 
 /**
  * 한 번의 migrationRun. 재개 판단, 시작 준비(의존성 버전, detect, 원본 빌드) 뒤에 stage 마다 step 을 돈다
@@ -57,7 +57,7 @@ final class MigrationPipeline {
 		ProjectState project = this.session.runner()
 			.withResolvedBootVersion(this.session.components().inspector().inspect(this.session.projectDir()),
 					this.session.gradle(), this.session.ws().start());
-		MigrationPlan plan = this.session.runner().planOrFail(project, config);
+		MigrationPlan plan = this.session.components().planner().plan(project, config);
 		String summary = config.summary(plan.targetJava());
 		console.heading("프로젝트 : " + this.session.projectDir());
 		console.line("   현재     : Boot {} / Gradle {} / JAVA_HOME={}", project.bootVersion(),
@@ -112,16 +112,16 @@ final class MigrationPipeline {
 	private void checkWorkingTree(ProjectState project, boolean resumed) {
 		MigrationConfig config = this.session.config();
 		if (config.commit() && !project.gitRoot()) {
-			throw new GradleException("--commit 은 git 저장소에서만 쓸 수 있어요");
+			throw new MigrationException("--commit 은 git 저장소에서만 쓸 수 있어요");
 		}
 		if (!project.dirty() || resumed || config.preview()) {
 			return;
 		}
 		if (config.commit()) {
-			throw new GradleException("--commit 은 작업 트리가 깨끗해야 해요 (기존 변경이 커밋에 섞여요)");
+			throw new MigrationException("--commit 은 작업 트리가 깨끗해야 해요 (기존 변경이 커밋에 섞여요)");
 		}
 		if (!config.allowDirty()) {
-			throw new GradleException("작업 트리에 커밋되지 않은 변경이 있어요. 커밋하거나 --allow-dirty 로 계속해 주세요");
+			throw new MigrationException("작업 트리에 커밋되지 않은 변경이 있어요. 커밋하거나 --allow-dirty 로 계속해 주세요");
 		}
 	}
 
@@ -139,7 +139,7 @@ final class MigrationPipeline {
 		String tree = this.session.git().snapshotTree(Set.of(), this.session.ws().tempIndex());
 		String start = (tree != null) ? this.session.git().pinStart(START_REF, tree) : null;
 		if (head == null || start == null) {
-			throw new GradleException("시작 시점의 작업 트리를 기록하지 못했어요 (git write-tree / commit-tree 실패)");
+			throw new MigrationException("시작 시점의 작업 트리를 기록하지 못했어요 (git write-tree / commit-tree 실패)");
 		}
 		this.session.state(RunState.start(owner, head, start, project.bootVersion()));
 	}

@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.io.Processes;
 import org.jspecify.annotations.Nullable;
 
@@ -93,7 +94,7 @@ public record Git(Path dir) {
 			return true;
 		}
 		if (!run("git", "restore", "--source=" + backup, "--worktree", "--", ".")) {
-			throw new IllegalStateException(
+			throw new MigrationException(
 					"되돌리기에 실패해서 작업 트리를 복원하려 했지만 복원도 실패했어요. 되돌리기 전 작업 트리는 tree " + backup + " 에 있어요");
 		}
 		return false;

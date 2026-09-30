@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.stage.StageId;
 
 /**
@@ -47,7 +48,7 @@ public record Guides(List<BootGuide> boot, List<JavaGuide> java, List<GradleGuid
 		return this.boot.stream()
 			.filter((guide) -> guide.version().equals(version))
 			.findFirst()
-			.orElseThrow(() -> new IllegalArgumentException("guides/boot/" + version + ".yml 이 없어요"));
+			.orElseThrow(() -> new MigrationException("guides/boot/" + version + ".yml 이 없어요"));
 	}
 
 	/** Java stage 로 올릴 수 있는 버전 (LTS) */
@@ -59,7 +60,7 @@ public record Guides(List<BootGuide> boot, List<JavaGuide> java, List<GradleGuid
 		return this.java.stream()
 			.filter((guide) -> guide.version() == version)
 			.findFirst()
-			.orElseThrow(() -> new IllegalArgumentException("--java 는 "
+			.orElseThrow(() -> new MigrationException("--java 는 "
 					+ String.join(" | ", javaVersions().stream().map(String::valueOf).toList()) + " | latest | keep"));
 	}
 
@@ -67,7 +68,7 @@ public record Guides(List<BootGuide> boot, List<JavaGuide> java, List<GradleGuid
 		return this.gradle.stream()
 			.filter((guide) -> guide.version().equals(version))
 			.findFirst()
-			.orElseThrow(() -> new IllegalArgumentException("guides/gradle/" + version + ".yml 이 없어요"));
+			.orElseThrow(() -> new MigrationException("guides/gradle/" + version + ".yml 이 없어요"));
 	}
 
 	public StageGuide stage(StageId stage) {
@@ -135,7 +136,7 @@ public record Guides(List<BootGuide> boot, List<JavaGuide> java, List<GradleGuid
 		this.libraries.forEach((library) -> items.addAll(library.checklist()));
 		for (ChecklistItem item : items) {
 			if (!ids.add(item.id())) {
-				throw new IllegalArgumentException("guides/ 에 체크리스트 id 가 중복돼요: " + item.id());
+				throw new MigrationException("guides/ 에 체크리스트 id 가 중복돼요: " + item.id());
 			}
 		}
 	}

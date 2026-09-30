@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 
+import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.config.JavaTarget;
 import com.eottabom.migration.config.MigrationConfig;
 import com.eottabom.migration.guide.BootGuide;
@@ -36,18 +37,18 @@ public record MigrationPlanner(Guides guides) {
 
 	public MigrationPlan plan(ProjectState project, MigrationConfig config) {
 		if (project.bootVersion() == null) {
-			throw new IllegalArgumentException("빌드 파일에서 Spring Boot 버전을 찾지 못했어요 (root build.gradle 의 plugins 블록 확인). "
+			throw new MigrationException("빌드 파일에서 Spring Boot 버전을 찾지 못했어요 (root build.gradle 의 plugins 블록 확인). "
 					+ "migrationRun, migrationScan 은 대상 Gradle 이 resolve 한 버전으로 다시 찾아요");
 		}
 		List<String> bootStages = this.guides.bootVersions();
 		String target = (config.target().boot() != null) ? minor(config.target().boot())
 				: bootStages.get(bootStages.size() - 1);
 		if (!bootStages.contains(target)) {
-			throw new IllegalArgumentException("목표 버전은 다음 중 하나: " + String.join(" ", bootStages));
+			throw new MigrationException("목표 버전은 다음 중 하나: " + String.join(" ", bootStages));
 		}
 		String current = minor(project.bootVersion());
 		if (compare(current, MINIMUM_BOOT) < 0) {
-			throw new IllegalArgumentException(
+			throw new MigrationException(
 					"Boot " + project.bootVersion() + " 에서는 시작할 수 없어요. Boot " + MINIMUM_BOOT + " 이상으로 먼저 올려 주세요");
 		}
 		BootRequirements targetRequirements = this.guides.boot(target).requirements();
@@ -79,7 +80,7 @@ public record MigrationPlanner(Guides guides) {
 			JavaGuide java = this.guides.java(targetJava);
 			if (gradle != null && Versions.compare(gradle, java.gradle()) < 0) {
 				GradleGuide upgrade = lowestGradle(java.gradle(), (version) -> true)
-					.orElseThrow(() -> new IllegalArgumentException("Java " + java.version() + " 에 필요한 Gradle "
+					.orElseThrow(() -> new MigrationException("Java " + java.version() + " 에 필요한 Gradle "
 							+ java.gradle() + " 이상의 가이드가 없어요 (guides/gradle/)"));
 				notes.add("Gradle " + gradle + " 는 JDK " + targetJava + " 위에서 뜨지 않아요 (" + java.gradle()
 						+ "+ 필요) → Gradle " + upgrade.version() + " stage 추가");
@@ -132,7 +133,7 @@ public record MigrationPlanner(Guides guides) {
 		if (support == GradleSupport.TOO_OLD) {
 			GradleGuide upgrade = lowestGradle(gradle,
 					(version) -> requirements.gradleSupport(version) == GradleSupport.SUPPORTED)
-				.orElseThrow(() -> new IllegalArgumentException("Boot " + guide.version() + " 은 Gradle "
+				.orElseThrow(() -> new MigrationException("Boot " + guide.version() + " 은 Gradle "
 						+ requirements.gradleRange() + " 가 필요한데 맞는 Gradle 가이드가 없어요 (guides/gradle/)"));
 			notes.add("Gradle " + gradle + " 는 Boot " + guide.version() + " 지원 범위(" + requirements.gradleRange()
 					+ ") 밖 → Gradle " + upgrade.version() + " stage 추가");
@@ -170,7 +171,7 @@ public record MigrationPlanner(Guides guides) {
 				int version = Objects.requireNonNull(option.version());
 				this.guides.java(version);
 				if (!requirements.supportsJava(version)) {
-					throw new IllegalArgumentException("Java " + version + " 는 Boot " + target + " 지원 범위("
+					throw new MigrationException("Java " + version + " 는 Boot " + target + " 지원 범위("
 							+ requirements.java().min() + " ~ " + requirements.java().max() + ") 밖이에요");
 				}
 				yield version;

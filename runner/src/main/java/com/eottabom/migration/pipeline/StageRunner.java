@@ -3,6 +3,7 @@ package com.eottabom.migration.pipeline;
 import java.util.List;
 import java.util.Set;
 
+import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.console.RunnerConsole;
 import com.eottabom.migration.pipeline.step.AssessStep;
 import com.eottabom.migration.pipeline.step.CommitStep;
@@ -19,7 +20,6 @@ import com.eottabom.migration.stage.StageTag;
 import com.eottabom.migration.workspace.RunState.Reason;
 import com.eottabom.migration.workspace.RunState.Stopped;
 import com.eottabom.migration.workspace.StageFiles;
-import org.gradle.api.GradleException;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -125,13 +125,13 @@ record StageRunner(RunSession session) {
 			.stoppedAt(new Stopped(stage.id(), tag, stage.covers(), session().lastTag(), reason, treeBefore),
 					session().isGit() ? session().git().untracked() : Set.of()));
 		if (gate.compileFailed()) {
-			throw new GradleException("[" + stage.name() + "] 컴파일 실패. 에러는 " + files.compileLog() + "\n"
+			throw new MigrationException("[" + stage.name() + "] 컴파일 실패. 에러는 " + files.compileLog() + "\n"
 					+ "   같은 명령을 다시 실행하면, 에러를 고쳤을 땐 이 stage 의 테스트/빌드 검증을 이어서 하고\n"
 					+ (session().isGit()
 							? "   그대로면 " + stage.name() + " stage 전 상태로 되돌려 " + stage.name() + " stage 를 다시 시도해요."
 							: "   그대로면 멈춰요 (git 저장소가 아니라 stage 전 상태로 되돌릴 수 없어요)."));
 		}
-		throw new GradleException("[" + stage.name() + "] " + gate.describe() + ". 결과는 "
+		throw new MigrationException("[" + stage.name() + "] " + gate.describe() + ". 결과는 "
 				+ session().ws().resultHtml().toUri() + "\n" + "   고치고 같은 명령을 다시 실행하면 이 stage 검증부터 다시 하고, 통과하면 "
 				+ (session().config().commit() ? "커밋하고 " : "") + "다음 stage 로 넘어가요. 테스트 결과와 상관없이 진행하려면 --gate=compile");
 	}
