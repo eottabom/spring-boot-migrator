@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -386,7 +387,7 @@ final class VersionCatalogEditor {
 				}
 			}
 			String[] parts = tokens.toArray(String[]::new);
-			Kind kind = Kind.valueOf(parts[0].toUpperCase());
+			Kind kind = Kind.valueOf(parts[0].toUpperCase(Locale.ROOT));
 			return switch (kind) {
 				case DEPENDENCY -> {
 					String[] ga = parts[1].split(":");
