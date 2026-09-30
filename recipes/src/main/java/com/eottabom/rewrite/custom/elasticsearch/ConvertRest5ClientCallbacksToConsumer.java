@@ -19,7 +19,7 @@ import org.openrewrite.java.tree.TypeUtils;
  * Rest5ClientBuilder 의 콜백은 Consumer 라서 builder 를 돌려주던 람다 끝의 {@code return builder} 를 없앤다.
  * 블록 마지막 return 만 바꾸고, 중간에 return 하는 콜백은 컴파일 에러로 드러나게 둔다.
  */
-public class Rest5ClientCallbacksToConsumer extends Recipe {
+public class ConvertRest5ClientCallbacksToConsumer extends Recipe {
 
 	private static final List<String> BUILDERS = Arrays.asList("org.elasticsearch.client.RestClientBuilder",
 			"co.elastic.clients.transport.rest5_client.low_level.Rest5ClientBuilder");

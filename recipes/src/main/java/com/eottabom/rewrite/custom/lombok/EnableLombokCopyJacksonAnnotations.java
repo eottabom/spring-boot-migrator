@@ -23,7 +23,7 @@ import org.openrewrite.text.PlainTextVisitor;
  * Lombok 1.18.40 부터 필드의 Jackson 어노테이션을 getter 에 복사하지 않아 {@code isShow} 같은 필드가 JSON 에 두 번
  * 나간다. .gitignore 가 lombok.config 를 무시하면 루트 파일만 풀어 준다.
  */
-public class CopyJacksonAnnotationsToAccessors extends ScanningRecipe<CopyJacksonAnnotationsToAccessors.Accumulator> {
+public class EnableLombokCopyJacksonAnnotations extends ScanningRecipe<EnableLombokCopyJacksonAnnotations.Accumulator> {
 
 	private static final String LOMBOK_CONFIG = "lombok.config";
 

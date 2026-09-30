@@ -9,11 +9,11 @@ import org.openrewrite.test.RewriteTest;
 
 import static org.openrewrite.java.Assertions.java;
 
-class FixHypersistenceJsonAttributesTests implements RewriteTest {
+class FixJsonColumnValueTypesTests implements RewriteTest {
 
 	@Override
 	public void defaults(RecipeSpec spec) {
-		spec.recipe(new FixHypersistenceJsonAttributes())
+		spec.recipe(new FixJsonColumnValueTypes())
 			.parser(JavaParser.fromJavaVersion()
 				.dependsOn(
 						"package org.hibernate.annotations; public @interface Type { Class<?> value(); String[] parameters() default {}; }",

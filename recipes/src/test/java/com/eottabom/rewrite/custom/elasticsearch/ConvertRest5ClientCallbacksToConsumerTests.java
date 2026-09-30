@@ -12,11 +12,11 @@ import org.openrewrite.test.TypeValidation;
 
 import static org.openrewrite.java.Assertions.java;
 
-class Rest5ClientCallbacksToConsumerTests implements RewriteTest {
+class ConvertRest5ClientCallbacksToConsumerTests implements RewriteTest {
 
 	@Override
 	public void defaults(RecipeSpec spec) {
-		spec.recipe(new Rest5ClientCallbacksToConsumer())
+		spec.recipe(new ConvertRest5ClientCallbacksToConsumer())
 			.typeValidationOptions(TypeValidation.none())
 			.parser(JavaParser.fromJavaVersion()
 				.dependsOn(

@@ -14,7 +14,7 @@ import org.openrewrite.test.SourceSpecs;
 import static org.openrewrite.java.Assertions.java;
 import static org.openrewrite.test.SourceSpecs.text;
 
-class CopyJacksonAnnotationsToAccessorsTests implements RewriteTest {
+class EnableLombokCopyJacksonAnnotationsTests implements RewriteTest {
 
 	private static final String DTO = """
 			import com.fasterxml.jackson.annotation.JsonProperty;
@@ -31,7 +31,7 @@ class CopyJacksonAnnotationsToAccessorsTests implements RewriteTest {
 
 	@Override
 	public void defaults(RecipeSpec spec) {
-		spec.recipe(new CopyJacksonAnnotationsToAccessors())
+		spec.recipe(new EnableLombokCopyJacksonAnnotations())
 			.parser(JavaParser.fromJavaVersion()
 				.dependsOn("package lombok; public @interface Data {}",
 						"package com.fasterxml.jackson.annotation; public @interface JsonProperty { String value() default \"\"; }"));

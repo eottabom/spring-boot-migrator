@@ -25,7 +25,7 @@ import org.openrewrite.marker.Markers;
  * ChangeDependencyClassifier 는 버전이 있는 문자열만 다뤄서 GString 버전 변수와 BOM 관리 선언을 바꾸지 못한다. jpa 이외의
  * classifier 는 그대로 둔다.
  */
-public class QuerydslJakartaClassifier extends Recipe {
+public class UseQuerydslJakartaClassifier extends Recipe {
 
 	private static final String JAKARTA = "jakarta";
 

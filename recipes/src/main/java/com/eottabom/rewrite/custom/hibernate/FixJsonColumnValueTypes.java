@@ -34,7 +34,7 @@ import org.openrewrite.java.tree.TypeUtils;
  * 쓰고 부모가 없는 클래스만)</li>
  * </ul>
  */
-public class FixHypersistenceJsonAttributes extends ScanningRecipe<FixHypersistenceJsonAttributes.Accumulator> {
+public class FixJsonColumnValueTypes extends ScanningRecipe<FixJsonColumnValueTypes.Accumulator> {
 
 	private static final String HIBERNATE_TYPE = "org.hibernate.annotations.Type";
 
@@ -75,7 +75,7 @@ public class FixHypersistenceJsonAttributes extends ScanningRecipe<FixHypersiste
 					ExecutionContext ctx) {
 				if (multiVariable.getLeadingAnnotations()
 					.stream()
-					.anyMatch(FixHypersistenceJsonAttributes::isJsonTypeAnnotation)) {
+					.anyMatch(FixJsonColumnValueTypes::isJsonTypeAnnotation)) {
 					collectTypes(multiVariable.getType(), acc.roots);
 				}
 				return super.visitVariableDeclarations(multiVariable, ctx);

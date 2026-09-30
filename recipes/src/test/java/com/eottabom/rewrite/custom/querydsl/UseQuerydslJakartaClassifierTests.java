@@ -12,11 +12,11 @@ import org.openrewrite.test.RewriteTest;
 import static org.openrewrite.gradle.Assertions.buildGradle;
 import static org.openrewrite.gradle.Assertions.buildGradleKts;
 
-class QuerydslJakartaClassifierTests implements RewriteTest {
+class UseQuerydslJakartaClassifierTests implements RewriteTest {
 
 	@Override
 	public void defaults(RecipeSpec spec) {
-		spec.recipe(new QuerydslJakartaClassifier());
+		spec.recipe(new UseQuerydslJakartaClassifier());
 	}
 
 	@ParameterizedTest(name = "[{index}] {0}")

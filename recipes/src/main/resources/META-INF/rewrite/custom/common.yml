@@ -14,7 +14,7 @@ recipeList:
       newVersion: 1.18.x
   # Lombok 1.18.40+ 는 @JsonProperty 를 getter 에 복사하지 않아 `@JsonProperty("isShow") boolean isShow` 가 JSON 에 isShow, show 로
   # 두 번 나간다. lombok.config 로 이전 동작 유지 (Lombok + Jackson 어노테이션을 쓰는 프로젝트만)
-  - com.eottabom.rewrite.custom.lombok.CopyJacksonAnnotationsToAccessors
+  - com.eottabom.rewrite.custom.lombok.EnableLombokCopyJacksonAnnotations
   # commons-lang 2 import 를 lang3 로 (3.x 에서 시작하면 3.0 단계의 upstream 전환을 거치지 않는다. 실측, 3.5 에서 transitive commons-lang 2 가 빠져 컴파일 에러)
   - com.eottabom.rewrite.custom.misc.MigrateCommonsLang2Usages
   - com.eottabom.rewrite.custom.misc.RemoveUnusedCommonsLang2
@@ -22,7 +22,7 @@ recipeList:
   - com.eottabom.rewrite.custom.misc.UnshadeRelocatedImports
   # Hypersistence JSON 속성 객체: Serializable 이 아니면 저장/수정 시 NonSerializableObjectException,
   # List/Map 원소에 equals 가 없으면 트랜잭션마다 유령 UPDATE
-  - com.eottabom.rewrite.custom.hibernate.FixHypersistenceJsonAttributes
+  - com.eottabom.rewrite.custom.hibernate.FixJsonColumnValueTypes
   # upstream 이 HikariConfig 빈에 @DependsOnDatabaseInitialization 을 붙여 DB 초기화 빈과 순환 참조가 생기는 문제
   - com.eottabom.rewrite.custom.spring.RemoveDependsOnDatabaseInitializationFromDataSourceConfig
   # Kafka 는 Boot BOM 이 clients / streams / test-utils 를 같은 버전으로 관리한다.
