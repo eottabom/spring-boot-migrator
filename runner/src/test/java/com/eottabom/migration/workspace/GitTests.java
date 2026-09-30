@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 
 import com.eottabom.migration.GitFixture;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +46,15 @@ class GitTests {
 			.doesNotContain("build.gradle");
 		assertThat(GitFixture.git(this.repo, "diff", "--name-only")).isEqualTo(unstaged);
 		assertThat(Files.readString(this.repo.resolve("out.patch"))).contains("App.java", "build.gradle");
+	}
+
+	@Test
+	void untrackedIsModifiableEvenWhenGitFails(@TempDir Path notARepository) {
+		Set<String> untracked = new Git(notARepository).untracked();
+
+		assertThat(untracked).isEmpty();
+		// 호출하는 쪽이 removeAll 로 지운다
+		assertThat(untracked.removeAll(Set.of("a"))).isFalse();
 	}
 
 	@Test
