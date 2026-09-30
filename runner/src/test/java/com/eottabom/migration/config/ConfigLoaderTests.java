@@ -87,7 +87,7 @@ class ConfigLoaderTests {
 		assertThat(config.gate()).isEqualTo(new MigrationConfig.GateSettings(GateLevel.COMPILE, 3, false));
 		assertThat(config.recipes()).isEqualTo(new MigrationConfig.RecipeSettings(false, false));
 		assertThat(config.build()).isEqualTo(new MigrationConfig.BuildSettings(Jdk.CURRENT, "-Xmx2g", Duration.ZERO));
-		assertThat(config.build().currentJavaHome()).isTrue();
+		assertThat(config.build().usesCurrentJavaHome()).isTrue();
 		assertThat(config.commit()).isTrue();
 		assertThat(config.allowDirty()).isTrue();
 		assertThat(config.summary(21)).isEqualTo("gate=compile, mode=preview, commit, java=21, recipes.custom=false, "

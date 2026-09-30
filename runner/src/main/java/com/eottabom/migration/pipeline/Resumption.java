@@ -37,7 +37,7 @@ record Resumption(RunSession session, StageRunner stages) {
 		checkResumable(stopped);
 		session().continueAfter(stopped.previousTag());
 		if (stopped.reason() == Reason.COMPILE) {
-			session().console().step("[재개] 지난 실행이 " + stopped.stage() + " stage 에서 컴파일이 실패해 멈췄어요");
+			session().console().heading("[재개] 지난 실행이 " + stopped.stage() + " stage 에서 컴파일이 실패해 멈췄어요");
 			if (!session().gradle()
 				.run(session().ws().start().resumeCompileLog(), List.of("clean", "compileJava", "compileTestJava"))) {
 				return rollback(stopped);
@@ -47,7 +47,7 @@ record Resumption(RunSession session, StageRunner stages) {
 		}
 		else {
 			session().console()
-				.step("[재개] 지난 실행이 " + stopped.stage() + " stage 에서 테스트나 빌드가 실패해 멈췄어요. 이 stage 검증부터 다시 할게요");
+				.heading("[재개] 지난 실행이 " + stopped.stage() + " stage 에서 테스트나 빌드가 실패해 멈췄어요. 이 stage 검증부터 다시 할게요");
 		}
 		// 고치며 새로 만든 파일도 이 stage 의 변경으로 담는다 (멈출 때 이미 있던 파일은 뺀다)
 		Set<String> fixedFiles = session().git().untracked();
@@ -92,9 +92,9 @@ record Resumption(RunSession session, StageRunner stages) {
 	 * 재개 결과.
 	 *
 	 * @param active 재개했다 (남아 있는 변경은 이 마이그레이션의 변경이므로 작업 트리 검사를 하지 않는다)
-	 * @param retryFrom 멈춘 stage 를 다시 시도하는 경우 그 stage 번호 - 1, 이어서 가는 경우 null
+	 * @param lastCompletedOrder 멈춘 stage 를 다시 시도하는 경우 그 앞 stage 의 번호, 이어서 가는 경우 null
 	 */
-	record Resumed(boolean active, @Nullable Integer retryFrom, @Nullable String note) {
+	record Resumed(boolean active, @Nullable Integer lastCompletedOrder, @Nullable String note) {
 
 		static final Resumed NONE = new Resumed(false, null, null);
 

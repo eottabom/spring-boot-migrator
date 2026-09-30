@@ -36,7 +36,7 @@ record StageRunner(RunSession session) {
 		session().state(session().state().withCreatedFiles(rewrite.createdFiles()));
 		session().console()
 			.line("   Boot {} / Gradle {}", session().components().inspector().bootVersion(session().projectDir()),
-					RunnerConsole.orQ(session().components().inspector().gradleVersion(session().projectDir())));
+					RunnerConsole.orUnknown(session().components().inspector().gradleVersion(session().projectDir())));
 
 		// 이 stage 의 게이트부터 바뀐 Java 버전으로 돈다
 		session().refreshJdk();

@@ -18,10 +18,10 @@ record JdkSelection(JdkLocator locator, RunnerConsole console) {
 		if (keepJavaHome) {
 			return current;
 		}
-		if (project.toolchainJava() != null) {
-			return found(project.toolchainJava(), current);
+		if (project.highestToolchainJava() != null) {
+			return found(project.highestToolchainJava(), current);
 		}
-		Integer declared = project.javaVersion();
+		Integer declared = project.lowestDeclaredJava();
 		if (declared == null) {
 			return current;
 		}

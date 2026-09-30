@@ -36,7 +36,7 @@ public record RewriteStep(ProjectGradle gradle, RunnerConsole console, Path proj
 		Assembled assembled = AssembledRecipe.write(this.projectDir, String.valueOf(this.projectDir.getFileName()),
 				stage, tag, projectRecipes);
 		MigrationWorkspace.copyOrEmpty(assembled.file(), files.assembledRecipe());
-		this.console.step("[" + stage.name() + "] rewriteRun " + stage.recipeNames()
+		this.console.heading("[" + stage.name() + "] rewriteRun " + stage.recipeNames()
 				+ RunnerConsole.projectRecipeSuffix(projectRecipes, stage));
 		Set<String> untrackedBefore = (this.git != null) ? this.git.untracked() : Set.of();
 		String treeBefore = (this.git != null) ? this.git.snapshotTree(createdFiles, tempIndex) : null;

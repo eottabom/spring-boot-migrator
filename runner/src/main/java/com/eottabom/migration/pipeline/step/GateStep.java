@@ -30,7 +30,7 @@ public record GateStep(ProjectGradle gradle, VerifyInitScript verifyInit, Runner
 	 * compile (+deprecation/removal 경고). 컴파일이 깨져도 stage 후 의존성 버전 목록은 남긴다.
 	 */
 	public Outcome compile(String stageName, StageFiles files) {
-		this.console.step("[" + stageName + "] compile (+deprecation/removal 경고 수집)");
+		this.console.heading("[" + stageName + "] compile (+deprecation/removal 경고 수집)");
 		// clean: rewriteRun 이 컴파일하며 src/main/generated 에 만든 Q-class 와 APT 가 다시 충돌하지 않도록
 		boolean compiled = this.gradle.run(files.compileLog(), this.verifyInit.args("clean", "compileJava",
 				"compileTestJava", "migrationResolvedVersions", "-PmigrationVersionsOut=" + files.versions()));
@@ -47,7 +47,7 @@ public record GateStep(ProjectGradle gradle, VerifyInitScript verifyInit, Runner
 	 * @param clean 재개할 때는 사용자가 고친 뒤라 clean 부터 한다
 	 */
 	public GateOutcome build(String stageName, StageFiles files, boolean clean) {
-		this.console.step("[" + stageName + "] build (전체 테스트 + 패키징, properties-migrator 경고 수집)");
+		this.console.heading("[" + stageName + "] build (전체 테스트 + 패키징, properties-migrator 경고 수집)");
 		List<String> args = new ArrayList<>(
 				clean ? List.of("clean", "build", "--continue") : List.of("build", "--continue"));
 		args.add("-PmigrationFailedTasksOut=" + files.failedTasks());

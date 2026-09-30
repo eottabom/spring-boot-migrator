@@ -18,7 +18,7 @@ record ScanCommand(ProjectScanner scanner, RunnerConsole console) {
 		this.console.project(project, gradle.javaHome());
 		this.console.projectRecipes(project.dir(), ProjectRecipes.discover(project.dir()));
 
-		this.console.step("[scan] 의존성 버전");
+		this.console.heading("[scan] 의존성 버전");
 		if (this.scanner.resolvedVersions(gradle, files.versionsLog(), files.versions())) {
 			this.console.line("   의존성 {}개 → {}", TextFiles.countMatches(files.versions(), "."), files.versions());
 		}
@@ -26,7 +26,7 @@ record ScanCommand(ProjectScanner scanner, RunnerConsole console) {
 			this.console.error("의존성 버전 수집 실패 → " + files.versionsLog());
 		}
 
-		this.console.step("[scan] 수동 검토 대상 (detect)");
+		this.console.heading("[scan] 수동 검토 대상 (detect)");
 		if (this.scanner.detect(project.dir(), gradle, files)) {
 			this.console.line("   {} 곳 → {}", TextFiles.countMatches(files.detectPatch(), "~~>"), files.detectPatch());
 		}

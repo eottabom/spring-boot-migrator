@@ -65,7 +65,7 @@ public record MigrationPlanner(Guides guides) {
 		}
 		List<Stage> plan = new ArrayList<>();
 		String gradle = project.gradleVersion();
-		int currentJava = (project.javaVersion() != null) ? project.javaVersion() : 0;
+		int currentJava = (project.lowestDeclaredJava() != null) ? project.lowestDeclaredJava() : 0;
 		for (String version : bootPath) {
 			BootGuide guide = this.guides.boot(version);
 			gradle = ensureGradle(plan, notes, gradle, raisedGradle(gradle, guide), guide);
@@ -91,7 +91,7 @@ public record MigrationPlanner(Guides guides) {
 			}
 			plan.add(new Stage(Stage.Kind.JAVA, "java" + targetJava, STAGE_RECIPE + "Java_" + targetJava));
 		}
-		javaNotes(notes, config.target().java(), project.javaVersion(), targetJava, target, targetRequirements);
+		javaNotes(notes, config.target().java(), project.lowestDeclaredJava(), targetJava, target, targetRequirements);
 		List<Stage> stages = (config.allAtOnce() && plan.size() > 1) ? List.of(allAtOnce(plan)) : List.copyOf(plan);
 		return new MigrationPlan(target, targetRequirements, targetJava, stages, List.copyOf(notes));
 	}

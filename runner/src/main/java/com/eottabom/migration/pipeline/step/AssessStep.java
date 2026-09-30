@@ -29,14 +29,14 @@ public record AssessStep(Guides guides) {
 			Path previousVersions, GateOutcome gate, List<String> deprecationFixes, ProjectRecipes projectRecipes,
 			Set<String> baselineFailedTests) {
 		// 원본에서도 실패하던 태스크만 실패했으면 기존 문제로 표시한다
-		boolean buildFailureExisting = gate.build() == Outcome.FAILED && !gate.buildBlocking();
+		boolean buildFailureExisting = gate.build() == Outcome.FAILED && !gate.hasNewBuildFailure();
 		Set<String> projectRecipeNames = Set
 			.copyOf(projectRecipes.recipes().stream().map(ProjectRecipe::name).toList());
 		return StageResult.assess(new StageResult.Input(stageName, covers, projectDir, files.compileLog(),
 				files.rewriteLog(), start.detectPatch(), previousVersions, files.versions(), gate.compile(),
 				gate.build(), buildFailureExisting, checklist(covers, previousVersions, files.versions()),
 				this.guides.stage(stageName).source(), this.guides.failureHints(covers), projectRecipeNames,
-				baselineFailedTests, gate.flakyTests(), gate.testResults(), gate.unreadableResults(),
+				baselineFailedTests, gate.flakyTests(), gate.testResultFiles(), gate.unreadableResults(),
 				deprecationFixes));
 	}
 

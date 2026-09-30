@@ -24,7 +24,7 @@ record VerifyCommand(ProjectScanner scanner, RunnerConsole console) {
 		}
 		RunFiles files = new RunFiles(MigrationWorkspace.in(project.dir()).dir().resolve("verify"));
 		this.console.project(project, gradle.javaHome());
-		this.console.step("[verify] compile (+deprecation/removal 경고 수집)");
+		this.console.heading("[verify] compile (+deprecation/removal 경고 수집)");
 		if (!gradle.run(files.compileLog(),
 				this.scanner.verifyInitScript().args("clean", "compileJava", "compileTestJava"))) {
 			throw new GradleException("컴파일 실패 → " + files.compileLog());
@@ -38,7 +38,7 @@ record VerifyCommand(ProjectScanner scanner, RunnerConsole console) {
 	}
 
 	private void build(ProjectState project, ProjectGradle gradle, RunFiles files) {
-		this.console.step("[verify] build (전체 테스트 + 패키징)");
+		this.console.heading("[verify] build (전체 테스트 + 패키징)");
 		TestRun.Result run = new TestRun(gradle, this.scanner.verifyInitScript(), project.dir()).run(files.buildLog(),
 				files.testDirs(), List.of("build"), true);
 		TestResults.Results tests = run.tests();

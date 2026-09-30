@@ -23,7 +23,7 @@ class ProjectInspectorTests {
 	@ParameterizedTest(name = "[{index}] {0}")
 	@MethodSource("buildLayouts")
 	void readsVersionsFromBuildFiles(String scenario, Map<String, String> files, String boot, String gradle,
-			Integer java, Integer toolchainJava) throws IOException {
+			Integer java, Integer highestToolchainJava) throws IOException {
 		for (Map.Entry<String, String> file : files.entrySet()) {
 			write(file.getKey(), file.getValue());
 		}
@@ -32,9 +32,9 @@ class ProjectInspectorTests {
 
 		assertThat(model.bootVersion()).isEqualTo(boot);
 		assertThat(model.gradleVersion()).isEqualTo(gradle);
-		assertThat(model.javaVersion()).isEqualTo(java);
-		assertThat(model.toolchainJava()).isEqualTo(toolchainJava);
-		assertThat(model.git()).isFalse();
+		assertThat(model.lowestDeclaredJava()).isEqualTo(java);
+		assertThat(model.highestToolchainJava()).isEqualTo(highestToolchainJava);
+		assertThat(model.gitRoot()).isFalse();
 	}
 
 	// @formatter:off

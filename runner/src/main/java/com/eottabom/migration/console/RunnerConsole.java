@@ -25,19 +25,19 @@ import org.jspecify.annotations.Nullable;
 public record RunnerConsole(Logger logger) {
 
 	public void project(ProjectState project, @Nullable String javaHome) {
-		this.step("프로젝트 : " + project.dir());
-		this.line("   Boot     : {}", orQ(project.bootVersion()));
-		this.line("   Gradle   : {}", orQ(project.gradleVersion()));
-		this.line("   Java     : {}", orQ(project.javaVersion()));
+		this.heading("프로젝트 : " + project.dir());
+		this.line("   Boot     : {}", orUnknown(project.bootVersion()));
+		this.line("   Gradle   : {}", orUnknown(project.gradleVersion()));
+		this.line("   Java     : {}", orUnknown(project.lowestDeclaredJava()));
 		this.line("   JAVA_HOME: {}", orDefault(javaHome));
-		this.line("   git      : {}", !project.git() ? "아님" : project.dirty() ? "커밋되지 않은 변경 있음" : "깨끗함");
+		this.line("   git      : {}", !project.gitRoot() ? "아님" : project.dirty() ? "커밋되지 않은 변경 있음" : "깨끗함");
 	}
 
 	public void projectRecipes(Path projectDir, ProjectRecipes projectRecipes) {
 		if (projectRecipes.files().isEmpty()) {
 			return;
 		}
-		this.step("프로젝트 레시피 ("
+		this.heading("프로젝트 레시피 ("
 				+ String.join(", ",
 						projectRecipes.files().stream().map((file) -> projectDir.relativize(file).toString()).toList())
 				+ ")");
@@ -65,7 +65,7 @@ public record RunnerConsole(Logger logger) {
 
 	/** stage 별로 걸릴 수 있는 체크리스트 항목. 의존성 조건은 실행 때 판단한다 */
 	public void checklistPreview(List<Stage> stages, Guides guides) {
-		this.step("체크리스트 미리보기 (guides/, 의존성 조건은 실행 때 판단)");
+		this.heading("체크리스트 미리보기 (guides/, 의존성 조건은 실행 때 판단)");
 		Map<Fix, Integer> total = new EnumMap<>(Fix.class);
 		for (Stage stage : stages) {
 			List<ChecklistItem> items = stage.covers()
@@ -108,7 +108,7 @@ public record RunnerConsole(Logger logger) {
 		return out.toString();
 	}
 
-	public void step(String message) {
+	public void heading(String message) {
 		this.logger.lifecycle("");
 		this.logger.lifecycle(">> {}", message);
 	}
@@ -121,7 +121,7 @@ public record RunnerConsole(Logger logger) {
 		this.logger.error("!! {}", message);
 	}
 
-	public static String orQ(@Nullable Object value) {
+	public static String orUnknown(@Nullable Object value) {
 		return (value != null) ? value.toString() : "?";
 	}
 

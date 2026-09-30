@@ -103,7 +103,7 @@ public record Guides(List<BootGuide> boot, List<JavaGuide> java, List<GradleGuid
 				continue;
 			}
 			for (ChecklistItem item : library.checklist()) {
-				if (item.hitBy(from, to)) {
+				if (item.triggeredBy(from, to)) {
 					matches.add(new ChecklistMatch(item, "`" + library.library() + "` " + from + " → " + to));
 				}
 			}

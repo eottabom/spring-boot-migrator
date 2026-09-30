@@ -98,7 +98,8 @@ public final class MigrationRunner {
 	}
 
 	ProjectGradle gradle(ProjectState project, MigrationConfig config) {
-		return this.gradleFactory.create(project.dir(), this.jdks.javaHome(project, config.build().currentJavaHome()));
+		return this.gradleFactory.create(project.dir(),
+				this.jdks.javaHome(project, config.build().usesCurrentJavaHome()));
 	}
 
 	/** 빌드 파일에서 Boot 버전을 찾지 못하면 대상 Gradle 이 resolve 한 버전을 쓴다 */

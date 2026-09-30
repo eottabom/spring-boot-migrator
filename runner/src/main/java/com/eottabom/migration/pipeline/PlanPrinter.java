@@ -13,9 +13,10 @@ import com.eottabom.migration.recipe.ProjectRecipes;
 record PlanPrinter(RunnerConsole console, Guides guides) {
 
 	void print(ProjectState project, MigrationPlan plan, ProjectRecipes projectRecipes) {
-		this.console.step("프로젝트 : " + project.dir());
+		this.console.heading("프로젝트 : " + project.dir());
 		this.console.line("   현재     : Boot {} / Gradle {} / Java {}", project.bootVersion(),
-				RunnerConsole.orQ(project.gradleVersion()), RunnerConsole.orQ(project.javaVersion()));
+				RunnerConsole.orUnknown(project.gradleVersion()),
+				RunnerConsole.orUnknown(project.lowestDeclaredJava()));
 		this.console.line("   목표     : Boot {} / Java {}", plan.targetBoot(),
 				(plan.targetJava() == null) ? "유지" : plan.targetJava());
 		this.console.targetLine(plan);

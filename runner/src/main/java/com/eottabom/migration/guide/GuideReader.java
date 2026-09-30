@@ -116,9 +116,6 @@ final class GuideReader {
 			if (!checklistItem.has("source") && source != null) {
 				checklistItem.set("source", source);
 			}
-			if (!checklistItem.has("affected")) {
-				checklistItem.putArray("affected");
-			}
 		}
 	}
 

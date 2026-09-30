@@ -65,13 +65,13 @@ public final class ProjectInspector {
 		toolchains.addAll(catalogJava(catalog, buildFiles));
 		List<Integer> declared = new ArrayList<>(toolchains);
 		declared.addAll(numbers(SOURCE_COMPATIBILITY, buildFiles));
-		boolean git = isGitRoot(dir);
+		boolean gitRoot = isGitRoot(dir);
 		// 러너가 만드는 결과 디렉토리는 뺀다. scan / verify 를 먼저 돌리면 git exclude 를 쓰기 전에 생긴다
-		String status = git ? Processes.capture(dir, "git", "status", "--porcelain", "--", ".",
+		String status = gitRoot ? Processes.capture(dir, "git", "status", "--porcelain", "--", ".",
 				":(exclude).spring-boot-migrator", ":(exclude).rewrite/rewrite.assembled.yml") : null;
 		return new ProjectState(dir, bootVersion(dir, catalog, buildFiles), gradleVersion(dir),
 				declared.stream().min(Integer::compare).orElse(null),
-				toolchains.stream().max(Integer::compare).orElse(null), git, status != null && !status.isBlank());
+				toolchains.stream().max(Integer::compare).orElse(null), gitRoot, status != null && !status.isBlank());
 	}
 
 	/** git 저장소의 최상위 디렉토리인지. 하위 디렉토리는 patch 경로가 저장소 기준이라 git 저장소로 보지 않는다. */

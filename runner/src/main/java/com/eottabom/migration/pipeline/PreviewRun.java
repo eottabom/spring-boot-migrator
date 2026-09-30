@@ -31,10 +31,10 @@ record PreviewRun(RunnerPaths paths, ProjectGradle.Factory gradleFactory, Projec
 		RunnerConsole console) {
 
 	/**
-	 * @param order 첫 stage 번호 - 1 (지난 기록 뒤에 이어서 붙인다)
+	 * @param lastCompletedOrder 지난 기록의 마지막 stage 번호 (그 뒤에 이어서 붙인다)
 	 */
-	void run(Path projectDir, MigrationWorkspace ws, List<Stage> stages, int order, ProjectRecipes projectRecipes,
-			@Nullable String javaHome) {
+	void run(Path projectDir, MigrationWorkspace ws, List<Stage> stages, int lastCompletedOrder,
+			ProjectRecipes projectRecipes, @Nullable String javaHome) {
 		String projectName = projectDir.getFileName().toString();
 		Git git = new Git(projectDir);
 		Path tempDir = createTempDir();
@@ -46,13 +46,13 @@ record PreviewRun(RunnerPaths paths, ProjectGradle.Factory gradleFactory, Projec
 			ProjectGradle gradle = this.gradleFactory.create(worktree, javaHome);
 			Git worktreeGit = new Git(worktree);
 			String previous = Objects.requireNonNull(worktreeGit.head(), "미리보기 worktree 의 HEAD");
-			int number = order;
+			int order = lastCompletedOrder;
 			for (Stage stage : stages) {
-				number++;
-				String tag = stage.tag(number);
+				order++;
+				String tag = stage.tag(order);
 				StageFiles files = ws.stage(tag);
 				Assembled assembled = AssembledRecipe.write(worktree, projectName, stage, tag, projectRecipes);
-				this.console.step("[" + stage.name() + "] " + stage.recipeNames()
+				this.console.heading("[" + stage.name() + "] " + stage.recipeNames()
 						+ RunnerConsole.projectRecipeSuffix(projectRecipes, stage) + " (preview)");
 				if (!gradle.rewrite(files.rewriteLog(), "rewriteRun", assembled.name(), this.paths.rewriteInit(),
 						this.paths.recipeLibs(), assembled.file())) {
@@ -64,7 +64,8 @@ record PreviewRun(RunnerPaths paths, ProjectGradle.Factory gradleFactory, Projec
 					throw new GradleException("preview patch 를 만들지 못했어요 → " + patch);
 				}
 				previous = current;
-				this.console.line("   Boot {}, {} files → {}", RunnerConsole.orQ(this.inspector.bootVersion(worktree)),
+				this.console.line("   Boot {}, {} files → {}",
+						RunnerConsole.orUnknown(this.inspector.bootVersion(worktree)),
 						TextFiles.countMatches(patch, "^diff --git"), patch);
 			}
 		}
@@ -82,7 +83,7 @@ record PreviewRun(RunnerPaths paths, ProjectGradle.Factory gradleFactory, Projec
 		Assembled assembled = AssembledRecipe.write(projectDir, String.valueOf(projectDir.getFileName()), stage, tag,
 				projectRecipes);
 		MigrationWorkspace.copyOrEmpty(assembled.file(), files.assembledRecipe());
-		this.console.step("[" + stage.name() + "] " + stage.recipeNames() + " (preview)");
+		this.console.heading("[" + stage.name() + "] " + stage.recipeNames() + " (preview)");
 		if (!gradle.rewrite(files.rewriteLog(), "rewriteDryRun", assembled.name(), this.paths.rewriteInit(),
 				this.paths.recipeLibs(), assembled.file())) {
 			throw new GradleException("preview 실패 → " + files.rewriteLog());

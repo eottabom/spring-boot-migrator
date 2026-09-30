@@ -86,7 +86,7 @@ public record MigrationConfig(Path projectDir, Target target, Mode mode, GateSet
 	public record BuildSettings(Jdk jdk, @Nullable String jvmArgs, Duration timeout) {
 
 		/** JDK 자동 선택을 끄고 지금 JAVA_HOME 으로 대상 Gradle 을 띄운다 */
-		public boolean currentJavaHome() {
+		public boolean usesCurrentJavaHome() {
 			return this.jdk == Jdk.CURRENT;
 		}
 

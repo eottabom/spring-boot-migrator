@@ -39,7 +39,7 @@ public record DeprecationStep(Guides guides, RewriteStep rewrite, RunnerConsole 
 		if (recipes.isEmpty()) {
 			return Fixed.NONE;
 		}
-		this.console.step("[" + stage.name() + "] deprecated API 대체 " + String.join(", ", recipes));
+		this.console.heading("[" + stage.name() + "] deprecated API 대체 " + String.join(", ", recipes));
 		move(files.compileLog(), files.compileBeforeDeprecationsLog());
 		Set<String> created = this.rewrite.runRecipes(
 				"migration.assembled.Deprecations_" + tag.replaceAll("[^A-Za-z0-9]", "_"), List.copyOf(recipes),

@@ -108,7 +108,7 @@ public record Git(Path dir) {
 	 * @param errors git 의 표준 에러를 붙일 파일 (hook 이 실패한 이유 등). null 이면 버린다
 	 */
 	public CommitResult commit(Collection<String> created, String subject, String body, @Nullable Path errors) {
-		if (!stage(created)) {
+		if (!addToIndex(created)) {
 			return CommitResult.FAILED;
 		}
 		if (run("git", "diff", "--cached", "--quiet")) {
@@ -124,7 +124,7 @@ public record Git(Path dir) {
 
 	}
 
-	private boolean stage(Collection<String> created) {
+	private boolean addToIndex(Collection<String> created) {
 		if (!run("git", "add", "-u", "--", ".")) {
 			return false;
 		}
@@ -198,7 +198,7 @@ public record Git(Path dir) {
 		List<String> created = untracked().stream()
 			.filter((file) -> !file.startsWith("build/") && !file.contains("/build/"))
 			.toList();
-		if (!stage(created)) {
+		if (!addToIndex(created)) {
 			return null;
 		}
 		if (!run("git", "-c", "user.name=spring-boot-migrator", "-c", "user.email=spring-boot-migrator@localhost",

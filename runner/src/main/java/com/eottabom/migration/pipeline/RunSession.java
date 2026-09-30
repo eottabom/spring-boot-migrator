@@ -155,7 +155,7 @@ final class RunSession {
 	 */
 	void refreshJdk() {
 		ProjectState now = components().inspector().inspect(projectDir());
-		String javaHome = this.runner.jdks().javaHome(now, this.config.build().currentJavaHome());
+		String javaHome = this.runner.jdks().javaHome(now, this.config.build().usesCurrentJavaHome());
 		if (!Objects.equals(javaHome, this.gradle.javaHome())) {
 			console().line("   JAVA_HOME 변경: {} → {}", RunnerConsole.orDefault(this.gradle.javaHome()),
 					RunnerConsole.orDefault(javaHome));
