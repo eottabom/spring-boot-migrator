@@ -14,21 +14,36 @@ import com.eottabom.migration.console.RunnerConsole;
 import com.eottabom.migration.guide.Deprecation;
 import com.eottabom.migration.guide.Guides;
 import com.eottabom.migration.plan.Stage;
+import com.eottabom.migration.recipe.AssembledRecipe;
+import com.eottabom.migration.recipe.AssembledRecipe.Assembled;
 import com.eottabom.migration.result.CompileWarnings;
 import com.eottabom.migration.result.CompileWarnings.ApiWarning;
+import com.eottabom.migration.stage.StageTag;
 import com.eottabom.migration.workspace.StageFiles;
 
 /**
  * 컴파일 경고의 deprecated API 와 제거 예정 API 를 guides/ 의 대체 레시피로 바로 바꾼다. 대체 레시피가 없는 API 는 결과에 위치만
  * 남긴다.
  */
-public record DeprecationStep(Guides guides, RewriteStep rewrite, RunnerConsole console) {
+public final class DeprecationStep {
+
+	private final Guides guides;
+
+	private final RecipeRun recipeRun;
+
+	private final RunnerConsole console;
+
+	public DeprecationStep(Guides guides, RecipeRun recipeRun, RunnerConsole console) {
+		this.guides = guides;
+		this.recipeRun = recipeRun;
+		this.console = console;
+	}
 
 	/**
 	 * 컴파일이 통과한 뒤 부른다. 바꾼 게 있으면 호출하는 쪽이 다시 컴파일한다.
 	 * @return 적용한 대체 레시피. 없으면 빈 목록
 	 */
-	public Fixed fix(Stage stage, String tag, StageFiles files, Path projectDir) {
+	public Fixed fix(Stage stage, StageTag tag, StageFiles files, Path projectDir) {
 		List<String> messages = warningMessages(files.compileLog(), projectDir);
 		Set<String> recipes = new LinkedHashSet<>();
 		for (Deprecation deprecation : this.guides.deprecations(stage.covers())) {
@@ -39,12 +54,10 @@ public record DeprecationStep(Guides guides, RewriteStep rewrite, RunnerConsole 
 		if (recipes.isEmpty()) {
 			return Fixed.NONE;
 		}
-		this.console.step("[" + stage.name() + "] deprecated API 대체 " + String.join(", ", recipes));
+		this.console.heading("[" + stage.name() + "] deprecated API 대체 " + String.join(", ", recipes));
 		move(files.compileLog(), files.compileBeforeDeprecationsLog());
-		Set<String> created = this.rewrite.runRecipes(
-				"migration.assembled.Deprecations_" + tag.replaceAll("[^A-Za-z0-9]", "_"), List.copyOf(recipes),
-				files.deprecationsLog());
-		return new Fixed(List.copyOf(recipes), created);
+		Assembled assembled = AssembledRecipe.writeDeprecations(projectDir, tag, List.copyOf(recipes));
+		return new Fixed(List.copyOf(recipes), this.recipeRun.run(assembled, files.deprecationsLog()));
 	}
 
 	private static List<String> warningMessages(Path compileLog, Path projectDir) {

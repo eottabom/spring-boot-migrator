@@ -15,8 +15,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import com.eottabom.migration.misc.Processes;
-import com.eottabom.migration.misc.Versions;
+import com.eottabom.migration.version.Versions;
 import org.jspecify.annotations.Nullable;
 
 /** 대상 프로젝트의 빌드 파일만 읽어 {@link ProjectState} 을 만든다. 대상 Gradle 을 띄우지 않는다. */
@@ -65,27 +64,9 @@ public final class ProjectInspector {
 		toolchains.addAll(catalogJava(catalog, buildFiles));
 		List<Integer> declared = new ArrayList<>(toolchains);
 		declared.addAll(numbers(SOURCE_COMPATIBILITY, buildFiles));
-		boolean git = isGitRoot(dir);
-		// 러너가 만드는 결과 디렉토리는 뺀다. scan / verify 를 먼저 돌리면 git exclude 를 쓰기 전에 생긴다
-		String status = git ? Processes.capture(dir, "git", "status", "--porcelain", "--", ".",
-				":(exclude).spring-boot-migrator", ":(exclude).rewrite/rewrite.assembled.yml") : null;
 		return new ProjectState(dir, bootVersion(dir, catalog, buildFiles), gradleVersion(dir),
 				declared.stream().min(Integer::compare).orElse(null),
-				toolchains.stream().max(Integer::compare).orElse(null), git, status != null && !status.isBlank());
-	}
-
-	/** git 저장소의 최상위 디렉토리인지. 하위 디렉토리는 patch 경로가 저장소 기준이라 git 저장소로 보지 않는다. */
-	static boolean isGitRoot(Path dir) {
-		String top = Processes.capture(dir, "git", "rev-parse", "--show-toplevel");
-		if (top == null || top.isBlank()) {
-			return false;
-		}
-		try {
-			return Path.of(top.trim()).toRealPath().equals(dir.toRealPath());
-		}
-		catch (IOException ex) {
-			return false;
-		}
+				toolchains.stream().max(Integer::compare).orElse(null));
 	}
 
 	/** rewriteRun 뒤에 다시 읽는 용도. */
@@ -103,9 +84,9 @@ public final class ProjectInspector {
 			.or(() -> property(dir.resolve("gradle.properties"), "springBootVersion"))
 			.or(() -> catalog.plugin("org.springframework.boot"))
 			.or(() -> lowest(BOOT_PLUGIN, allBuildFiles))
-			.map((v) -> {
-				Matcher m = MAJOR_MINOR_PATCH.matcher(v);
-				return m.find() ? m.group() : null;
+			.map((declared) -> {
+				Matcher version = MAJOR_MINOR_PATCH.matcher(declared);
+				return version.find() ? version.group() : null;
 			})
 			.orElse(null);
 	}
@@ -127,9 +108,9 @@ public final class ProjectInspector {
 	private static Optional<String> lowest(Pattern pattern, List<String> contents) {
 		List<String> all = new ArrayList<>();
 		for (String content : contents) {
-			Matcher m = pattern.matcher(content);
-			while (m.find()) {
-				all.add(group(m));
+			Matcher matcher = pattern.matcher(content);
+			while (matcher.find()) {
+				all.add(group(matcher));
 			}
 		}
 		return all.stream().min(Versions::compare);
@@ -148,18 +129,18 @@ public final class ProjectInspector {
 			throw new UncheckedIOException(ex);
 		}
 		return Optional.ofNullable(properties.getProperty(name))
-			.map((v) -> v.trim().replaceAll("^['\"]|['\"]$", ""))
-			.filter((v) -> v.matches("[0-9][0-9.]*.*"));
+			.map((value) -> value.trim().replaceAll("^['\"]|['\"]$", ""))
+			.filter((value) -> value.matches("[0-9][0-9.]*.*"));
 	}
 
 	/** 대안이 여럿인 패턴에서 값이 잡힌 그룹 */
-	private static String group(Matcher m) {
-		for (int g = 1; g <= m.groupCount(); g++) {
-			if (m.group(g) != null) {
-				return m.group(g);
+	private static String group(Matcher matcher) {
+		for (int index = 1; index <= matcher.groupCount(); index++) {
+			if (matcher.group(index) != null) {
+				return matcher.group(index);
 			}
 		}
-		throw new IllegalStateException(m.pattern().pattern());
+		throw new IllegalStateException(matcher.pattern().pattern());
 	}
 
 	public @Nullable String gradleVersion(Path dir) {
@@ -169,9 +150,9 @@ public final class ProjectInspector {
 
 	private static Optional<String> first(Pattern pattern, List<String> contents) {
 		for (String content : contents) {
-			Matcher m = pattern.matcher(content);
-			if (m.find()) {
-				return Optional.of(group(m));
+			Matcher matcher = pattern.matcher(content);
+			if (matcher.find()) {
+				return Optional.of(group(matcher));
 			}
 		}
 		return Optional.empty();
@@ -180,11 +161,11 @@ public final class ProjectInspector {
 	private static List<Integer> numbers(Pattern pattern, List<String> contents) {
 		List<Integer> found = new ArrayList<>();
 		for (String content : contents) {
-			Matcher m = pattern.matcher(content);
-			while (m.find()) {
-				for (int g = 1; g <= m.groupCount(); g++) {
-					if (m.group(g) != null) {
-						found.add(Integer.parseInt(m.group(g)));
+			Matcher matcher = pattern.matcher(content);
+			while (matcher.find()) {
+				for (int index = 1; index <= matcher.groupCount(); index++) {
+					if (matcher.group(index) != null) {
+						found.add(Integer.parseInt(matcher.group(index)));
 					}
 				}
 			}

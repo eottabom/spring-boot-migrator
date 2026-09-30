@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../../../../../../../schema/rewrite-recipe.schema.json
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.custom.logging.UpgradeLogstashEncoder_7
 displayName: logstash-logback-encoder 7.4

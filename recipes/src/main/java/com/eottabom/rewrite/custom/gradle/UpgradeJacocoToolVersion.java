@@ -2,6 +2,7 @@ package com.eottabom.rewrite.custom.gradle;
 
 import java.util.List;
 
+import com.eottabom.rewrite.support.GradleDsl;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
@@ -67,10 +68,7 @@ public class UpgradeJacocoToolVersion extends Recipe {
 				if (!(literal.getValue() instanceof String current) || !isOlder(current)) {
 					return literal;
 				}
-				String source = literal.getValueSource();
-				String quote = (source != null && !source.isEmpty()) ? source.substring(0, 1) : "\"";
-				return literal.withValue(UpgradeJacocoToolVersion.this.version)
-					.withValueSource(quote + UpgradeJacocoToolVersion.this.version + quote);
+				return GradleDsl.withStringValue(literal, UpgradeJacocoToolVersion.this.version);
 			}
 
 			private static J.@Nullable Literal toolVersionLiteral(J.Assignment assignment) {

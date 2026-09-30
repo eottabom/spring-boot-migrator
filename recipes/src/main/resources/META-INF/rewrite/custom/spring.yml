@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../../../../../../../schema/rewrite-recipe.schema.json
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.custom.spring.Boot4JpaRelocations
 displayName: Boot 4 JPA 관련 클래스 패키지 이동 보정
@@ -32,23 +33,31 @@ description: >-
 recipeList:
   # 스캔은 원본 기준이라 Boot 3 패키지로 판단한다 (Boot 4 패키지는 재실행 시를 위해 같이 적는다)
   - com.eottabom.rewrite.custom.gradle.DeclareUsedDependency:
-      packageName: org.springframework.boot.test.autoconfigure.orm.jpa, org.springframework.boot.data.jpa.test.autoconfigure
+      packageNames:
+        - org.springframework.boot.test.autoconfigure.orm.jpa
+        - org.springframework.boot.data.jpa.test.autoconfigure
       groupId: org.springframework.boot
       artifactId: spring-boot-starter-data-jpa-test
   - com.eottabom.rewrite.custom.gradle.DeclareUsedDependency:
-      packageName: org.springframework.boot.test.autoconfigure.jdbc, org.springframework.boot.jdbc.test.autoconfigure
+      packageNames:
+        - org.springframework.boot.test.autoconfigure.jdbc
+        - org.springframework.boot.jdbc.test.autoconfigure
       groupId: org.springframework.boot
       artifactId: spring-boot-starter-jdbc-test
   - com.eottabom.rewrite.custom.gradle.DeclareUsedDependency:
-      packageName: org.springframework.boot.test.autoconfigure.web.servlet, org.springframework.boot.webmvc.test.autoconfigure
+      packageNames:
+        - org.springframework.boot.test.autoconfigure.web.servlet
+        - org.springframework.boot.webmvc.test.autoconfigure
       groupId: org.springframework.boot
       artifactId: spring-boot-starter-webmvc-test
   - com.eottabom.rewrite.custom.gradle.DeclareUsedDependency:
-      packageName: org.springframework.boot.test.autoconfigure.web.client
+      packageNames:
+        - org.springframework.boot.test.autoconfigure.web.client
       groupId: org.springframework.boot
       artifactId: spring-boot-starter-restclient-test
   - com.eottabom.rewrite.custom.gradle.DeclareUsedDependency:
-      packageName: org.springframework.boot.test.web.client
+      packageNames:
+        - org.springframework.boot.test.web.client
       groupId: org.springframework.boot
       artifactId: spring-boot-resttestclient
 ---
@@ -62,7 +71,9 @@ description: >-
 recipeList:
   # 스캔은 원본 기준이라 이동 전 패키지로 판단한다
   - com.eottabom.rewrite.custom.gradle.DeclareUsedDependency:
-      packageName: org.springframework.boot.test.autoconfigure.restdocs, org.springframework.boot.restdocs.test.autoconfigure
+      packageNames:
+        - org.springframework.boot.test.autoconfigure.restdocs
+        - org.springframework.boot.restdocs.test.autoconfigure
       groupId: org.springframework.boot
       artifactId: spring-boot-restdocs
   - org.openrewrite.java.ChangePackage:

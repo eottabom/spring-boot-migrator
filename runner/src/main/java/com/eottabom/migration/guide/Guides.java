@@ -5,8 +5,11 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+
+import com.eottabom.migration.MigrationException;
+import com.eottabom.migration.stage.StageId;
+import com.eottabom.migration.version.ResolvedVersions;
 
 /**
  * guides/ 전체. 파일이 있는 버전이 stage 가 된다.
@@ -45,7 +48,7 @@ public record Guides(List<BootGuide> boot, List<JavaGuide> java, List<GradleGuid
 		return this.boot.stream()
 			.filter((guide) -> guide.version().equals(version))
 			.findFirst()
-			.orElseThrow(() -> new IllegalArgumentException("guides/boot/" + version + ".yml 이 없어요"));
+			.orElseThrow(() -> new MigrationException("guides/boot/" + version + ".yml 이 없어요"));
 	}
 
 	/** Java stage 로 올릴 수 있는 버전 (LTS) */
@@ -57,53 +60,49 @@ public record Guides(List<BootGuide> boot, List<JavaGuide> java, List<GradleGuid
 		return this.java.stream()
 			.filter((guide) -> guide.version() == version)
 			.findFirst()
-			.orElseThrow(() -> new IllegalArgumentException(
-					"--java 는 " + String.join(" | ", javaVersions().stream().map(String::valueOf).toList())
-							+ " | latest | keep | none"));
+			.orElseThrow(() -> new MigrationException("--java 는 "
+					+ String.join(" | ", javaVersions().stream().map(String::valueOf).toList()) + " | latest | keep"));
 	}
 
-	/**
-	 * stage 이름의 가이드. 3.4, java21, gradle8.14
-	 */
-	public StageGuide stage(String stageName) {
-		if (stageName.startsWith("java")) {
-			return java(Integer.parseInt(stageName.substring("java".length())));
-		}
-		if (stageName.startsWith("gradle")) {
-			String version = stageName.substring("gradle".length());
-			return this.gradle.stream()
-				.filter((guide) -> guide.version().equals(version))
-				.findFirst()
-				.orElseThrow(() -> new IllegalArgumentException("guides/gradle/" + version + ".yml 이 없어요"));
-		}
-		return boot(stageName);
+	public GradleGuide gradle(String version) {
+		return this.gradle.stream()
+			.filter((guide) -> guide.version().equals(version))
+			.findFirst()
+			.orElseThrow(() -> new MigrationException("guides/gradle/" + version + ".yml 이 없어요"));
+	}
+
+	public StageGuide stage(StageId stage) {
+		return switch (stage.kind()) {
+			case BOOT -> boot(stage.version());
+			case JAVA -> java(Integer.parseInt(stage.version()));
+			case GRADLE -> gradle(stage.version());
+		};
 	}
 
 	/**
 	 * stage 들에 걸리는 체크리스트. stage 항목은 when 조건을 전후 의존성으로 보고, 라이브러리 항목은 전후 버전 변화로 본다.
-	 * @param before stage 전 resolve 된 버전 (group:artifact → version). 모르면 빈 맵
-	 * @param after stage 후 resolve 된 버전. 모르면 빈 맵
+	 * @param before stage 전 resolve 된 버전
+	 * @param after stage 후 resolve 된 버전
 	 */
-	public List<ChecklistMatch> checklist(List<String> stageNames, Map<String, String> before,
-			Map<String, String> after) {
-		Set<String> dependencies = new HashSet<>(before.keySet());
-		dependencies.addAll(after.keySet());
+	public List<ChecklistMatch> checklist(List<StageId> stages, ResolvedVersions before, ResolvedVersions after) {
+		Set<String> dependencies = new HashSet<>(before.modules());
+		dependencies.addAll(after.modules());
 		List<ChecklistMatch> matches = new ArrayList<>();
-		for (String stageName : stageNames) {
-			for (ChecklistItem item : stage(stageName).checklist()) {
+		for (StageId stage : stages) {
+			for (ChecklistItem item : stage(stage).checklist()) {
 				if (item.appliesTo(dependencies)) {
 					matches.add(new ChecklistMatch(item, null));
 				}
 			}
 		}
 		for (LibraryGuide library : this.libraries) {
-			String from = before.get(library.library());
-			String to = after.get(library.library());
+			String from = before.of(library.library());
+			String to = after.of(library.library());
 			if (from == null || to == null) {
 				continue;
 			}
 			for (ChecklistItem item : library.checklist()) {
-				if (item.hitBy(from, to)) {
+				if (item.triggeredBy(from, to)) {
 					matches.add(new ChecklistMatch(item, "`" + library.library() + "` " + from + " → " + to));
 				}
 			}
@@ -112,17 +111,17 @@ public record Guides(List<BootGuide> boot, List<JavaGuide> java, List<GradleGuid
 	}
 
 	/** stage 들의 실패 힌트 다음에 공통 힌트. 위에서부터 처음 맞는 것 하나를 쓴다 */
-	public List<FailureHint> failureHints(List<String> stageNames) {
+	public List<FailureHint> failureHints(List<StageId> stages) {
 		List<FailureHint> hints = new ArrayList<>();
-		stageNames.forEach((stageName) -> hints.addAll(stage(stageName).failureHints()));
+		stages.forEach((stage) -> hints.addAll(stage(stage).failureHints()));
 		hints.addAll(this.common.failureHints());
 		return hints;
 	}
 
 	/** stage 들의 deprecated API 대체 레시피 다음에 공통 대체 레시피 */
-	public List<Deprecation> deprecations(List<String> stageNames) {
+	public List<Deprecation> deprecations(List<StageId> stages) {
 		List<Deprecation> deprecations = new ArrayList<>();
-		stageNames.forEach((stageName) -> deprecations.addAll(stage(stageName).deprecations()));
+		stages.forEach((stage) -> deprecations.addAll(stage(stage).deprecations()));
 		deprecations.addAll(this.common.deprecations());
 		return deprecations;
 	}
@@ -137,7 +136,7 @@ public record Guides(List<BootGuide> boot, List<JavaGuide> java, List<GradleGuid
 		this.libraries.forEach((library) -> items.addAll(library.checklist()));
 		for (ChecklistItem item : items) {
 			if (!ids.add(item.id())) {
-				throw new IllegalArgumentException("guides/ 에 체크리스트 id 가 중복돼요: " + item.id());
+				throw new MigrationException("guides/ 에 체크리스트 id 가 중복돼요: " + item.id());
 			}
 		}
 	}

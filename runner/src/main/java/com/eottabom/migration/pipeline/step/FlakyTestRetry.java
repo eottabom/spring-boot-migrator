@@ -13,8 +13,7 @@ import java.util.TreeSet;
 import java.util.stream.Stream;
 
 import com.eottabom.migration.console.RunnerConsole;
-import com.eottabom.migration.gradle.BuildTool;
-import com.eottabom.migration.gradle.VerifyScript;
+import com.eottabom.migration.gradle.ProjectGradle;
 import com.eottabom.migration.result.TestResults;
 import com.eottabom.migration.workspace.StageFiles;
 
@@ -24,10 +23,26 @@ import com.eottabom.migration.workspace.StageFiles;
  * <p>
  * 재시도의 test 태스크는 모듈의 결과 XML 디렉토리를 비우고 필터에 걸린 클래스만 다시 쓴다. 결과가 build 의 전체 결과(다시 돌린 클래스는 마지막
  * 결과)를 읽도록, 다시 돌리기 전에 결과를 stage 폴더에 복사해 두고 끝나면 지워진 파일만 되돌린다.
- *
- * @param retries 다시 돌리는 횟수 (0 이면 다시 돌리지 않는다)
  */
-record FlakyTestRetry(BuildTool gradle, VerifyScript verify, RunnerConsole console, Path projectDir, int retries) {
+final class FlakyTestRetry {
+
+	private final ProjectGradle gradle;
+
+	private final RunnerConsole console;
+
+	private final Path projectDir;
+
+	private final int retries;
+
+	/**
+	 * @param retries 다시 돌리는 횟수 (0 이면 다시 돌리지 않는다)
+	 */
+	FlakyTestRetry(ProjectGradle gradle, RunnerConsole console, Path projectDir, int retries) {
+		this.gradle = gradle;
+		this.console = console;
+		this.projectDir = projectDir;
+		this.retries = retries;
+	}
 
 	/**
 	 * @param results build 가 쓴 결과 XML (다시 돌린 뒤 지워지면 되돌린다)
@@ -58,7 +73,7 @@ record FlakyTestRetry(BuildTool gradle, VerifyScript verify, RunnerConsole conso
 			for (String testClass : testClasses(failing)) {
 				args.addAll(List.of("--tests", testClass));
 			}
-			TestRun.Result run = new TestRun(this.gradle, this.verify, this.projectDir).run(files.retryLog(attempt),
+			TestRun.Result run = new TestRun(this.gradle, this.projectDir).run(files.retryLog(attempt),
 					files.retryTestDirs(attempt), args, false);
 			// 이번 결과가 다음 회차에 지워져도 마지막 결과로 되돌린다
 			copy(run.files(), kept);

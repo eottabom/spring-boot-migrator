@@ -8,6 +8,7 @@ import com.eottabom.migration.config.MigrationConfig;
 import com.eottabom.migration.config.Mode;
 import com.eottabom.migration.guide.Guides;
 import com.eottabom.migration.project.ProjectState;
+import com.eottabom.migration.stage.StageId;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -74,7 +75,7 @@ class MigrationPlannerTests {
 			),
 			Arguments.of(
 				"이미 목표 버전보다 상위 버전인 경우 빈 단계 계획 반환",
-				project("3.5.3", "8.14", 21), request("3.4", "none"),
+				project("3.5.3", "8.14", 21), request("3.4", "keep"),
 				""
 			),
 			Arguments.of(
@@ -121,7 +122,7 @@ class MigrationPlannerTests {
 	void explainsJavaAndGradleDecisions(String scenario, ProjectState project, MigrationConfig request,
 			String expectedNote) {
 		MigrationPlan plan = this.planner.plan(project, request);
-		assertThat(plan.notes()).anyMatch((n) -> n.contains(expectedNote));
+		assertThat(plan.notes()).anyMatch((note) -> note.contains(expectedNote));
 	}
 
 	// @formatter:off
@@ -167,12 +168,12 @@ class MigrationPlannerTests {
 		return Stream.of(
 			Arguments.of(
 				"stage 마다 stage 레시피 하나",
-				project("3.2.8", "8.14", 17), request("3.3", "none", false, false),
+				project("3.2.8", "8.14", 17), request("3.3", "keep", false, false),
 				"3.3", "~stage.Boot_3_3"
 			),
 			Arguments.of(
 				"--mode=all 은 목표까지의 stage 레시피를 이어 한 stage 로 돈다",
-				project("3.0.13", "8.14", 17), request("3.2", "none", true, false),
+				project("3.0.13", "8.14", 17), request("3.2", "keep", true, false),
 				"3.2", "~stage.Boot_3_1, ~stage.Boot_3_2"
 			),
 			Arguments.of(
@@ -183,12 +184,12 @@ class MigrationPlannerTests {
 			),
 			Arguments.of(
 				"custom 레시피를 끄면 upstream stage 와 catalog 규칙만",
-				project("3.5.1", "8.14", 17), request("4.0", "none", false, true),
+				project("3.5.1", "8.14", 17), request("4.0", "keep", false, true),
 				"4.0", "~upstream.Boot_4_0, ~upstream.catalog.Boot_4_0"
 			),
 			Arguments.of(
 				"upstream 에 없는 4.1 도 같은 이름의 대체 레시피",
-				project("4.0.3", "8.14", 21), request("4.1", "none", false, true),
+				project("4.0.3", "8.14", 21), request("4.1", "keep", false, true),
 				"4.1", "~upstream.Boot_4_1, ~upstream.catalog.Boot_4_1"
 			),
 			Arguments.of(
@@ -235,16 +236,15 @@ class MigrationPlannerTests {
 	// @formatter:on
 
 	@Test
-	void gradleStageUsesGradleProjectTag() {
+	void insertsGradleStageWithItsRecipe() {
 		Stage gradle = this.planner.plan(project("3.2.8", "8.3", 17), request("3.4", "keep")).stages().get(1);
 
-		assertThat(gradle.kind()).isEqualTo(Stage.Kind.GRADLE);
-		assertThat(Stage.projectTag(gradle.name())).isEqualTo("gradle");
+		assertThat(gradle.id()).isEqualTo(StageId.gradle("8.14"));
 		assertThat(gradle.recipes()).containsExactly("com.eottabom.rewrite.stage.Gradle_8_14");
 	}
 
 	private static ProjectState project(@Nullable String boot, String gradle, Integer java) {
-		return new ProjectState(Path.of("."), boot, gradle, java, java, false, false);
+		return new ProjectState(Path.of("."), boot, gradle, java, java);
 	}
 
 	private static MigrationConfig request(@Nullable String boot, @Nullable String java) {

@@ -38,14 +38,6 @@ record TestReport(int total, List<TestFailure> failures, List<PropertyChange> re
 
 	private static final int MAX_MESSAGE = 200;
 
-	List<TestFailure> newFailures() {
-		return this.failures.stream().filter((failure) -> !failure.existing()).toList();
-	}
-
-	List<TestFailure> existingFailures() {
-		return this.failures.stream().filter(TestFailure::existing).toList();
-	}
-
 	/**
 	 * @param baselineFailedTests 원본에서도 실패하던 테스트 id. 여기 있는 실패는 existing 으로 표시한다
 	 * @param files 읽을 테스트 결과 파일
@@ -120,15 +112,19 @@ record TestReport(int total, List<TestFailure> failures, List<PropertyChange> re
 		List<String> lines = ((stack != null && !stack.isBlank()) ? stack : (message != null) ? message : "").lines()
 			.toList();
 		String root = lines.stream()
-			.filter((l) -> l.startsWith("Caused by: "))
-			.reduce((a, b) -> b)
-			.map((l) -> l.substring(11))
+			.filter((line) -> line.startsWith("Caused by: "))
+			.reduce((outer, inner) -> inner)
+			.map((line) -> line.substring("Caused by: ".length()))
 			.orElse(lines.isEmpty() ? ((message != null) ? message : "") : lines.get(0));
 		int colon = root.indexOf(": ");
 		String exception = ((colon > 0) ? root.substring(0, colon) : root).trim();
 		String detail = (colon > 0) ? root.substring(colon + 2).trim() : "";
 		String subject = exception + ": " + detail;
-		String hint = hints.stream().filter((h) -> h.matches(subject)).map(FailureHint::text).findFirst().orElse(null);
+		String hint = hints.stream()
+			.filter((candidate) -> candidate.matches(subject))
+			.map(FailureHint::text)
+			.findFirst()
+			.orElse(null);
 		return new TestFailure(className, nested + name, exception.substring(exception.lastIndexOf('.') + 1),
 				(detail.length() > MAX_MESSAGE) ? detail.substring(0, MAX_MESSAGE) : detail,
 				firstProjectFrame(className, lines), hint, existing);
@@ -140,11 +136,11 @@ record TestReport(int total, List<TestFailure> failures, List<PropertyChange> re
 		String base = (parts.length >= 2) ? parts[0] + "." + parts[1] + "." : className + ".";
 		return stack.stream()
 			.map(String::trim)
-			.filter((l) -> l.startsWith("at ") && frameClass(l).startsWith(base))
+			.filter((frame) -> frame.startsWith("at ") && frameClass(frame).startsWith(base))
 			.findFirst()
 			.map(FRAME_LOCATION::matcher)
 			.filter(Matcher::find)
-			.map((m) -> m.group(1))
+			.map((location) -> location.group(1))
 			.orElse(null);
 	}
 

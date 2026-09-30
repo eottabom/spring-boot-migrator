@@ -3,7 +3,7 @@ package com.eottabom.migration.guide;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import com.eottabom.migration.misc.Versions;
+import com.eottabom.migration.version.Versions;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.jspecify.annotations.Nullable;
 
@@ -19,7 +19,7 @@ import org.jspecify.annotations.Nullable;
  */
 public record ChecklistItem(String id, String title, @Nullable String detail, @Nullable String source, Fix fix,
 		@Nullable String recipe, @Nullable String detect, @Nullable When when, @Nullable String crosses,
-		List<String> affected) {
+		@Nullable VersionRange affected) {
 
 	/** 조건이 없거나, 전후 의존성 중 하나라도 조건에 맞는다. 버전을 모르면(둘 다 비면) 조건이 있는 항목은 고르지 않는다 */
 	boolean appliesTo(Iterable<String> dependencies) {
@@ -36,20 +36,20 @@ public record ChecklistItem(String id, String title, @Nullable String detail, @N
 	}
 
 	/** 라이브러리 버전이 from 에서 to 로 바뀌며 이 항목의 버전 조건에 걸린다 */
-	boolean hitBy(String from, String to) {
+	boolean triggeredBy(String from, String to) {
 		if (from.equals(to)) {
 			return false;
 		}
 		if (this.crosses != null) {
 			return Versions.compare(from, this.crosses) < 0 && Versions.compare(to, this.crosses) >= 0;
 		}
-		return Versions.compare(to, this.affected.get(0)) >= 0 && Versions.compare(to, this.affected.get(1)) < 0;
+		return this.affected != null && this.affected.contains(to);
 	}
 
 	private static Pattern glob(String pattern) {
 		StringBuilder regex = new StringBuilder();
-		for (char c : pattern.toCharArray()) {
-			regex.append((c == '*') ? ".*" : Pattern.quote(String.valueOf(c)));
+		for (char character : pattern.toCharArray()) {
+			regex.append((character == '*') ? ".*" : Pattern.quote(String.valueOf(character)));
 		}
 		return Pattern.compile(regex.toString());
 	}

@@ -12,7 +12,7 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.eottabom.migration.misc.TextFiles;
+import com.eottabom.migration.io.TextFiles;
 
 /**
  * rewriteRun 로그의 파일별 레시피 트리에서 말단 레시피를 가장 가까운 custom 레시피에 귀속시킨 변경 내역. custom 레시피에 귀속되지 않은
@@ -60,9 +60,10 @@ record RecipeChanges(Map<String, Set<String>> byRecipe, Set<String> changed) {
 				if (!leaf || (!buildFile && isDependencyRecipe(node.name()))) {
 					continue;
 				}
-				for (int j = stack.size() - 1; j >= 0; j--) {
-					if (isCustomFix(stack.get(j).name(), projectRecipes)) {
-						fixes.byRecipe().computeIfAbsent(stack.get(j).name(), (k) -> new TreeSet<>()).add(file);
+				for (int depth = stack.size() - 1; depth >= 0; depth--) {
+					String ancestor = stack.get(depth).name();
+					if (isCustomFix(ancestor, projectRecipes)) {
+						fixes.byRecipe().computeIfAbsent(ancestor, (recipe) -> new TreeSet<>()).add(file);
 						break;
 					}
 				}

@@ -4,25 +4,20 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.Locale;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
+import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.config.MigrationConfig.BuildSettings;
 import com.eottabom.migration.config.MigrationConfig.GateSettings;
 import com.eottabom.migration.config.MigrationConfig.Jdk;
 import com.eottabom.migration.config.MigrationConfig.RecipeSettings;
 import com.eottabom.migration.config.MigrationConfig.Target;
+import com.eottabom.migration.io.SchemaValidator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
-import com.networknt.schema.JsonSchema;
-import com.networknt.schema.JsonSchemaFactory;
-import com.networknt.schema.SchemaLocation;
-import com.networknt.schema.SpecVersion;
-import com.networknt.schema.ValidationMessage;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -50,7 +45,7 @@ public final class ConfigLoader {
 	public MigrationConfig load(Path projectDir, @Nullable Path configFile, ObjectNode cli) {
 		Path file = (configFile != null) ? configFile : projectDir.resolve(FILE_NAME);
 		if (configFile != null && !Files.isRegularFile(configFile)) {
-			throw new IllegalArgumentException("설정 파일이 없어요: " + configFile);
+			throw new MigrationException("설정 파일이 없어요: " + configFile);
 		}
 		ObjectNode merged = Files.isRegularFile(file) ? read(file) : YAML.createObjectNode();
 		merge(merged, cli);
@@ -65,12 +60,12 @@ public final class ConfigLoader {
 				return YAML.createObjectNode();
 			}
 			if (!(node instanceof ObjectNode object)) {
-				throw new IllegalArgumentException(file + " 은 키와 값으로 된 YAML 이어야 해요");
+				throw new MigrationException(file + " 은 키와 값으로 된 YAML 이어야 해요");
 			}
 			return object;
 		}
 		catch (IOException ex) {
-			throw new IllegalArgumentException(file + " 을 읽지 못했어요: " + ex.getMessage(), ex);
+			throw new MigrationException(file + " 을 읽지 못했어요: " + ex.getMessage(), ex);
 		}
 	}
 
@@ -88,12 +83,10 @@ public final class ConfigLoader {
 	}
 
 	private void validate(JsonNode config, String source) {
-		JsonSchema schema = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012)
-			.getSchema(SchemaLocation.of(this.schemaDir.resolve("config.schema.json").toUri().toString()));
-		Set<ValidationMessage> errors = schema.validate(config);
-		if (!errors.isEmpty()) {
-			throw new IllegalArgumentException(source + " 의 값이 맞지 않아요 (schema/config.schema.json)\n  "
-					+ errors.stream().map(ValidationMessage::getMessage).sorted().collect(Collectors.joining("\n  ")));
+		List<String> violations = new SchemaValidator(this.schemaDir).violations("config", config);
+		if (!violations.isEmpty()) {
+			throw new MigrationException(
+					source + " 의 값이 맞지 않아요 (schema/config.schema.json)" + SchemaValidator.describe(violations));
 		}
 	}
 
@@ -107,13 +100,13 @@ public final class ConfigLoader {
 				new Target(text(target, "boot", defaults.target().boot()),
 						target.has("java") ? JavaTarget.parse(target.get("java").asText()) : defaults.target().java()),
 				node.has("mode") ? Mode.parse(node.get("mode").asText()) : defaults.mode(),
-				new GateSettings(gate.has("level") ? Gate.parse(gate.get("level").asText()) : defaults.gate().level(),
+				new GateSettings(
+						gate.has("level") ? GateLevel.parse(gate.get("level").asText()) : defaults.gate().level(),
 						gate.path("testRetries").asInt(defaults.gate().testRetries()),
 						gate.path("baselineTests").asBoolean(defaults.gate().baselineTests())),
 				new RecipeSettings(recipes.path("custom").asBoolean(defaults.recipes().custom()),
 						recipes.path("project").asBoolean(defaults.recipes().project())),
-				new BuildSettings(build.has("jdk")
-						? Jdk.valueOf(build.get("jdk").asText().toUpperCase(Locale.ROOT)) : defaults.build().jdk(),
+				new BuildSettings(build.has("jdk") ? Jdk.parse(build.get("jdk").asText()) : defaults.build().jdk(),
 						text(build, "jvmArgs", defaults.build().jvmArgs()),
 						build.has("timeoutMinutes") ? Duration.ofMinutes(build.get("timeoutMinutes").asLong())
 								: defaults.build().timeout()),

@@ -28,17 +28,19 @@ class RecipeValidationTests {
 	Stream<DynamicTest> allCustomRecipesAreValid() {
 		List<Recipe> customRecipes = ENV.listRecipes()
 			.stream()
-			.filter((r) -> r.getName().startsWith("com.eottabom.rewrite."))
+			.filter((recipe) -> recipe.getName().startsWith("com.eottabom.rewrite."))
 			// yml 레시피만 검증한다 (하위 레시피는 validateAll 이 함께 본다). 옵션이 필수인 Java 레시피는 빈 옵션으로 잡혀서
 			// 뺀다
-			.filter((r) -> r instanceof DeclarativeRecipe)
+			.filter((recipe) -> recipe instanceof DeclarativeRecipe)
 			.toList();
 
 		assertThat(customRecipes).isNotEmpty();
 		return customRecipes.stream()
 			.map((recipe) -> DynamicTest.dynamicTest(recipe.getName(),
 					() -> assertThat(recipe.validateAll()).as(recipe.getName())
-						.allSatisfy((v) -> assertThat(v.isValid()).as(recipe.getName() + " -> " + v).isTrue())));
+						.allSatisfy((validation) -> assertThat(validation.isValid())
+							.as(recipe.getName() + " -> " + validation)
+							.isTrue())));
 	}
 
 	/**
@@ -53,8 +55,10 @@ class RecipeValidationTests {
 				"httpclient5 는 elasticsearch-java 9 가 api 로 가져오는 elasticsearch-rest5-client 의 compile 의존성이다 (9.2.9 에서 확인)");
 		return ENV.listRecipes()
 			.stream()
-			.filter((r) -> r.getName().startsWith("com.eottabom.rewrite.") && r instanceof DeclarativeRecipe)
-			.filter((r) -> preconditions(r).stream().anyMatch((p) -> SOURCE_PRECONDITIONS.contains(p.getName())))
+			.filter((recipe) -> recipe.getName().startsWith("com.eottabom.rewrite.")
+					&& recipe instanceof DeclarativeRecipe)
+			.filter((recipe) -> preconditions(recipe).stream()
+				.anyMatch((precondition) -> SOURCE_PRECONDITIONS.contains(precondition.getName())))
 			.map((recipe) -> DynamicTest.dynamicTest(recipe.getName(), () -> {
 				List<String> dependencyRecipes = dependencyRecipes(recipe, new HashSet<>());
 				if (!handledElsewhere.containsKey(recipe.getName())) {

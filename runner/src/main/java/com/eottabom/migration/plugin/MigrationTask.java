@@ -2,9 +2,12 @@ package com.eottabom.migration.plugin;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.function.Consumer;
 
+import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.config.ConfigLoader;
 import com.eottabom.migration.config.MigrationConfig;
+import com.eottabom.migration.gradle.InitScripts;
 import com.eottabom.migration.pipeline.MigrationRunner;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.gradle.api.DefaultTask;
@@ -48,17 +51,22 @@ public abstract class MigrationTask extends DefaultTask {
 	@Internal
 	public abstract DirectoryProperty getSchemaDir();
 
+	/** 설정을 읽고 동작을 실행한다. 사용자에게 보여 줄 실패(MigrationException)는 여기서만 Gradle 의 실패로 바꾼다 */
+	protected void run(Consumer<MigrationConfig> action) {
+		try {
+			action.accept(config());
+		}
+		catch (MigrationException ex) {
+			throw new GradleException(String.valueOf(ex.getMessage()), ex);
+		}
+	}
+
 	/** 설정 파일과 CLI 옵션을 합친 설정 */
-	protected MigrationConfig config() {
+	private MigrationConfig config() {
 		ObjectNode cli = ConfigLoader.cli();
 		addOptions(cli);
 		Path configFile = getConfig().isPresent() ? resolve(getConfig().get()) : null;
-		try {
-			return new ConfigLoader(getSchemaDir().get().getAsFile().toPath()).load(projectDir(), configFile, cli);
-		}
-		catch (IllegalArgumentException ex) {
-			throw new GradleException(String.valueOf(ex.getMessage()), ex);
-		}
+		return new ConfigLoader(getSchemaDir().get().getAsFile().toPath()).load(projectDir(), configFile, cli);
 	}
 
 	/** 태스크의 CLI 옵션을 설정 파일과 같은 구조로 넣는다 */
@@ -67,8 +75,8 @@ public abstract class MigrationTask extends DefaultTask {
 
 	protected MigrationRunner runner(MigrationConfig config) {
 		return new MigrationRunner(
-				new MigrationRunner.RunnerPaths(getRewriteInitScript().get().getAsFile().toPath(),
-						getVerifyInitScript().get().getAsFile().toPath(), getRecipeLibs().get().getAsFile().toPath(),
+				new MigrationRunner.RunnerPaths(new InitScripts(getRewriteInitScript().get().getAsFile().toPath(),
+						getVerifyInitScript().get().getAsFile().toPath(), getRecipeLibs().get().getAsFile().toPath()),
 						getGuidesDir().get().getAsFile().toPath(), getSchemaDir().get().getAsFile().toPath()),
 				config.build(), getLogger());
 	}

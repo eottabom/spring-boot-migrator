@@ -22,22 +22,31 @@ import org.jspecify.annotations.Nullable;
 /**
  * 러너의 콘솔 출력. stage 제목은 {@code >>}, 오류는 {@code !!} 로 시작한다.
  */
-public record RunnerConsole(Logger logger) {
+public final class RunnerConsole {
 
-	public void project(ProjectState project, @Nullable String javaHome) {
-		this.step("프로젝트 : " + project.dir());
-		this.line("   Boot     : {}", orQ(project.bootVersion()));
-		this.line("   Gradle   : {}", orQ(project.gradleVersion()));
-		this.line("   Java     : {}", orQ(project.javaVersion()));
+	private final Logger logger;
+
+	public RunnerConsole(Logger logger) {
+		this.logger = logger;
+	}
+
+	/**
+	 * @param workingTree git 작업 트리 상태를 풀어 쓴 말
+	 */
+	public void project(ProjectState project, @Nullable String javaHome, String workingTree) {
+		this.heading("프로젝트 : " + project.dir());
+		this.line("   Boot     : {}", orUnknown(project.bootVersion()));
+		this.line("   Gradle   : {}", orUnknown(project.gradleVersion()));
+		this.line("   Java     : {}", orUnknown(project.lowestDeclaredJava()));
 		this.line("   JAVA_HOME: {}", orDefault(javaHome));
-		this.line("   git      : {}", !project.git() ? "아님" : project.dirty() ? "커밋되지 않은 변경 있음" : "깨끗함");
+		this.line("   git      : {}", workingTree);
 	}
 
 	public void projectRecipes(Path projectDir, ProjectRecipes projectRecipes) {
 		if (projectRecipes.files().isEmpty()) {
 			return;
 		}
-		this.step("프로젝트 레시피 ("
+		this.heading("프로젝트 레시피 ("
 				+ String.join(", ",
 						projectRecipes.files().stream().map((file) -> projectDir.relativize(file).toString()).toList())
 				+ ")");
@@ -65,12 +74,12 @@ public record RunnerConsole(Logger logger) {
 
 	/** stage 별로 걸릴 수 있는 체크리스트 항목. 의존성 조건은 실행 때 판단한다 */
 	public void checklistPreview(List<Stage> stages, Guides guides) {
-		this.step("체크리스트 미리보기 (guides/, 의존성 조건은 실행 때 판단)");
+		this.heading("체크리스트 미리보기 (guides/, 의존성 조건은 실행 때 판단)");
 		Map<Fix, Integer> total = new EnumMap<>(Fix.class);
 		for (Stage stage : stages) {
 			List<ChecklistItem> items = stage.covers()
 				.stream()
-				.flatMap((name) -> guides.stage(name).checklist().stream())
+				.flatMap((covered) -> guides.stage(covered).checklist().stream())
 				.toList();
 			if (items.isEmpty()) {
 				continue;
@@ -108,7 +117,7 @@ public record RunnerConsole(Logger logger) {
 		return out.toString();
 	}
 
-	public void step(String message) {
+	public void heading(String message) {
 		this.logger.lifecycle("");
 		this.logger.lifecycle(">> {}", message);
 	}
@@ -121,7 +130,7 @@ public record RunnerConsole(Logger logger) {
 		this.logger.error("!! {}", message);
 	}
 
-	public static String orQ(@Nullable Object value) {
+	public static String orUnknown(@Nullable Object value) {
 		return (value != null) ? value.toString() : "?";
 	}
 

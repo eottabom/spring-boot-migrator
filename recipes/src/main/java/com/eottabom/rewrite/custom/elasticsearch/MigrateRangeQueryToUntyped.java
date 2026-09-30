@@ -82,9 +82,12 @@ public class MigrateRangeQueryToUntyped extends Recipe {
 					}
 
 					private boolean isLegacyBuilder(@Nullable JavaType type) {
-						JavaType.FullyQualified fq = TypeUtils.asFullyQualified(type);
-						return fq != null && TypeUtils.isOfClassType(fq, RANGE_QUERY_BUILDER.replace('$', '.'))
-								&& fq.getMethods().stream().anyMatch((mt) -> "field".equals(mt.getName()));
+						JavaType.FullyQualified builderType = TypeUtils.asFullyQualified(type);
+						return builderType != null
+								&& TypeUtils.isOfClassType(builderType, RANGE_QUERY_BUILDER.replace('$', '.'))
+								&& builderType.getMethods()
+									.stream()
+									.anyMatch((method) -> "field".equals(method.getName()));
 					}
 				});
 	}

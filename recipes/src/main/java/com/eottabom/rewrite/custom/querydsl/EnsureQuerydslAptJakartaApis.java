@@ -3,6 +3,7 @@ package com.eottabom.rewrite.custom.querydsl;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.eottabom.rewrite.support.GradleDsl;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -54,17 +55,17 @@ public class EnsureQuerydslAptJakartaApis extends Recipe {
 				J.MethodInvocation apt = null;
 				List<String> present = new ArrayList<>();
 				for (int i = 0; i < statements.size(); i++) {
-					J.MethodInvocation m = asMethodInvocation(statements.get(i));
-					if (m == null || !ANNOTATION_PROCESSOR.equals(m.getSimpleName())) {
+					J.MethodInvocation invocation = asMethodInvocation(statements.get(i));
+					if (invocation == null || !ANNOTATION_PROCESSOR.equals(invocation.getSimpleName())) {
 						continue;
 					}
-					String notation = dependencyNotation(m);
+					String notation = dependencyNotation(invocation);
 					if (notation == null) {
 						continue;
 					}
 					if (apt == null && notation.startsWith("com.querydsl:querydsl-apt:")
 							&& notation.endsWith(":jakarta")) {
-						apt = m;
+						apt = invocation;
 						aptIndex = i;
 					}
 					for (String required : REQUIRED) {
@@ -134,11 +135,7 @@ public class EnsureQuerydslAptJakartaApis extends Recipe {
 
 	private static Statement copyWithNotation(J.MethodInvocation apt, String notation) {
 		Expression first = apt.getArguments().get(0);
-		String quote = "\"";
-		if (first instanceof J.Literal original && original.getValueSource() != null
-				&& original.getValueSource().startsWith("'")) {
-			quote = "'";
-		}
+		String quote = (first instanceof J.Literal original) ? GradleDsl.quoteOf(original) : "\"";
 		J.Literal literal = new J.Literal(Tree.randomId(), first.getPrefix(), first.getMarkers(), notation,
 				quote + notation + quote, null, JavaType.Primitive.String);
 		List<Expression> args = new ArrayList<>();
@@ -147,9 +144,9 @@ public class EnsureQuerydslAptJakartaApis extends Recipe {
 	}
 
 	private static String indentOf(Space prefix) {
-		String ws = prefix.getWhitespace();
-		int nl = ws.lastIndexOf('\n');
-		return (nl >= 0) ? ws.substring(nl + 1) : ws;
+		String whitespace = prefix.getWhitespace();
+		int lineBreak = whitespace.lastIndexOf('\n');
+		return (lineBreak >= 0) ? whitespace.substring(lineBreak + 1) : whitespace;
 	}
 
 }

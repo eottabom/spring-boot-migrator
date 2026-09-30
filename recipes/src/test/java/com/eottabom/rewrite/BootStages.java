@@ -31,11 +31,11 @@ public final class BootStages {
 		}
 	}
 
-	private static int compare(String a, String b) {
-		String[] x = a.split("\\.");
-		String[] y = b.split("\\.");
-		int major = Integer.compare(Integer.parseInt(x[0]), Integer.parseInt(y[0]));
-		return (major != 0) ? major : Integer.compare(Integer.parseInt(x[1]), Integer.parseInt(y[1]));
+	private static int compare(String left, String right) {
+		String[] leftParts = left.split("\\.");
+		String[] rightParts = right.split("\\.");
+		int major = Integer.compare(Integer.parseInt(leftParts[0]), Integer.parseInt(rightParts[0]));
+		return (major != 0) ? major : Integer.compare(Integer.parseInt(leftParts[1]), Integer.parseInt(rightParts[1]));
 	}
 
 }

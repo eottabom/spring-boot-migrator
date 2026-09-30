@@ -4,13 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import com.eottabom.rewrite.support.SpringAnnotations;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.Tree;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
@@ -27,8 +27,6 @@ public class NarrowJsonMapperBeanReturnType extends Recipe {
 	private static final String OBJECT_MAPPER = "tools.jackson.databind.ObjectMapper";
 
 	private static final String JSON_MAPPER = "tools.jackson.databind.json.JsonMapper";
-
-	private static final AnnotationMatcher BEAN = new AnnotationMatcher("@org.springframework.context.annotation.Bean");
 
 	@Override
 	public String getDisplayName() {
@@ -68,7 +66,7 @@ public class NarrowJsonMapperBeanReturnType extends Recipe {
 	private static boolean isObjectMapperBean(J.MethodDeclaration method) {
 		return method.getBody() != null && method.getReturnTypeExpression() != null
 				&& TypeUtils.isOfClassType(method.getReturnTypeExpression().getType(), OBJECT_MAPPER)
-				&& method.getLeadingAnnotations().stream().anyMatch(BEAN::matches);
+				&& method.getLeadingAnnotations().stream().anyMatch(SpringAnnotations.BEAN::matches);
 	}
 
 	/** return 이 모두 JsonMapper 이면 그 타입 (람다와 내부 클래스 제외) */
@@ -76,9 +74,9 @@ public class NarrowJsonMapperBeanReturnType extends Recipe {
 		List<J.Return> returns = new ArrayList<>();
 		new JavaIsoVisitor<List<J.Return>>() {
 			@Override
-			public J.Return visitReturn(J.Return ret, List<J.Return> found) {
-				found.add(ret);
-				return ret;
+			public J.Return visitReturn(J.Return returned, List<J.Return> found) {
+				found.add(returned);
+				return returned;
 			}
 
 			@Override
@@ -97,9 +95,9 @@ public class NarrowJsonMapperBeanReturnType extends Recipe {
 			}
 		}.visit(body, returns);
 		JavaType.FullyQualified jsonMapper = null;
-		for (J.Return ret : returns) {
-			JavaType.FullyQualified type = (ret.getExpression() != null)
-					? TypeUtils.asFullyQualified(ret.getExpression().getType()) : null;
+		for (J.Return returned : returns) {
+			JavaType.FullyQualified type = (returned.getExpression() != null)
+					? TypeUtils.asFullyQualified(returned.getExpression().getType()) : null;
 			if (type == null || !TypeUtils.isOfClassType(type, JSON_MAPPER)) {
 				return null;
 			}

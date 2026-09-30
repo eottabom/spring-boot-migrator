@@ -6,11 +6,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.eottabom.migration.misc.Versions;
+import com.eottabom.migration.MigrationException;
+import com.eottabom.migration.io.SchemaValidator;
+import com.eottabom.migration.version.Versions;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MapperFeature;
@@ -19,11 +19,6 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.networknt.schema.JsonSchema;
-import com.networknt.schema.JsonSchemaFactory;
-import com.networknt.schema.SchemaLocation;
-import com.networknt.schema.SpecVersion;
-import com.networknt.schema.ValidationMessage;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -37,12 +32,10 @@ final class GuideReader {
 		.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
 		.build();
 
-	private final Path schemaDir;
-
-	private final JsonSchemaFactory schemas = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012);
+	private final SchemaValidator schemas;
 
 	GuideReader(Path schemaDir) {
-		this.schemaDir = schemaDir;
+		this.schemas = new SchemaValidator(schemaDir);
 	}
 
 	/** dir 의 *.yml 을 파일 이름의 버전 순서로 읽는다. 디렉토리가 없으면 빈 목록 */
@@ -74,7 +67,7 @@ final class GuideReader {
 			return YAML.treeToValue(object, type);
 		}
 		catch (IOException ex) {
-			throw new IllegalArgumentException(file + ": " + ex.getMessage(), ex);
+			throw new MigrationException(file + ": " + ex.getMessage(), ex);
 		}
 	}
 
@@ -85,17 +78,15 @@ final class GuideReader {
 			return (node == null || node.isMissingNode()) ? YAML.createObjectNode() : node;
 		}
 		catch (IOException ex) {
-			throw new IllegalArgumentException(file + " 을 읽지 못했어요: " + ex.getMessage(), ex);
+			throw new MigrationException(file + " 을 읽지 못했어요: " + ex.getMessage(), ex);
 		}
 	}
 
 	private void validate(Path file, String schema, JsonNode node) {
-		JsonSchema jsonSchema = this.schemas
-			.getSchema(SchemaLocation.of(this.schemaDir.resolve(schema + ".schema.json").toUri().toString()));
-		Set<ValidationMessage> errors = jsonSchema.validate(node);
-		if (!errors.isEmpty()) {
-			throw new IllegalArgumentException(file + " 이 " + schema + ".schema.json 에 맞지 않아요\n  "
-					+ errors.stream().map(ValidationMessage::getMessage).sorted().collect(Collectors.joining("\n  ")));
+		List<String> violations = this.schemas.violations(schema, node);
+		if (!violations.isEmpty()) {
+			throw new MigrationException(file + " 이 " + SchemaValidator.fileName(schema) + " 에 맞지 않아요"
+					+ SchemaValidator.describe(violations));
 		}
 	}
 
@@ -115,9 +106,6 @@ final class GuideReader {
 			}
 			if (!checklistItem.has("source") && source != null) {
 				checklistItem.set("source", source);
-			}
-			if (!checklistItem.has("affected")) {
-				checklistItem.putArray("affected");
 			}
 		}
 	}

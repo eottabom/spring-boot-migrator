@@ -46,12 +46,12 @@ class UpgradeVersionCatalogTests implements RewriteTest {
 	// @formatter:off
 	static Stream<Arguments> scenarios() {
 		return Stream.of(
-			Arguments.of("toml 로 파싱된 catalog", toml(BEFORE, AFTER, (s) -> s.path("gradle/libs.versions.toml"))),
-			Arguments.of("plain text 로 파싱된 catalog", text(BEFORE, AFTER, (s) -> s.path("gradle/libs.versions.toml"))),
-			Arguments.of("이름이 다른 catalog", toml(BEFORE, AFTER, (s) -> s.path("gradle/deps.versions.toml"))),
-			Arguments.of("gradle 디렉토리 밖의 toml 은 건드리지 않음", toml(BEFORE, (s) -> s.path("config/libs.versions.toml"))),
-			Arguments.of("저장소 루트의 toml 은 catalog 가 아님", toml(BEFORE, (s) -> s.path("libs.versions.toml"))),
-			Arguments.of("gradle 디렉토리의 다른 toml 은 catalog 가 아님", toml(BEFORE, (s) -> s.path("gradle/other.toml")))
+			Arguments.of("toml 로 파싱된 catalog", toml(BEFORE, AFTER, (spec) -> spec.path("gradle/libs.versions.toml"))),
+			Arguments.of("plain text 로 파싱된 catalog", text(BEFORE, AFTER, (spec) -> spec.path("gradle/libs.versions.toml"))),
+			Arguments.of("이름이 다른 catalog", toml(BEFORE, AFTER, (spec) -> spec.path("gradle/deps.versions.toml"))),
+			Arguments.of("gradle 디렉토리 밖의 toml 은 건드리지 않음", toml(BEFORE, (spec) -> spec.path("config/libs.versions.toml"))),
+			Arguments.of("저장소 루트의 toml 은 catalog 가 아님", toml(BEFORE, (spec) -> spec.path("libs.versions.toml"))),
+			Arguments.of("gradle 디렉토리의 다른 toml 은 catalog 가 아님", toml(BEFORE, (spec) -> spec.path("gradle/other.toml")))
 		);
 	}
 	// @formatter:on
@@ -59,7 +59,7 @@ class UpgradeVersionCatalogTests implements RewriteTest {
 	@Test
 	void keepsVersionWhenPatternCannotBeResolved() {
 		rewriteRun((spec) -> spec.recipe(new UpgradeVersionCatalog(List.of("plugin org.springframework.boot 3.4.x"))),
-				toml(BEFORE, (s) -> s.path("gradle/libs.versions.toml")));
+				toml(BEFORE, (spec) -> spec.path("gradle/libs.versions.toml")));
 	}
 
 	@Test
@@ -83,7 +83,7 @@ class UpgradeVersionCatalogTests implements RewriteTest {
 
 						[plugins]
 						spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
-						""", (s) -> s.path("gradle/libs.versions.toml")));
+						""", (spec) -> spec.path("gradle/libs.versions.toml")));
 	}
 
 }

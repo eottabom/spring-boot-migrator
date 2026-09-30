@@ -5,12 +5,11 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import com.eottabom.migration.plan.Stage;
 import com.eottabom.migration.recipe.ProjectRecipes.Order;
+import com.eottabom.migration.stage.StageTag;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
@@ -32,46 +31,46 @@ public final class AssembledRecipe {
 	private AssembledRecipe() {
 	}
 
-	public static Assembled write(Path projectDir, String projectName, Stage stage, String tag,
-			ProjectRecipes projectRecipes) {
-		String name = "migration.assembled.Stage_" + tag.replaceAll("[^A-Za-z0-9]", "_");
+	/** 조립한 레시피 이름의 앞부분. 뒤에 용도와 stage 태그가 붙는다 */
+	private static final String NAME_PREFIX = "migration.assembled.";
+
+	/** stage 레시피 앞뒤에 프로젝트 레시피를 붙인다 */
+	public static Assembled write(Path projectDir, Stage stage, StageTag tag, ProjectRecipes projectRecipes) {
+		String name = NAME_PREFIX + "Stage_" + tag.recipeSuffix();
 		List<String> before = projectRecipes.names(stage.covers(), Order.BEFORE);
 		List<String> after = projectRecipes.names(stage.covers(), Order.AFTER);
 		List<String> recipeList = new ArrayList<>(before);
 		recipeList.addAll(stage.recipes());
 		recipeList.addAll(after);
-		List<Object> documents = new ArrayList<>();
-		documents.add(recipe(name, "Assembled migration for " + projectName + " (" + stage.name() + ")", recipeList));
+		List<RecipeDocument> documents = new ArrayList<>();
+		documents.add(assembled(name, "Assembled migration for " + projectDir.getFileName() + " (" + stage.name() + ")",
+				recipeList));
 		documents.addAll(projectRecipes.documents());
 		String sources = projectRecipes.files().isEmpty() ? "없음" : String.join(", ",
-				projectRecipes.files().stream().map((f) -> projectDir.relativize(f).toString()).toList());
+				projectRecipes.files().stream().map((file) -> projectDir.relativize(file).toString()).toList());
 		Path file = writeFile(projectDir, "# 프로젝트 레시피 원본: " + sources + "\n", documents);
-		return new Assembled(name, file, before, after);
+		return new Assembled(name, file);
 	}
 
-	/** 레시피 목록만 묶는다 (deprecated API 대체처럼 프로젝트 레시피 없이 한 번 더 돌 때) */
-	public static Assembled write(Path projectDir, String name, List<String> recipes) {
-		Path file = writeFile(projectDir, "", List.of(recipe(name, name, recipes)));
-		return new Assembled(name, file, List.of(), List.of());
+	/** deprecated API 대체 레시피만 묶는다 (프로젝트 레시피 없이 stage 안에서 한 번 더 돈다) */
+	public static Assembled writeDeprecations(Path projectDir, StageTag tag, List<String> recipes) {
+		String name = NAME_PREFIX + "Deprecations_" + tag.recipeSuffix();
+		Path file = writeFile(projectDir, "", List.of(assembled(name, name, recipes)));
+		return new Assembled(name, file);
 	}
 
-	private static Map<String, Object> recipe(String name, String displayName, List<String> recipeList) {
-		Map<String, Object> recipe = new LinkedHashMap<>();
-		recipe.put("type", ProjectRecipes.RECIPE_TYPE);
-		recipe.put("name", name);
-		recipe.put("displayName", displayName);
-		recipe.put("description", "migrationRun 이 만든 파일이에요. 매 stage 덮어쓰니 직접 고치지 마세요.");
-		recipe.put("recipeList", recipeList);
-		return recipe;
+	private static RecipeDocument assembled(String name, String displayName, List<String> recipeList) {
+		return RecipeDocument.recipe(name, displayName, "migrationRun 이 만든 파일이에요. 매 stage 덮어쓰니 직접 고치지 마세요.",
+				recipeList);
 	}
 
-	private static Path writeFile(Path projectDir, String header, List<Object> documents) {
+	private static Path writeFile(Path projectDir, String header, List<RecipeDocument> documents) {
 		DumperOptions options = new DumperOptions();
 		options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
 		options.setAllowUnicode(true);
 		options.setWidth(160);
 		String yaml = "# 러너(migrationRun)가 stage 마다 만들어요. 직접 고치지 마세요.\n" + header
-				+ new Yaml(options).dumpAll(documents.iterator());
+				+ new Yaml(options).dumpAll(documents.stream().map(RecipeDocument::yaml).iterator());
 		Path file = projectDir.resolve(RELATIVE_PATH);
 		try {
 			Files.createDirectories(file.getParent());
@@ -86,7 +85,7 @@ public final class AssembledRecipe {
 	/**
 	 * @param name 활성화할 레시피 이름 (-Drewrite.activeRecipe)
 	 */
-	public record Assembled(String name, Path file, List<String> before, List<String> after) {
+	public record Assembled(String name, Path file) {
 	}
 
 }

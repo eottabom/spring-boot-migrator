@@ -54,16 +54,16 @@ stage 레시피로 바꾼 뒤 2개 파일만 바뀌고 통과했다. 3.0 stage �
 첫 항목(직전 Boot stage)만 빼도 `UpgradeSpringFramework_7_0 → 6_2 → 6_1`, `MigrateToHibernate64 → 63 → 62` 처럼 라이브러리 체인 안에
 지난 stage 의 레시피가 남는다. 생성기는 직전 stage 가 실행하는 옵션 없는 레시피(전이 폐포)를 구하고, 그와 겹치는 선언형 레시피를
 `upstream.bootX_Y.<이름>` 사본으로 펼쳐 이미 돈 레시피를 뺀다. 뺀 레시피는 사본의 description 에 적는다. 옵션이 있는 레시피(버전 올리기 등)는
-이름이 같아도 옵션이 달라 빼지 않는다. `UpstreamStepsUpToDateTests` 가 stage 마다 직전 stage 체인과 겹치지 않는지 확인한다.
+이름이 같아도 옵션이 달라 빼지 않는다. `UpstreamStagesUpToDateTests` 가 stage 마다 직전 stage 체인과 겹치지 않는지 확인한다.
 
-upstream stage 레시피(`upstream/boot-steps.yml`)는 rewrite-spring jar 에서 생성한 파일이다.
-rewrite-recipe-bom 을 올리면 `UpstreamStepsUpToDateTests` 가 깨지고, `./gradlew :recipes:syncUpstreamSteps` 로 다시 만든다.
+upstream stage 레시피(`upstream/boot-stages.yml`)는 rewrite-spring jar 에서 생성한 파일이다.
+rewrite-recipe-bom 을 올리면 `UpstreamStagesUpToDateTests` 가 깨지고, `./gradlew :recipes:syncUpstreamStages` 로 다시 만든다.
 
 ### Version Catalog
 
 upstream 의 `UpgradeDependencyVersion`, `UpgradePluginVersion`, `ChangeDependency` 는 빌드 스크립트의 선언만 바꾸고
 `gradle/*.versions.toml` 은 건드리지 않는다. catalog 로 Boot 플러그인 버전을 관리하는 프로젝트는 레시피가 돌아도 Boot 버전이 그대로다.
-`VersionCatalogStepsGenerator` 가 stage 레시피 트리 전체에서 이 세 종류의 레시피를 모아 `upstream/catalog.yml` 의 규칙으로 옮기고,
+`VersionCatalogRulesGenerator` 가 stage 레시피 트리 전체에서 이 세 종류의 레시피를 모아 `upstream/catalog.yml` 의 규칙으로 옮기고,
 `UpgradeVersionCatalog` 가 같은 규칙을 catalog 에 적용한다. 버전은 upstream 과 같은 방식(`DependencyVersionSelector`)으로 대상 프로젝트의 저장소에서 고른다.
 upstream 조건(precondition) 안의 규칙은 조건을 함께 넘기고 catalog 레시피가 Gradle 모델로 판단한다.
 `ModuleHasPlugin` 은 `when-plugin <id>`, 버전과 scope 가 없는 `ModuleHasDependency` 는 `when-dependency <g:a>` (반전이면
@@ -76,7 +76,7 @@ commons-lang 2 를 쓰는 파일로 한정한 조건 안에 있어서이고, 코
 
 소스 조건 아래에 둔 의존성 레시피는 빌드 스크립트에서도 돌지 않는다 (빌드 스크립트에는 그 타입이 없다).
 `RecipeValidationTests` 가 이런 조합을 찾아 막고, 의존성 선언을 다른 곳에서 챙기는 레시피만 이유와 함께 허용한다.
-이 파일도 `syncUpstreamSteps` 가 함께 만들고 `UpstreamStepsUpToDateTests` 가 검사한다. stage 레시피를 고친 뒤에도 다시 만든다.
+이 파일도 `syncUpstreamStages` 가 함께 만들고 `UpstreamStagesUpToDateTests` 가 검사한다. stage 레시피를 고친 뒤에도 다시 만든다.
 
 ## Project Layout
 
@@ -87,14 +87,14 @@ recipes/                              OpenRewrite 레시피 jar (대상 프로�
                                       (레시피 jar 는 대상 프로젝트의 Gradle JVM 안에서 로딩되는데, JDK 17 로 Gradle 을 띄우는 프로젝트가 있다)
   src/main/resources/META-INF/rewrite/
     stage/                            stage 레시피 (boot.yml, java.yml, gradle.yml)
-    upstream/                         boot-steps.yml, catalog.yml (생성 파일, ./gradlew :recipes:syncUpstreamSteps), boot.yml (3.0 입구, 4.1 대체)
+    upstream/                         boot-stages.yml, catalog.yml (생성 파일, ./gradlew :recipes:syncUpstreamStages), boot.yml (3.0 입구, 4.1 대체)
     custom/                           도메인별 보정 (aws, elasticsearch, gradle, hibernate, kafka, logging, misc, querydsl, search, spring) 과 common.yml
-    detect/                           manual-items.yml (수동 검토 대상), runtime-risks.yml (동작이 바뀔 수 있는 곳)
-  src/main/java/                      yml(upstream 조합)로는 불가능한 보정과 검색 (custom/, detect/)
+    detect/                           manual-items.yml (수동 검토 대상과 동작이 바뀔 수 있는 곳)
+  src/main/java/                      yml(upstream 조합)로는 불가능한 보정과 검색 (custom/, detect/) 과 레시피가 같이 쓰는 도우미 (support/)
   src/test/java/                      레시피 이름/옵션 검증 + Java 레시피 단위 테스트
 runner/                               러너 Gradle 플러그인 (루트 빌드가 쓰는 플러그인이라 included build). 패키지는 아래 Runner 참고
 guides/                               버전별 가이드 (아래 Guides 참고)
-schema/                               guides, 설정 파일(spring-boot-migrator.yml), result.json, run-state.json 의 JSON Schema
+schema/                               guides, 설정 파일(spring-boot-migrator.yml), result.json, run-state.json, 레시피 yml 의 JSON Schema
 init/rewrite.init.gradle              대상 프로젝트에 OpenRewrite 플러그인과 레시피 jar 를 붙이는 Gradle init script
 init/verify.init.gradle               컴파일 경고 옵션, 테스트 fail-fast 해제와 결과 XML 강제, resolve 된 의존성 버전 수집
                                       init script 는 대상 프로젝트의 Gradle 안에서 돌아서 Groovy 로 둔다
@@ -147,12 +147,16 @@ stage 가 끝나면 러너(`AssessStep`)가 남은 파일을 읽어 결과 모�
 |---|---|---|
 | `stage/boot.yml` | `stage.Boot_3_0` ~ `4_1`. stage 마다 upstream 과 custom 을 어떤 순서로 돌릴지 정의 | 예 |
 | `stage/java.yml`, `stage/gradle.yml` | `stage.Java_17/21/25`, `stage.Gradle_8_14/9_1` | 예 |
-| `upstream/boot-steps.yml` | upstream `UpgradeSpringBoot_3_1` ~ `4_0` 에서 직전 stage 체인을 뺀 것. 생성 파일 | 예 |
+| `upstream/boot-stages.yml` | upstream `UpgradeSpringBoot_3_1` ~ `4_0` 에서 직전 stage 체인을 뺀 것. 생성 파일 | 예 |
 | `upstream/catalog.yml` | `upstream.catalog.Boot_3_0` ~ `4_1`, `Java_21`, `Java_25`, `Gradle_8_14`, `Gradle_9_1`. stage 레시피의 버전 변경을 catalog 규칙으로 옮긴 것. 생성 파일 | 예 |
 | `upstream/boot.yml` | `upstream.Boot_3_0` (upstream 체인 전체), `upstream.Boot_4_1` (upstream 에 아직 없는 4.1 의 대체) | 예 |
 | `custom/*.yml` | 도메인별 보정과 `custom.CommonFixes` | 예 |
-| `detect/manual-items.yml` | `detect.ManualMigrationItems`. 자동으로 바꾸면 위험한 곳(mariadb-java-client 2.x, redisson, Jackson 3 전환 대상, `@EntityGraph` 등) | 아니오 |
-| `detect/runtime-risks.yml` | 컴파일과 테스트가 통과해도 동작이 바뀔 수 있는 곳. 설명은 가이드 체크리스트 항목의 `detect` 에 연결한다 | 아니오 |
+| `detect/manual-items.yml` | `detect.ManualMigrationItems`. 자동으로 바꾸면 위험한 곳(mariadb-java-client 2.x, redisson, Jackson 3 전환 대상, `@EntityGraph` 등)과, 컴파일과 테스트가 통과해도 동작이 바뀔 수 있는 곳을 찾는 이름 있는 검색 레시피. 뒤의 것은 가이드 체크리스트 항목의 `detect` 에 연결한다 | 아니오 |
+
+레시피 yml 은 첫 줄에 `schema/rewrite-recipe.schema.json` 을 적는다 (IDE 가 키 오타와 들여쓰기 실수를 바로 표시한다).
+이 스키마는 문서의 구조만 본다. OpenRewrite 는 모르는 키를 조용히 무시해서 `preconditions` 를 잘못 쓴 레시피도 유효하다고 보고 조건 없이
+돌리므로, 허용한 키만 받고 `recipeList` 항목이 "이름" 또는 "이름 아래 옵션" 형태인지 확인한다. `RecipeSchemaTests` 가 모든 파일을 검사한다.
+레시피 이름과 옵션이 실제로 있는지는 `RecipeValidationTests` 가 레시피를 로딩해서 확인한다.
 
 ## Guides
 
@@ -188,7 +192,7 @@ Java stage 앞에 충분한 가장 낮은 Gradle stage 를 넣는다. Boot 가 �
 
 | 레시피 (`recipes/src/main/java/com/eottabom/rewrite/`) | 내용 | 비고 |
 |---|---|---|
-| `custom/querydsl/QuerydslJakartaClassifier` | `querydsl-apt:${ver}:jpa` → `:jakarta`, `querydsl-jpa` → `::jakarta` | upstream `ChangeDependencyClassifier` 는 `${}` 문자열, 버전 생략 선언을 처리하지 못함. 실측, Q-class 미생성 |
+| `custom/querydsl/UseQuerydslJakartaClassifier` | `querydsl-apt:${ver}:jpa` → `:jakarta`, `querydsl-jpa` → `::jakarta` | upstream `ChangeDependencyClassifier` 는 `${}` 문자열, 버전 생략 선언을 처리하지 못함. 실측, Q-class 미생성 |
 | `custom/querydsl/EnsureQuerydslAptJakartaApis` | APT 용 `jakarta.annotation-api` / `persistence-api` 보장 | upstream 이 javax 코드 기준으로 판단해 삭제하고, `AddDependency` 는 갱신 안 된 Gradle 모델을 봐서 복구 못 함 |
 | `custom/gradle/DeclareUsedDependency` | 쓰는데(import, 정적 import, 패키지 전체 이름) 선언이 없는 의존성을 소스셋별 configuration 에 선언 | Boot 2.7 때 transitive 로 들어오던 것이 사라짐. upstream `AddDependency` 는 transitive 로 있으면 건너뜀. 실측, commons-lang3, commons-io |
 | `custom/gradle/RemoveDependencyVersion` | 지정 그룹의 `g:a:v` 에서 버전만 제거 (BOM 좌표는 보호) | upstream `RemoveRedundantDependencyVersions` 는 선언 자체를 지움. 실측, Kafka, AWS SDK 버전 혼합 |
@@ -197,15 +201,15 @@ Java stage 앞에 충분한 가장 낮은 Gradle stage 를 넣는다. Boot 가 �
 | `detect/spring/FindBeanMethodsReturning` | 지정한 타입(하위 타입 포함)을 반환하는 `@Bean` 메서드 표시 (검색 전용) | upstream `FindTypes` 는 타입이 쓰인 모든 곳을 표시하고 하위 타입을 따라가지 않는다 |
 | `detect/testing/FindSpyStubbingThroughCachingProxy` | 캐시 어노테이션이 있는 빈을 `@MockitoSpyBean`/`@SpyBean` 으로 stubbing 하는 테스트 필드 표시 (검색 전용) | 프록시를 거친 stubbing 이 기본값을 캐시한다 ([spring-framework#37121](https://github.com/spring-projects/spring-framework/issues/37121)) |
 | `custom/spring/RemoveDependsOnDatabaseInitializationFromDataSourceConfig` | `HikariConfig`/`DataSource` 빈의 `@DependsOnDatabaseInitialization` 제거 | upstream Boot 2.5 레시피가 잘못 붙여서 순환 참조. 실측, contextLoads 실패 |
-| `custom/hibernate/FixHypersistenceJsonAttributes` | JSON 컬럼 값 객체(와 하위 객체)에 `Serializable`, equals 가 없으면 `@EqualsAndHashCode` | 없으면 저장 시 `NonSerializableObjectException`(실측), equals 가 없으면 트랜잭션마다 유령 UPDATE. Hypersistence `@Type(Json*Type)` 과 `@JdbcTypeCode(SqlTypes.JSON)` 모두 대상 |
+| `custom/hibernate/FixJsonColumnValueTypes` | JSON 컬럼 값 객체(와 하위 객체)에 `Serializable`, equals 가 없으면 `@EqualsAndHashCode` | 없으면 저장 시 `NonSerializableObjectException`(실측), equals 가 없으면 트랜잭션마다 유령 UPDATE. Hypersistence `@Type(Json*Type)` 과 `@JdbcTypeCode(SqlTypes.JSON)` 모두 대상 |
 | `custom/testing/AddLenientMockitoExtension` | `@Mock` 필드가 있고 `@ExtendWith` 가 없는 테스트에 lenient MockitoExtension (4.0~) | Boot 4 에서 `@Mock` 자동 초기화가 제거됨. upstream 버전은 strict 라 기존 테스트가 깨짐 (실측) |
 | `custom/jackson/NarrowJsonMapperBeanReturnType` | (4.0) `JsonMapper` 를 돌려주는 `@Bean ObjectMapper` 메서드의 반환 타입을 `JsonMapper` 로 | Boot 4 는 `JsonMapper` 타입 빈이 있을 때만 자동 설정 매퍼가 물러난다. `@Bean ObjectMapper` 는 무시되고 커스텀 모듈이 적용되지 않는다 ([spring-boot#50870](https://github.com/spring-projects/spring-boot/issues/50870)). 컴파일은 된다 |
 | `custom/jackson/FixJacksonIOExceptionCatch` | try 본문이 IOException 을 던지면 `catch (JacksonException \| IOException e)` 로 보완, 안 던지면 multi-catch 에서 IOException 제거 (4.0~) | upstream Jackson 3 전환이 양방향으로 틀림. 실측, IOException catch 누락으로 컴파일 에러, 던지지 않는 IOException 을 catch 해서 컴파일 에러(never thrown) |
 | `custom/httpclient/RevertHttpClient5ForElasticsearchRestClient` | (3.0) Elasticsearch `RestClient` 를 쓰는 파일에서 upstream 의 HttpClient 5 전환을 되돌려 HttpClient 4 유지 | Boot 3.x 의 elasticsearch-java 8.x 는 HttpClient 4 기반. upstream `UpgradeApacheHttpClient_5` 는 REST Assured 모듈만 건너뛰고 ES RestClient 는 제외 목록에 없어 바꿔버림. 실측, 컴파일 에러. 4.0 에서 `MigrateToRest5Client` 가 HttpClient 5 기반 `Rest5Client` 로 옮긴다. 되돌릴 때 생성자 타입 정보도 되돌려야 4.0 에서 upstream 이 `HttpHost` 인자 순서를 다시 바꾼다 |
 | `custom/httpclient/FixHttpClient5AsyncInterceptors` | (3.0 opensearch, 4.0 Rest5Client) `addInterceptorLast/First` → `addResponseInterceptorLast/First` (요청 인터셉터는 `addRequestInterceptor*`), 인터셉터 람다 `(response, context)` → `(response, entity, context)` | upstream `UpgradeApacheHttpClient_5` 가 타입만 HttpClient 5 로 바꾸고 async 빌더 메서드 이름과 람다 인자 수는 그대로 둔다. opensearch-rest-client 2.x (HttpClient 4) 에서 3.x 로 올리는 코드에 해당 |
 | `custom/elasticsearch/MigrateRangeQueryToUntyped` | (3.4) `RangeQuery.Builder` → `UntypedRangeQuery.Builder`, `build()` → `build()._toRangeQuery()` | Boot 3.4 BOM 의 elasticsearch-java 8.15 에서 `RangeQuery` 가 untyped/date/number/term 중 하나를 고르는 구조로 바뀌어 `field`/`gte`/`lte` 가 `UntypedRangeQuery` 로 옮겨짐. 실측, 컴파일 에러. `q.range(r -> r.field(..))` 람다 형태는 바꾸지 않는다 |
-| `custom/elasticsearch/Rest5ClientCallbacksToConsumer` | (4.0) `setHttpClientConfigCallback` / `setRequestConfigCallback` 람다 끝의 `return builder;` 제거 (`return builder.setX(..)` 는 호출만 남김) | `Rest5ClientBuilder` 의 콜백은 `Consumer` 라 값을 돌려주면 컴파일 에러 |
-| `custom/lombok/CopyJacksonAnnotationsToAccessors` | 루트 `lombok.config` 에 `lombok.copyJacksonAnnotationsToAccessors = true` (없으면 만들고, 있으면 한 줄 추가, 키가 이미 있으면 그대로). 루트 `.gitignore` 가 `lombok.config` 를 무시하면 `!/lombok.config` 를 추가해 커밋되게 한다. Lombok 과 Jackson 어노테이션을 함께 쓰는 프로젝트만 | Lombok 1.18.40 부터 필드의 `@JsonProperty` 를 getter 에 복사하지 않는다([lombok#3978](https://github.com/projectlombok/lombok/issues/3978)). `@JsonProperty("isShow") boolean isShow` 가 JSON 에 `isShow` 와 `show` 로 두 번 나간다. 실측, REST Docs 테스트 실패(3.4, freefair 플러그인 업그레이드로 새 Lombok 적용). 예전 freefair 가 만들던 파일 때문에 `lombok.config` 를 무시하던 프로젝트가 있었다 |
+| `custom/elasticsearch/ConvertRest5ClientCallbacksToConsumer` | (4.0) `setHttpClientConfigCallback` / `setRequestConfigCallback` 람다 끝의 `return builder;` 제거 (`return builder.setX(..)` 는 호출만 남김) | `Rest5ClientBuilder` 의 콜백은 `Consumer` 라 값을 돌려주면 컴파일 에러 |
+| `custom/lombok/EnableLombokCopyJacksonAnnotations` | 루트 `lombok.config` 에 `lombok.copyJacksonAnnotationsToAccessors = true` (없으면 만들고, 있으면 한 줄 추가, 키가 이미 있으면 그대로). 루트 `.gitignore` 가 `lombok.config` 를 무시하면 `!/lombok.config` 를 추가해 커밋되게 한다. Lombok 과 Jackson 어노테이션을 함께 쓰는 프로젝트만 | Lombok 1.18.40 부터 필드의 `@JsonProperty` 를 getter 에 복사하지 않는다([lombok#3978](https://github.com/projectlombok/lombok/issues/3978)). `@JsonProperty("isShow") boolean isShow` 가 JSON 에 `isShow` 와 `show` 로 두 번 나간다. 실측, REST Docs 테스트 실패(3.4, freefair 플러그인 업그레이드로 새 Lombok 적용). 예전 freefair 가 만들던 파일 때문에 `lombok.config` 를 무시하던 프로젝트가 있었다 |
 | `custom/gradle/UpgradeVersionCatalog` | upstream 이 빌드 스크립트에 하는 버전 업그레이드와 좌표 변경을 `gradle/*.versions.toml` 에 적용. 버전 키를 다른 항목과 같이 쓰면 새 키를 만들어 나머지는 그대로 둔다 | upstream 은 catalog 를 바꾸지 않는다. 실측, catalog 를 쓰는 프로젝트의 Boot 버전이 올라가지 않음 |
 | `custom/gradle/DeclareAddedDependenciesInVersionCatalog` | 레시피가 이번 실행에서 문자열로 추가한 의존성을 version catalog 항목과 접근자로 바꾼다. 대상은 `libs`, 없으면 하나뿐인 catalog(`gradle/deps.versions.toml` 이면 `deps.` 접근자). 원본에 있던 문자열 선언은 그대로 둔다 | upstream 과 커스텀 레시피는 `"group:artifact"` 문자열로 추가해 catalog 프로젝트에서 선언 방식이 섞인다. 빌드 스크립트를 바꾼 다음 사이클에 catalog 를 고친다 |
 | `custom/gradle/UpgradeJacocoToolVersion` | `jacoco { toolVersion = "x" }` 를 지정 버전 이상으로 (Java stage) | upstream `UpgradeJaCoCo` 는 의존성만 올림. 구버전 JaCoCo 는 새 Java 클래스 파일을 못 읽음 |
@@ -249,10 +253,11 @@ OpenRewrite 레시피는 소스를 LST(Lossless Semantic Tree, 타입 정보가 
 
 | 형태 | 흐름 | 해당 레시피 |
 |---|---|---|
-| `Recipe` | `getVisitor()` 가 파일마다 트리를 돌며 바로 수정 | QuerydslJakartaClassifier, EnsureQuerydslAptJakartaApis, RemoveDependencyVersion, UpgradeJacocoToolVersion, DisambiguateRetryableExceptionNull, RemoveDependsOnDatabaseInitializationFromDataSourceConfig, AddLenientMockitoExtension, FixJacksonIOExceptionCatch, RevertHttpClient5ForElasticsearchRestClient, FixHttpClient5AsyncInterceptors, MigrateRangeQueryToUntyped, Rest5ClientCallbacksToConsumer, PreserveConditionalBeanReturnType, NarrowJsonMapperBeanReturnType, FindBeanMethodsReturning |
-| `ScanningRecipe` | 1) `getScanner()` 로 전체 파일을 먼저 훑어 정보 수집 2) `getVisitor()` 에서 그 정보로 수정 | DeclareUsedDependency (Java import 를 모은 뒤 build.gradle 수정), FixHypersistenceJsonAttributes (JSON 속성 타입을 모은 뒤 해당 클래스 수정), CopyJacksonAnnotationsToAccessors (Lombok + Jackson 사용 여부와 lombok.config 존재 여부를 본 뒤 파일 생성 또는 추가), UpgradeVersionCatalog (루트 프로젝트의 저장소 정보를 모은 뒤 catalog 수정), FindSpyStubbingThroughCachingProxy (캐시 어노테이션이 있는 타입을 모은 뒤 테스트의 spy 필드 표시) |
+| `Recipe` | `getVisitor()` 가 파일마다 트리를 돌며 바로 수정 | UseQuerydslJakartaClassifier, EnsureQuerydslAptJakartaApis, RemoveDependencyVersion, UpgradeJacocoToolVersion, DisambiguateRetryableExceptionNull, RemoveDependsOnDatabaseInitializationFromDataSourceConfig, AddLenientMockitoExtension, FixJacksonIOExceptionCatch, RevertHttpClient5ForElasticsearchRestClient, FixHttpClient5AsyncInterceptors, MigrateRangeQueryToUntyped, ConvertRest5ClientCallbacksToConsumer, PreserveConditionalBeanReturnType, NarrowJsonMapperBeanReturnType, FindBeanMethodsReturning |
+| `ScanningRecipe` | 1) `getScanner()` 로 전체 파일을 먼저 훑어 정보 수집 2) `getVisitor()` 에서 그 정보로 수정 | DeclareUsedDependency (Java import 를 모은 뒤 build.gradle 수정), FixJsonColumnValueTypes (JSON 속성 타입을 모은 뒤 해당 클래스 수정), EnableLombokCopyJacksonAnnotations (Lombok + Jackson 사용 여부와 lombok.config 존재 여부를 본 뒤 파일 생성 또는 추가), UpgradeVersionCatalog (루트 프로젝트의 저장소 정보를 모은 뒤 catalog 수정), FindSpyStubbingThroughCachingProxy (캐시 어노테이션이 있는 타입을 모은 뒤 테스트의 spy 필드 표시) |
 
 - build.gradle 은 Groovy LST, build.gradle.kts 는 Kotlin LST 로 읽힌다. 둘 다 `J.MethodInvocation` / `J.Literal` 로 보이므로 `JavaIsoVisitor` 로 함께 처리한다 (`GroovyIsoVisitor` 는 kts 를 조용히 건너뛴다). `IsBuildGradle` 로 대상을 제한하고, Gradle 모델(선언된 의존성, configuration)은 `GradleProject` 마커에서 읽는다
+- 빌드 스크립트 레시피가 같이 쓰는 동작(`dependencies { }` 안인지, 첫 인자 바꾸기, 따옴표를 지키며 문자열 바꾸기)은 `support/GradleDsl`, `@Bean` matcher 는 `support/SpringAnnotations` 에 둔다
 - Java 소스는 `JavaIsoVisitor` 로 돈다. 어노테이션 추가는 `JavaTemplate`, 인터페이스 추가는 `ImplementInterface` 를 쓴다
 - yml 에서 옵션을 주는 레시피(DeclareUsedDependency, RemoveDependencyVersion)는 생성자 파라미터 이름으로 매핑된다 (`-parameters` 컴파일 옵션)
 - 스캔은 편집 전 원본 기준으로 한 번 돈다. 같은 실행 안에서 upstream 이 패키지를 바꾸는 경우(commons-lang → lang3) 바뀌기 전 패키지도 같이 적는 이유다
@@ -265,23 +270,29 @@ OpenRewrite 레시피는 소스를 LST(Lossless Semantic Tree, 타입 정보가 
 
 | 패키지 | 역할 | 주요 클래스 |
 |---|---|---|
-| `plugin` | Gradle 어댑터. 옵션을 설정으로 바꿔 넘긴다 | `MigrationPlugin`, `MigrationRunTask`, `MigrationPlanTask`, `MigrationScanTask`, `MigrationVerifyTask`, `MigrationHelpTask` |
-| `config` | 설정 파일과 CLI 병합, 스키마 검증 | `MigrationConfig`, `ConfigLoader`, `Mode`, `Gate`, `JavaTarget` |
+| `plugin` | Gradle 어댑터. 옵션을 설정으로 바꿔 넘기고, 사용자에게 보여 줄 실패(`MigrationException`)를 Gradle 의 실패로 바꾼다 | `MigrationPlugin`, `MigrationRunTask`, `MigrationPlanTask`, `MigrationScanTask`, `MigrationVerifyTask`, `MigrationHelpTask` |
+| `config` | 설정 파일과 CLI 병합, 스키마 검증 | `MigrationConfig`, `ConfigLoader`, `Mode`, `GateLevel`, `JavaTarget` |
 | `project` | 대상 프로젝트 읽기 | `ProjectInspector`, `ProjectState`, `VersionCatalog`, `JdkLocator` |
 | `guide` | guides/ 읽기 | `Guides`, `BootGuide`, `JavaGuide`, `GradleGuide`, `LibraryGuide`, `ChecklistItem`, `FailureHint`, `Deprecation` |
+| `stage` | stage 식별 (다른 패키지를 모른다) | `StageId` (종류와 버전. 이름 `3.4`, `java21`, `gradle8.14`), `StageTag` (번호와 stage. 결과 폴더 이름 `03-boot-3.4`) |
 | `plan` | stage 결정 (파일과 프로세스를 다루지 않는다) | `MigrationPlanner`, `MigrationPlan`, `Stage` |
 | `recipe` | 대상 프로젝트 레시피 | `ProjectRecipes` (`.rewrite/` 탐색), `AssembledRecipe` (`rewrite.assembled.yml`) |
-| `pipeline` | 실행 흐름 | `MigrationRunner` (태스크 진입점), `MigrationPipeline` (한 번의 실행), `StageRunner` (stage 의 step 순서), `Resumption` (재개), `RunSession`, `RunHistory`, `StagePreview`, `RunLock` |
-| `pipeline.step` | stage 안의 동작 | `RewriteStep`, `GateStep`, `DeprecationStep`, `AssessStep`, `RecordStep`, `CommitStep`, `BaselineBuild`, `FlakyTestRetry`, `TestRun`, `StagePatches` |
-| `gradle` | 대상 빌드 실행 | `BuildTool`, `ProjectGradle` (gradlew 프로세스, 제한 시간), `VerifyScript`, `FailedTasks` |
+| `pipeline` | 실행 흐름 | `MigrationRunner` (태스크 진입점), `MigrationPipeline` (한 번의 실행), `StageRunner` (stage 의 step 순서), `Resumption` (재개), `RunSession` (한 실행의 상태와 재개 기록), `RunnerComponents` (함께 쓰는 협력 객체), `RunHistory`, `PreviewRun`, `RunLock` |
+| `pipeline.step` | stage 안의 동작 | `RewriteStep`, `GateStep`, `DeprecationStep`, `AssessStep`, `RecordStep`, `CommitStep` 과 step 이 같이 쓰는 도우미 `RecipeRun`, `TestRun`, `FlakyTestRetry`, `BaselineBuild`, `StagePatches` |
+| `gradle` | 대상 빌드 실행 | `ProjectGradle`, `GradleWrapperProcess` (gradlew 프로세스, 제한 시간), `InitScripts` (대상에 붙이는 init script 와 레시피 jar), `GradleJvmArgs`, `FailedTasks` |
 | `result` | 결과 | `StageResult`, `StageSummary`, `ResultMarkdown`, `ResultHtml`, `TestReport`, `TestResults`, `CompileWarnings`, `RecipeChanges`, `DependencyChanges` |
-| `workspace` | `.spring-boot-migrator/` 와 git | `MigrationWorkspace`, `StageFiles`, `ProjectFiles`, `RunState`, `RunStateStore`, `Git` |
+| `workspace` | `.spring-boot-migrator/` | `MigrationWorkspace`, `StageFiles`, `RunFiles`, `RunState`, `RunStateStore` |
+| `git` | 대상 프로젝트의 git 조작과 작업 트리 상태 | `Git`, `WorkingTree` |
 | `console` | 콘솔 출력 | `RunnerConsole` |
-| `misc` | 도메인이 없는 도구 | `AtomicFiles`, `Processes`, `TextFiles`, `Versions` |
+| `io` | 파일, 외부 프로세스, JSON Schema 검증 | `AtomicFiles`, `TextFiles`, `Processes`, `SchemaValidator` |
+| `version` | 버전 비교와 resolve 된 의존성 버전 | `Versions`, `ResolvedVersions` |
+
+사용자에게 그대로 보여 줄 실패는 어느 패키지에서든 `MigrationException` 으로 던지고, `plugin` 의 태스크가 한 곳에서 Gradle 의 실패로 바꾼다.
+대상 Gradle 에 붙이는 init script 는 `ProjectGradle` 구현이 알고, step 은 `verify` 와 `rewrite` 만 부른다.
 
 의존 방향은 `plugin → config, pipeline → step → 도메인 패키지` 한쪽으로만 흐른다. `plan`, `guide`, `result`, `project`, `workspace`, `config` 는
-실행 흐름을 모르고, step 은 서로 부르지 않는다. `ArchitectureTests` 가 이 방향을 검사한다.
-러너 통합 테스트(`MigrationRunnerFlowTests`)는 `BuildTool` 을 가짜 구현으로 바꿔 실패, 수정, 재개, deprecated API 대체, `--mode=all` 흐름을 재현한다.
+실행 흐름을 모르고, step 은 서로 부르지 않는다 (같이 쓰는 동작은 도우미로 뺀다). `stage`, `io`, `version` 은 다른 패키지를 모르고, `git` 은 `io` 만 안다. `ArchitectureTests` 가 이 방향을 검사한다.
+러너 통합 테스트(`MigrationRunnerFlowTests`)는 `ProjectGradle` 을 가짜 구현으로 바꿔 실패, 수정, 재개, deprecated API 대체, `--mode=all` 흐름을 재현한다.
 
 ## Extending
 
@@ -293,8 +304,8 @@ OpenRewrite 레시피는 소스를 LST(Lossless Semantic Tree, 타입 정보가 
 | deprecated API 자동 대체 | 대체 레시피가 있으면 `guides/common.yml` (또는 버전 가이드) 의 `deprecations` 에 javac 경고 pattern 과 recipe 추가 |
 | 지원 범위 변경 (Java/Gradle) | `guides/boot/X.Y.yml` 의 `requirements` |
 | 새 Java LTS, 새 Gradle stage | `guides/java/NN.yml` 또는 `guides/gradle/X.Y.yml` 과 `stage/java.yml` 또는 `stage/gradle.yml` 의 `stage.Java_NN`, `stage.Gradle_X_Y` |
-| rewrite-recipe-bom 버전 올리기 | 올린 뒤 `./gradlew :recipes:syncUpstreamSteps` 로 upstream stage 레시피와 catalog 규칙을 다시 만들고 `./gradlew test` |
-| 새 Boot stage | `guides/boot/X.Y.yml`, `stage/boot.yml` 의 `stage.Boot_X_Y`, `UpstreamStepsGenerator` 의 stage 목록 |
+| rewrite-recipe-bom 버전 올리기 | 올린 뒤 `./gradlew :recipes:syncUpstreamStages` 로 upstream stage 레시피와 catalog 규칙을 다시 만들고 `./gradlew test` |
+| 새 Boot stage | `guides/boot/X.Y.yml`, `stage/boot.yml` 의 `stage.Boot_X_Y`, `UpstreamStagesGenerator` 의 stage 목록 |
 
 `./gradlew test` 는 guides 가 스키마에 맞는지, `recipe` / `detect` 가 가리키는 레시피와 러너가 고르는 stage 레시피가 실제로 있는지까지 검증한다.
 한 프로젝트에서만 나온 문제도 공용 레시피로 만든다. 해당 타입이나 의존성이 있을 때만 바뀌도록 조건을 걸어(`UsesType`, 원래 타입의 메서드 확인 등) 다른 프로젝트에는 영향이 없게 한다.

@@ -1,4 +1,5 @@
-# 생성 파일: ./gradlew syncUpstreamSteps (VersionCatalogStepsGenerator). 직접 고치지 않는다.
+# yaml-language-server: $schema=../../../../../../../schema/rewrite-recipe.schema.json
+# 생성 파일: ./gradlew syncUpstreamStages (VersionCatalogRulesGenerator). 직접 고치지 않는다.
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.catalog.Boot_3_0

@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -90,7 +91,7 @@ final class VersionCatalogEditor {
 
 	private @Nullable String resolve(Entry entry, String current, Rule rule) {
 		return this.resolver.resolve(entry.group(), entry.artifact(), current,
-				Objects.requireNonNull(rule.newVersion()), rule.versionPattern(), entry.plugin());
+				Objects.requireNonNull(rule.newVersion()), rule.versionPattern(), entry.isPlugin());
 	}
 
 	private void change(Catalog catalog, Entry entry, Rule rule) {
@@ -113,7 +114,7 @@ final class VersionCatalogEditor {
 			return;
 		}
 		if (entry.ref() == null) {
-			setInlineVersion(new Entry(entry.line(), entry.alias(), entry.plugin(), entry.notation(), group, artifact,
+			setInlineVersion(new Entry(entry.line(), entry.alias(), entry.kind(), entry.form(), group, artifact,
 					entry.version(), entry.ref()), target);
 		}
 		else if (catalog.refUsers(entry.ref()).stream().allMatch(rule::matches)) {
@@ -147,10 +148,10 @@ final class VersionCatalogEditor {
 
 	private void setInlineVersion(Entry entry, String version) {
 		String text = this.lines.get(entry.line());
-		if (entry.notation()) {
+		if (entry.isNotation()) {
 			this.edit()
 				.set(entry.line(),
-						replaceNotation(text, entry.group() + ":" + entry.artifact(), version, entry.plugin()));
+						replaceNotation(text, entry.group() + ":" + entry.artifact(), version, entry.isPlugin()));
 		}
 		else {
 			this.edit().set(entry.line(), replaceAttribute(text, "version", version));
@@ -159,7 +160,7 @@ final class VersionCatalogEditor {
 
 	private void setCoordinates(Entry entry, String group, String artifact) {
 		String text = this.lines.get(entry.line());
-		if (entry.notation()) {
+		if (entry.isNotation()) {
 			text = replaceNotation(text, group + ":" + artifact, entry.version(), false);
 		}
 		else if (attribute(text, "module") != null) {
@@ -273,7 +274,8 @@ final class VersionCatalogEditor {
 			if (gav.length < 2) {
 				return null;
 			}
-			return new Entry(line, alias, false, true, gav[0], gav[1], (gav.length > 2) ? gav[2] : null, null);
+			return new Entry(line, alias, Entry.Kind.LIBRARY, Entry.Form.NOTATION, gav[0], gav[1],
+					(gav.length > 2) ? gav[2] : null, null);
 		}
 		if (!value.startsWith("{")) {
 			return null;
@@ -296,30 +298,30 @@ final class VersionCatalogEditor {
 				return null;
 			}
 		}
-		return new Entry(line, alias, false, false, group, artifact, attribute(value, "version"),
-				attribute(value, "version.ref"));
+		return new Entry(line, alias, Entry.Kind.LIBRARY, Entry.Form.TABLE, group, artifact,
+				attribute(value, "version"), attribute(value, "version.ref"));
 	}
 
 	private static @Nullable Entry plugin(int line, String alias, String value) {
 		Matcher quoted = STRING.matcher(value);
 		if (quoted.find()) {
 			String[] parts = quoted.group(2).split(":");
-			return new Entry(line, alias, true, true, parts[0], parts[0] + ".gradle.plugin",
+			return new Entry(line, alias, Entry.Kind.PLUGIN, Entry.Form.NOTATION, parts[0], parts[0] + ".gradle.plugin",
 					(parts.length > 1) ? parts[1] : null, null);
 		}
 		String id = attribute(value, "id");
 		if (id == null) {
 			return null;
 		}
-		return new Entry(line, alias, true, false, id, id + ".gradle.plugin", attribute(value, "version"),
-				attribute(value, "version.ref"));
+		return new Entry(line, alias, Entry.Kind.PLUGIN, Entry.Form.TABLE, id, id + ".gradle.plugin",
+				attribute(value, "version"), attribute(value, "version.ref"));
 	}
 
 	static Map<String, String> libraryAliases(String toml) {
 		Map<String, String> aliases = new LinkedHashMap<>();
 		parse(Arrays.asList(toml.split("\n", -1))).entries()
 			.stream()
-			.filter((entry) -> !entry.plugin())
+			.filter((entry) -> !entry.isPlugin())
 			.forEach((entry) -> aliases.putIfAbsent(entry.group() + ":" + entry.artifact(), entry.alias()));
 		return aliases;
 	}
@@ -367,8 +369,8 @@ final class VersionCatalogEditor {
 	}
 
 	/**
-	 * upstream 버전 변경 레시피 하나를 catalog 에 옮긴 규칙. 형식은 version-catalog-steps.yml 참고. 좌표는 glob
-	 * 을 쓸 수 있고, 끝의 when-plugin, when-dependency, unless-dependency 는 적용 조건이다.
+	 * upstream 버전 변경 레시피 하나를 catalog 에 옮긴 규칙. 형식은 upstream/catalog.yml 참고. 좌표는 glob 을 쓸 수
+	 * 있고, 끝의 when-plugin, when-dependency, unless-dependency 는 적용 조건이다.
 	 */
 	record Rule(Kind kind, String group, @Nullable String artifact, @Nullable String newGroup,
 			@Nullable String newArtifact, @Nullable String newVersion, @Nullable String versionPattern,
@@ -384,18 +386,18 @@ final class VersionCatalogEditor {
 					tokens.subList(i, i + 2).clear();
 				}
 			}
-			String[] t = tokens.toArray(String[]::new);
-			Kind kind = Kind.valueOf(t[0].toUpperCase());
+			String[] parts = tokens.toArray(String[]::new);
+			Kind kind = Kind.valueOf(parts[0].toUpperCase(Locale.ROOT));
 			return switch (kind) {
 				case DEPENDENCY -> {
-					String[] ga = t[1].split(":");
-					yield new Rule(kind, ga[0], ga[1], null, null, t[2], arg(t, 3), conditions);
+					String[] ga = parts[1].split(":");
+					yield new Rule(kind, ga[0], ga[1], null, null, parts[2], arg(parts, 3), conditions);
 				}
-				case PLUGIN -> new Rule(kind, t[1], null, null, null, t[2], arg(t, 3), conditions);
+				case PLUGIN -> new Rule(kind, parts[1], null, null, null, parts[2], arg(parts, 3), conditions);
 				case CHANGE -> {
-					String[] ga = t[1].split(":");
-					String[] target = t[2].split(":");
-					yield new Rule(kind, ga[0], ga[1], target[0], target[1], arg(t, 3), arg(t, 4), conditions);
+					String[] ga = parts[1].split(":");
+					String[] target = parts[2].split(":");
+					yield new Rule(kind, ga[0], ga[1], target[0], target[1], arg(parts, 3), arg(parts, 4), conditions);
 				}
 			};
 		}
@@ -406,9 +408,9 @@ final class VersionCatalogEditor {
 
 		boolean matches(Entry entry) {
 			if (this.kind == Kind.PLUGIN) {
-				return entry.plugin() && StringUtils.matchesGlob(entry.group(), this.group);
+				return entry.isPlugin() && StringUtils.matchesGlob(entry.group(), this.group);
 			}
-			return !entry.plugin() && StringUtils.matchesGlob(entry.group(), this.group)
+			return !entry.isPlugin() && StringUtils.matchesGlob(entry.group(), this.group)
 					&& StringUtils.matchesGlob(entry.artifact(), this.artifact);
 		}
 
@@ -486,8 +488,37 @@ final class VersionCatalogEditor {
 	private record Attribute(String key, String value, int start, int end) {
 	}
 
-	private record Entry(int line, String alias, boolean plugin, boolean notation, String group, String artifact,
+	/**
+	 * @param group plugin 항목이면 plugin id
+	 * @param artifact plugin 항목이면 plugin marker
+	 */
+	private record Entry(int line, String alias, Kind kind, Form form, String group, String artifact,
 			@Nullable String version, @Nullable String ref) {
+
+		boolean isPlugin() {
+			return this.kind == Kind.PLUGIN;
+		}
+
+		boolean isNotation() {
+			return this.form == Form.NOTATION;
+		}
+
+		enum Kind {
+
+			LIBRARY, PLUGIN
+
+		}
+
+		enum Form {
+
+			/** "group:artifact:version" 문자열 */
+			NOTATION,
+
+			/** { module = "...", version = "..." } */
+			TABLE
+
+		}
+
 	}
 
 	/**

@@ -11,7 +11,7 @@ checklist:
     title: Lombok 1.18.40+ 는 Jackson 어노테이션을 accessor 로 복사하지 않음
     detail: JDK 25 에 필요한 Lombok 버전에서 `@JsonProperty` 등이 getter/setter 로 복사되지 않아 직렬화 필드 이름이 바뀔 수 있다. 레시피가 lombok.config 로 복사를 켠다
     fix: auto
-    recipe: com.eottabom.rewrite.custom.lombok.CopyJacksonAnnotationsToAccessors
+    recipe: com.eottabom.rewrite.custom.lombok.EnableLombokCopyJacksonAnnotations
     when: { dependencies: [org.projectlombok:*] }
   - id: security-manager
     title: SecurityManager 완전 제거

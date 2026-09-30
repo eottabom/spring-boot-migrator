@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.eottabom.migration.stage.StageTag;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -31,16 +32,16 @@ class ResultHtmlTests {
 
 		ResultHtml.write(html,
 				new ResultHtml.Page("demo", "3.3.5", null,
-						List.of(new ResultHtml.StageEntry("01-boot-3.4", "3.4", result, patch),
-								new ResultHtml.StageEntry("02-java21", "java21", this.dir.resolve("none.json"),
+						List.of(new ResultHtml.StageEntry(StageTag.parse("01-boot-3.4"), result, patch),
+								new ResultHtml.StageEntry(StageTag.parse("02-java21"), this.dir.resolve("none.json"),
 										this.dir.resolve("none.patch")))));
 
 		String page = Files.readString(html);
 		assertThat(page).doesNotContain("/*__DATA__*/").doesNotContain("한글 </script>");
-		Matcher m = Pattern.compile("<script id=\"data\" type=\"application/json\">(.*?)</script>", Pattern.DOTALL)
+		Matcher script = Pattern.compile("<script id=\"data\" type=\"application/json\">(.*?)</script>", Pattern.DOTALL)
 			.matcher(page);
-		assertThat(m.find()).isTrue();
-		JsonNode data = new ObjectMapper().readTree(m.group(1));
+		assertThat(script.find()).isTrue();
+		JsonNode data = new ObjectMapper().readTree(script.group(1));
 		assertThat(data.get("project").asText()).isEqualTo("demo");
 		assertThat(data.get("startBoot").asText()).isEqualTo("3.3.5");
 		assertThat(data.get("currentBoot").asText()).isEqualTo("?");
@@ -59,13 +60,13 @@ class ResultHtmlTests {
 		Path patch = Files.writeString(this.dir.resolve("stage.patch"), file.repeat(2000));
 		Path html = this.dir.resolve("result.html");
 
-		ResultHtml.write(html, new ResultHtml.Page("demo", null, null,
-				List.of(new ResultHtml.StageEntry("01-boot-3.4", "3.4", this.dir.resolve("none.json"), patch))));
+		ResultHtml.write(html, new ResultHtml.Page("demo", null, null, List
+			.of(new ResultHtml.StageEntry(StageTag.parse("01-boot-3.4"), this.dir.resolve("none.json"), patch))));
 
-		Matcher m = Pattern.compile("<script id=\"data\" type=\"application/json\">(.*?)</script>", Pattern.DOTALL)
+		Matcher script = Pattern.compile("<script id=\"data\" type=\"application/json\">(.*?)</script>", Pattern.DOTALL)
 			.matcher(Files.readString(html));
-		assertThat(m.find()).isTrue();
-		JsonNode stage = new ObjectMapper().readTree(m.group(1)).get("stages").get(0);
+		assertThat(script.find()).isTrue();
+		JsonNode stage = new ObjectMapper().readTree(script.group(1)).get("stages").get(0);
 		assertThat(stage.get("patchTruncated").asBoolean()).isTrue();
 		assertThat(stage.get("patch").asText()).endsWith("+b\n").hasSizeLessThan(1_500_001);
 	}

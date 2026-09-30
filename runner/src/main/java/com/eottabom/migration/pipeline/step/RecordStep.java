@@ -3,7 +3,6 @@ package com.eottabom.migration.pipeline.step;
 import java.util.List;
 
 import com.eottabom.migration.console.RunnerConsole;
-import com.eottabom.migration.plan.Stage;
 import com.eottabom.migration.result.ResultHtml;
 import com.eottabom.migration.result.StageResult;
 import com.eottabom.migration.result.StageSummary;
@@ -14,7 +13,13 @@ import org.jspecify.annotations.Nullable;
 /**
  * stage 결과(result.md, result.json)와 전 stage 를 모은 result.html 을 쓴다.
  */
-public record RecordStep(RunnerConsole console) {
+public final class RecordStep {
+
+	private final RunnerConsole console;
+
+	public RecordStep(RunnerConsole console) {
+		this.console = console;
+	}
 
 	public StageSummary write(StageResult result, StageFiles files) {
 		result.write(files.resultMarkdown(), files.resultJson());
@@ -33,8 +38,7 @@ public record RecordStep(RunnerConsole console) {
 			@Nullable String currentBoot) {
 		List<ResultHtml.StageEntry> stages = ws.stageTags()
 			.stream()
-			.map((tag) -> new ResultHtml.StageEntry(tag, Stage.nameOf(tag), ws.stage(tag).resultJson(),
-					ws.stage(tag).stagePatch()))
+			.map((tag) -> new ResultHtml.StageEntry(tag, ws.stage(tag).resultJson(), ws.stage(tag).stagePatch()))
 			.toList();
 		ResultHtml.write(ws.resultHtml(), new ResultHtml.Page(projectName, startBoot, currentBoot, stages));
 		this.console.line("   result.html: {}", ws.resultHtml().toUri());

@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rewrite-recipe.schema.json",
+  "title": "OpenRewrite 선언형 레시피 (recipes/src/main/resources/META-INF/rewrite/**/*.yml)",
+  "description": "문서의 구조만 검증한다. 레시피 이름과 옵션이 실제로 있는지는 RecipeValidationTests 가 레시피를 로딩해서 확인한다. OpenRewrite 는 모르는 키를 조용히 무시하므로(preconditions 를 잘못 쓰면 조건 없이 돈다) 여기서 막는다",
+  "type": "object",
+  "required": ["type", "name", "displayName", "description", "recipeList"],
+  "properties": {
+    "type": { "const": "specs.openrewrite.org/v1beta/recipe" },
+    "name": {
+      "description": "레시피 전체 이름. 이름공간은 docs/architecture.md 의 Recipe Namespaces",
+      "$ref": "#/$defs/recipeName"
+    },
+    "displayName": { "type": "string", "minLength": 1 },
+    "description": { "type": "string", "minLength": 1 },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "estimatedEffortPerOccurrence": { "type": "string" },
+    "causesAnotherCycle": { "type": "boolean" },
+    "preconditions": {
+      "description": "모두 맞는 파일에만 recipeList 를 적용한다",
+      "$ref": "#/$defs/recipeRefs"
+    },
+    "recipeList": {
+      "description": "차례로 실행할 레시피",
+      "$ref": "#/$defs/recipeRefs"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "recipeName": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_$]*(\\.[A-Za-z_][A-Za-z0-9_$]*)+$"
+    },
+    "recipeRefs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/recipeRef" }
+    },
+    "recipeRef": {
+      "description": "옵션이 없으면 이름만, 있으면 이름 아래에 옵션을 한 단계 더 들여 쓴다",
+      "oneOf": [
+        { "$ref": "#/$defs/recipeName" },
+        {
+          "description": "키는 레시피 이름 하나뿐이고 값은 옵션이다. 옵션을 이름과 같은 깊이에 쓰면 키가 여러 개가 되거나 값이 비어 여기서 걸린다",
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 1,
+          "propertyNames": { "$ref": "#/$defs/recipeName" },
+          "additionalProperties": { "type": "object", "minProperties": 1 }
+        }
+      ]
+    }
+  }
+}

@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../../../../../../../schema/rewrite-recipe.schema.json
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.custom.aws.UnpinAwsSdkVersions
 displayName: AWS SDK 고정 버전 제거 (Spring Cloud AWS BOM 에 맡김)

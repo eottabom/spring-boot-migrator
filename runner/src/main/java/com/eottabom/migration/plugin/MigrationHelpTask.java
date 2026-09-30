@@ -22,7 +22,7 @@ public abstract class MigrationHelpTask extends DefaultTask {
 
 			migrationPlan / migrationRun
 			  --boot=<버전>                 목표 Boot: 3.0 ~ 3.5 | 4.0 | 4.1 (기본: 마지막 stage)
-			  --java=<값>                   latest(기본: 목표 Boot 가 지원하는 가장 높은 LTS) | keep | 17 | 21 | 25 | none
+			  --java=<값>                   latest(기본: 목표 Boot 가 지원하는 가장 높은 LTS) | keep(지원하면 유지) | 17 | 21 | 25
 			  --mode=<값>                   staged(기본: stage 마다 게이트) | all(한 번에 적용, 게이트 한 번) | preview(patch 만)
 
 			migrationRun

@@ -1,27 +1,36 @@
 package com.eottabom.migration.workspace;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
-import com.eottabom.migration.misc.AtomicFiles;
+import com.eottabom.migration.MigrationException;
+import com.eottabom.migration.io.AtomicFiles;
+import com.eottabom.migration.io.SchemaValidator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.networknt.schema.JsonSchema;
-import com.networknt.schema.JsonSchemaFactory;
-import com.networknt.schema.SchemaLocation;
-import com.networknt.schema.SpecVersion;
-import com.networknt.schema.ValidationMessage;
 
 /**
  * run-state.json 읽기와 쓰기. 읽을 때 schema/run-state.schema.json 으로 검증하고 다른 프로젝트의 기록인지 확인한다.
  */
-public record RunStateStore(Path file, Path projectDir, Path schemaDir) {
+public final class RunStateStore {
+
+	private final Path file;
+
+	private final Path projectDir;
+
+	private final Path schemaDir;
+
+	public RunStateStore(Path file, Path projectDir, Path schemaDir) {
+		this.file = file;
+		this.projectDir = projectDir;
+		this.schemaDir = schemaDir;
+	}
 
 	private static final ObjectMapper JSON = JsonMapper.builder().enable(SerializationFeature.INDENT_OUTPUT).build();
 
@@ -43,12 +52,12 @@ public record RunStateStore(Path file, Path projectDir, Path schemaDir) {
 			node = JSON.readTree(this.file.toFile());
 		}
 		catch (IOException ex) {
-			throw new IllegalStateException(this.file + " 을 읽지 못했어요. 지우고 다시 실행해 주세요: " + ex.getMessage(), ex);
+			throw new MigrationException(this.file + " 을 읽지 못했어요. 지우고 다시 실행해 주세요: " + ex.getMessage(), ex);
 		}
 		validate(node);
 		RunState state = JSON.convertValue(node, RunState.class);
 		if (!state.project().equals(project())) {
-			throw new IllegalStateException(this.file + " 은 다른 프로젝트(" + state.project() + ")의 기록이에요. "
+			throw new MigrationException(this.file + " 은 다른 프로젝트(" + state.project() + ")의 기록이에요. "
 					+ "이 프로젝트의 기록이 아니면 run-state.json 을 지우고 다시 실행해 주세요");
 		}
 		return Optional.of(state);
@@ -64,17 +73,19 @@ public record RunStateStore(Path file, Path projectDir, Path schemaDir) {
 	}
 
 	public void delete() {
-		MigrationWorkspace.deleteTree(this.file);
+		try {
+			Files.deleteIfExists(this.file);
+		}
+		catch (IOException ex) {
+			throw new UncheckedIOException(ex);
+		}
 	}
 
 	private void validate(JsonNode node) {
-		JsonSchema schema = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012)
-			.getSchema(SchemaLocation.of(this.schemaDir.resolve("run-state.schema.json").toUri().toString()));
-		Set<ValidationMessage> errors = schema.validate(node);
-		if (!errors.isEmpty()) {
-			throw new IllegalStateException(this.file
-					+ " 이 run-state.schema.json 에 맞지 않아요. 예전 버전의 기록이면 지우고 다시 실행해 주세요\n  "
-					+ errors.stream().map(ValidationMessage::getMessage).sorted().collect(Collectors.joining("\n  ")));
+		List<String> violations = new SchemaValidator(this.schemaDir).violations("run-state", node);
+		if (!violations.isEmpty()) {
+			throw new MigrationException(this.file + " 이 run-state.schema.json 에 맞지 않아요. 예전 버전의 기록이면 지우고 다시 실행해 주세요"
+					+ SchemaValidator.describe(violations));
 		}
 	}
 

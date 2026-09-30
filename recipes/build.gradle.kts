@@ -50,8 +50,10 @@ dependencies {
     runtimeOnly("org.openrewrite.recipe:rewrite-static-analysis")
 
     testImplementation("org.openrewrite:rewrite-test")
-    // UpstreamStepsGenerator (upstream 레시피 yml 읽기/쓰기)
+    // UpstreamStagesGenerator (upstream 레시피 yml 읽기/쓰기)
     testImplementation("org.yaml:snakeyaml:2.6")
+    // RecipeSchemaTests (레시피 yml 을 schema/rewrite-recipe.schema.json 으로 검증)
+    testImplementation("com.networknt:json-schema-validator:1.5.9")
     testImplementation("org.openrewrite:rewrite-gradle")
     testImplementation("org.openrewrite.gradle.tooling:model")
     testImplementation("org.gradle:gradle-tooling-api:8.14.3")
@@ -93,12 +95,12 @@ tasks.register<Sync>("recipeLibs") {
     into(layout.buildDirectory.dir("recipe-libs"))
 }
 
-// upstream(rewrite-spring) UpgradeSpringBoot_X_Y 에서 직전 단계 체인을 뺀 단계 레시피를 다시 만든다 (rewrite-recipe-bom 을 올린 뒤)
-tasks.register<JavaExec>("syncUpstreamSteps") {
+// upstream(rewrite-spring) UpgradeSpringBoot_X_Y 에서 직전 stage 체인을 뺀 stage 레시피를 다시 만든다 (rewrite-recipe-bom 을 올린 뒤)
+tasks.register<JavaExec>("syncUpstreamStages") {
     group = "build"
-    description = "upstream-spring-boot-steps.yml 과 version-catalog-steps.yml 을 다시 만든다"
+    description = "upstream-spring-boot-stages.yml 과 upstream/catalog.yml 을 다시 만든다"
     classpath = sourceSets.test.get().runtimeClasspath
-    mainClass = "com.eottabom.rewrite.UpstreamStepsGenerator"
+    mainClass = "com.eottabom.rewrite.UpstreamStagesGenerator"
     workingDir = projectDir
 }
 

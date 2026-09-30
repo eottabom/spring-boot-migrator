@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../../../../../../../schema/rewrite-recipe.schema.json
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.stage.Boot_3_0
 displayName: "Spring Boot 3.0 단계 (이 단계의 변경만)"
@@ -126,14 +127,19 @@ recipeList:
   - com.eottabom.rewrite.custom.hibernate.ReplaceAnnotationsQueryHints
   # Boot 4 BOM 이 spring-retry 를 관리하지 않아 transitive 로 받던 프로젝트에서 사라진다 (Framework 7 에 core retry 가 생김)
   - com.eottabom.rewrite.custom.gradle.DeclareUsedDependency:
-      packageName: org.springframework.retry
+      packageNames:
+        - org.springframework.retry
       groupId: org.springframework.retry
       artifactId: spring-retry
       version: 2.0.x
   # RestTemplateBuilder 는 spring-boot-restclient 모듈로 옮겨졌고 spring-boot-resttestclient 는 이 모듈을 가져오지 않는다.
   # TestRestTemplate 만 선언한 테스트는 컴파일은 되고 실행 때 ClassNotFoundException 이 난다. upstream 이 같은 실행 안에서 옮기기 전 패키지도 적는다
   - com.eottabom.rewrite.custom.gradle.DeclareUsedDependency:
-      packageName: org.springframework.boot.restclient, org.springframework.boot.resttestclient, org.springframework.boot.web.client, org.springframework.boot.test.web.client
+      packageNames:
+        - org.springframework.boot.restclient
+        - org.springframework.boot.resttestclient
+        - org.springframework.boot.web.client
+        - org.springframework.boot.test.web.client
       groupId: org.springframework.boot
       artifactId: spring-boot-restclient
   - com.eottabom.rewrite.custom.spring.Boot4RestDocsModule

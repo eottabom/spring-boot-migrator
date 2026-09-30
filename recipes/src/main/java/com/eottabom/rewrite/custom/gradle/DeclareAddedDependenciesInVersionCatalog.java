@@ -12,8 +12,8 @@ import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.eottabom.rewrite.support.GradleDsl;
 import org.jspecify.annotations.Nullable;
-import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -27,7 +27,7 @@ import org.openrewrite.java.tree.J;
 
 /**
  * 레시피가 빌드 스크립트에 문자열로 추가한 의존성을 version catalog 항목으로 옮긴다. 사용자가 원래 문자열로 쓴 의존성은 두고, catalog 를
- * 이미 쓰는 빌드 스크립트에만 적용한다. 다른 레시피가 추가한 뒤에 돌아야 해서 단계 마지막에 둔다.
+ * 이미 쓰는 빌드 스크립트에만 적용한다. 다른 레시피가 추가한 뒤에 돌아야 해서 stage 마지막에 둔다.
  */
 public class DeclareAddedDependenciesInVersionCatalog extends Recipe {
 
@@ -59,8 +59,8 @@ public class DeclareAddedDependenciesInVersionCatalog extends Recipe {
 		return catalog + "." + alias.replace('-', '.').replace('_', '.');
 	}
 
-	static boolean sameAccessor(String a, String b) {
-		return a.replaceAll("[-_.]", ".").equalsIgnoreCase(b.replaceAll("[-_.]", "."));
+	static boolean sameAccessor(String left, String right) {
+		return left.replaceAll("[-_.]", ".").equalsIgnoreCase(right.replaceAll("[-_.]", "."));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -136,7 +136,7 @@ public class DeclareAddedDependenciesInVersionCatalog extends Recipe {
 				return existing;
 			}
 			// Gradle 은 -, _, . 를 같은 접근자로 만든다 (spring-boot 와 spring_boot 는 겹친다)
-			boolean taken = this.aliases.values().stream().anyMatch((a) -> sameAccessor(a, artifact));
+			boolean taken = this.aliases.values().stream().anyMatch((alias) -> sameAccessor(alias, artifact));
 			String alias = taken ? group.substring(group.lastIndexOf('.') + 1) + "-" + artifact : artifact;
 			this.aliases.put(module, alias);
 			return alias;
@@ -193,7 +193,7 @@ public class DeclareAddedDependenciesInVersionCatalog extends Recipe {
 					J.MethodInvocation visited = super.visitMethodInvocation(method, ctx);
 					Path path = getCursor().firstEnclosingOrThrow(SourceFile.class).getSourcePath();
 					J.Literal literal = coordinateLiteral(visited);
-					if (literal == null || !acc.appliesTo(path) || !inDependenciesBlock(getCursor())) {
+					if (literal == null || !acc.appliesTo(path) || !GradleDsl.inDependenciesBlock(getCursor())) {
 						return visited;
 					}
 					String coordinates = (String) Objects.requireNonNull(literal.getValue());
@@ -224,20 +224,6 @@ public class DeclareAddedDependenciesInVersionCatalog extends Recipe {
 		private static boolean isBuildScript(Path path) {
 			String name = path.getFileName().toString();
 			return name.equals("build.gradle") || name.equals("build.gradle.kts");
-		}
-
-		private static boolean inDependenciesBlock(Cursor cursor) {
-			boolean dependencies = false;
-			for (Cursor parent = cursor.getParent(); parent != null; parent = parent.getParent()) {
-				if (parent.getValue() instanceof J.MethodInvocation invocation) {
-					String name = invocation.getSimpleName();
-					if (name.equals("buildscript") || name.equals("constraints")) {
-						return false;
-					}
-					dependencies |= name.equals("dependencies");
-				}
-			}
-			return dependencies;
 		}
 
 	}

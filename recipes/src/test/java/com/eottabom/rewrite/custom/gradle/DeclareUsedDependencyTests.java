@@ -37,8 +37,8 @@ class DeclareUsedDependencyTests implements RewriteTest {
 	public void defaults(RecipeSpec spec) {
 		// 테스트 JVM 이 JDK 25 라서 JDK 25 를 지원하는 Gradle 9.1 로 모델을 만든다
 		spec.beforeRecipe(withToolingApi("9.1.0"))
-			.recipe(new DeclareUsedDependency("org.apache.commons.lang3", "org.apache.commons", "commons-lang3", "3.x",
-					null));
+			.recipe(new DeclareUsedDependency(List.of("org.apache.commons.lang3"), "org.apache.commons",
+					"commons-lang3", "3.x", null));
 	}
 
 	@ParameterizedTest(name = "[{index}] {0}")
@@ -58,7 +58,7 @@ class DeclareUsedDependencyTests implements RewriteTest {
 					dependencies {
 					    implementation 'org.apache.commons:commons-text:1.10.0'
 					}
-					""", (spec) -> spec.after(expect((a) -> a
+					""", (spec) -> spec.after(expect((script) -> script
 						.containsPattern("implementation \"org.apache.commons:commons-lang3:3\\.\\d+(\\.\\d+)?\"")))),
 				srcMainJava(java(USES_LANG3))),
 			Arguments.of("테스트에서만 쓰면 testImplementation",
@@ -68,7 +68,7 @@ class DeclareUsedDependencyTests implements RewriteTest {
 					dependencies {
 					    testImplementation 'org.apache.commons:commons-text:1.10.0'
 					}
-					""", (spec) -> spec.after(expect((a) -> a
+					""", (spec) -> spec.after(expect((script) -> script
 						.contains("testImplementation \"org.apache.commons:commons-lang3:")))),
 				srcTestJava(java(USES_LANG3))),
 			Arguments.of("Kotlin DSL",
@@ -78,7 +78,7 @@ class DeclareUsedDependencyTests implements RewriteTest {
 					dependencies {
 					    implementation("org.apache.commons:commons-text:1.10.0")
 					}
-					""", (spec) -> spec.after(expect((a) -> a
+					""", (spec) -> spec.after(expect((script) -> script
 						.containsPattern("implementation\\(\"org.apache.commons:commons-lang3:3\\.\\d+(\\.\\d+)?\"\\)")))),
 				srcMainJava(java(USES_LANG3))),
 			Arguments.of("static import 로 쓰면",
@@ -102,7 +102,7 @@ class DeclareUsedDependencyTests implements RewriteTest {
 				dependencies {
 				    implementation 'org.apache.commons:commons-text:1.10.0'
 				}
-				""", (spec) -> spec.after(expect((a) -> a
+				""", (spec) -> spec.after(expect((script) -> script
 					.containsPattern("implementation \"org.apache.commons:commons-lang3:3\\.\\d+(\\.\\d+)?\""))));
 	}
 	// @formatter:on
@@ -127,10 +127,10 @@ class DeclareUsedDependencyTests implements RewriteTest {
 				// 원본이 쓰는 commons-lang 2 는 테스트 classpath 에 없다 (import 텍스트로만 판단하는 것을 검증)
 				(spec) -> spec.typeValidationOptions(TypeValidation.none())
 					.recipes(
-							new DeclareUsedDependency("org.apache.commons.lang3, org.apache.commons.lang",
+							new DeclareUsedDependency(List.of("org.apache.commons.lang3", "org.apache.commons.lang"),
 									"org.apache.commons", "commons-lang3", null, null),
-							new DeclareUsedDependency("org.apache.commons.io", "commons-io", "commons-io", "2.x",
-									null)),
+							new DeclareUsedDependency(List.of("org.apache.commons.io"), "commons-io", "commons-io",
+									"2.x", null)),
 				mavenProject("app",
 						buildGradle("""
 								plugins {
@@ -143,9 +143,9 @@ class DeclareUsedDependencyTests implements RewriteTest {
 								    implementation 'org.springframework.boot:spring-boot-starter'
 								}
 								""",
-								(spec) -> spec.after(
-										expect((a) -> a.contains("implementation \"org.apache.commons:commons-lang3\"")
-											.doesNotContain("commons-io")))),
+								(spec) -> spec.after(expect((script) -> script
+									.contains("implementation \"org.apache.commons:commons-lang3\"")
+									.doesNotContain("commons-io")))),
 						srcMainJava(java("""
 								import org.apache.commons.lang.StringUtils;
 								class A { String s = StringUtils.trim(" a "); }
@@ -160,18 +160,20 @@ class DeclareUsedDependencyTests implements RewriteTest {
 		rewriteRun(
 				(spec) -> spec.typeValidationOptions(TypeValidation.none())
 					.recipeFromResources("com.eottabom.rewrite.custom.gradle.DeclareUsedTransitiveDependencies"),
-				mavenProject("app", buildGradle("""
-						plugins {
-						    id 'java'
-						    id 'org.springframework.boot' version '3.0.13'
-						    id 'io.spring.dependency-management' version '1.1.7'
-						}
-						repositories { mavenCentral() }
-						dependencies {
-						    implementation 'org.springframework.boot:spring-boot-starter'
-						}
-						""", (spec) -> spec.after(
-						expect((a) -> a.containsPattern("implementation \"org.apache.commons:commons-text:1\\.\\d+")))),
+				mavenProject("app",
+						buildGradle("""
+								plugins {
+								    id 'java'
+								    id 'org.springframework.boot' version '3.0.13'
+								    id 'io.spring.dependency-management' version '1.1.7'
+								}
+								repositories { mavenCentral() }
+								dependencies {
+								    implementation 'org.springframework.boot:spring-boot-starter'
+								}
+								""",
+								(spec) -> spec.after(expect((script) -> script
+									.containsPattern("implementation \"org.apache.commons:commons-text:1\\.\\d+")))),
 						srcMainJava(java("""
 								import org.apache.commons.lang.WordUtils;
 								class A { String s = WordUtils.capitalize("a"); }
@@ -220,18 +222,19 @@ class DeclareUsedDependencyTests implements RewriteTest {
 	void usesSourceSetConfigurationForTestFixtures() {
 		rewriteRun(
 				(spec) -> spec.typeValidationOptions(TypeValidation.none())
-					.recipe(new DeclareUsedDependency("org.apache.commons.io", "commons-io", "commons-io", "2.x",
-							null)),
-				mavenProject("app", buildGradle("""
-						plugins {
-						    id 'java'
-						    id 'java-test-fixtures'
-						}
-						repositories { mavenCentral() }
-						""",
-						(spec) -> spec
-							.after(expect((a) -> a.contains("testFixturesImplementation \"commons-io:commons-io:2.")
-								.doesNotContain("testImplementation \"commons-io")))),
+					.recipe(new DeclareUsedDependency(List.of("org.apache.commons.io"), "commons-io", "commons-io",
+							"2.x", null)),
+				mavenProject("app",
+						buildGradle("""
+								plugins {
+								    id 'java'
+								    id 'java-test-fixtures'
+								}
+								repositories { mavenCentral() }
+								""",
+								(spec) -> spec.after(expect((script) -> script
+									.contains("testFixturesImplementation \"commons-io:commons-io:2.")
+									.doesNotContain("testImplementation \"commons-io")))),
 						java("""
 								import org.apache.commons.io.FileUtils;
 								class Fixture { Object o = FileUtils.class; }
@@ -243,7 +246,7 @@ class DeclareUsedDependencyTests implements RewriteTest {
 	void addsOnlyToMainWhenTestAlsoUsesAndSkipsSourceSetWithoutConfiguration() {
 		rewriteRun(
 				(spec) -> spec.typeValidationOptions(TypeValidation.none())
-					.recipe(new DeclareUsedDependency("org.apache.commons.lang3, ", "org.apache.commons",
+					.recipe(new DeclareUsedDependency(List.of("org.apache.commons.lang3"), "org.apache.commons",
 							"commons-lang3", "3.x", null)),
 				mavenProject("app",
 						buildGradle("""
@@ -257,7 +260,7 @@ class DeclareUsedDependencyTests implements RewriteTest {
 								    implementation 'org.apache.commons:commons-text:1.10.0'
 								}
 								""",
-								(spec) -> spec.after(expect((a) -> a.containsOnlyOnce("commons-lang3")
+								(spec) -> spec.after(expect((script) -> script.containsOnlyOnce("commons-lang3")
 									.contains("subprojects {\n    dependencies {\n    }\n}")
 									.doesNotContain("testImplementation")))),
 						srcMainJava(java("""

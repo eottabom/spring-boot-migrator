@@ -16,7 +16,7 @@ public abstract class MigrationPlanTask extends MigrationTask {
 
 	@Internal
 	@Option(option = "java",
-			description = "목표 Java: latest(기본: 목표 Boot 가 지원하는 가장 높은 LTS) | keep(지원하면 유지) | 17 | 21 | 25 | none")
+			description = "목표 Java: latest(기본: 목표 Boot 가 지원하는 가장 높은 LTS) | keep(지원하면 유지) | 17 | 21 | 25")
 	public abstract Property<String> getJava();
 
 	@Internal
@@ -25,8 +25,7 @@ public abstract class MigrationPlanTask extends MigrationTask {
 
 	@TaskAction
 	public void execute() {
-		MigrationConfig config = config();
-		perform(config);
+		run(this::perform);
 	}
 
 	protected void perform(MigrationConfig config) {

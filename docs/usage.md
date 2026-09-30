@@ -29,7 +29,8 @@
  │    다음 중 하나면 그 stage 에서 멈추고 커밋하지 않는다
  │      컴파일 실패, 새로 실패한 테스트(다시 돌려도 실패), 원본 빌드에서는 실패하지 않던 태스크의 실패, 원인을 모르는 빌드 실패,
  │      읽지 못한 테스트 결과 XML
- │    고치고 같은 명령을 다시 실행하면 그 stage 의 게이트를 처음부터 다시 확인하고, 통과하면 커밋하고 다음 stage 로 간다
+ │    고치고 같은 명령을 다시 실행하면 그 stage 를 Rewrite 만 빼고 같은 순서(Gate compile, Deprecation, Gate build)로 다시 확인하고,
+ │    통과하면 커밋하고 다음 stage 로 간다
  │    (컴파일 에러를 고치지 않고 다시 실행하면 stage 별 누적 patch 로 그 stage 전 상태를 만들어 그 stage 부터 다시 시도)
  │
  └─ 5) 완료 ──────────── history.md 에 실행 기록을 남기고 run-state.json 을 지운다
@@ -41,8 +42,12 @@
 
 재개 기록(`run-state.json`, `schema/run-state.schema.json`)이 다른 프로젝트의 것이거나, 멈춘 stage 의 누적 patch 가 없거나,
 시작한 커밋이 지금 HEAD 의 조상이 아니면 이어서 하지 않고 이유를 알려 준다.
+git 저장소가 아니어도 재개 기록을 남기고 멈춘 stage 의 게이트부터 다시 확인한다. 다만 patch 가 없어 stage 전 상태로 되돌릴 수 없으므로,
+컴파일 에러를 고치지 않고 다시 실행하면 같은 stage 에서 다시 멈춘다.
+멈췄던 stage 가 마지막 stage 였어도, 재개로 통과하면 5) 완료까지 간다.
 
 원본에서도 실패하던 태스크와 테스트는 시작할 때 원본 빌드로 기록해 두고 stage 의 실패로 보지 않는다.
+시작할 때 의존성 버전 수집이 실패하면 알리고 계속한다. 이때는 의존성 조건이 붙은 체크리스트와 첫 stage 의 의존성 변경이 빠진다.
 테스트 결과는 빌드 전에 결과 XML 의 상태를 떠 두고, 빌드 뒤에 새로 생기거나 바뀐 파일만 그 빌드의 결과로 읽는다.
 결과 XML 은 `build/test-results` 와 verify.init.gradle 이 알려 주는 Test 태스크의 junitXml 디렉토리에서 찾는다. 테스트 태스크가
 돌았는데 결과 XML 이 하나도 없으면 결과를 못 찾은 것으로 보고 stage 를 막는다.
@@ -91,7 +96,7 @@
 | `--project=<경로>` | 전부 | (필수) | 대상 프로젝트. 상대 경로는 명령을 실행한 위치 기준 |
 | `--config=<파일>` | 전부 | 대상 프로젝트의 `spring-boot-migrator.yml` | 설정 파일. 없으면 기본값 |
 | `--boot=<값>` | Plan, Run | 4.1 | 3.0 ~ 3.5, 4.0, 4.1 (`3.4.5` 처럼 patch 까지 적으면 minor 로 맞춘다). 현재 Boot 가 목표보다 높으면 아무것도 하지 않는다 |
-| `--java=<값>` | Plan, Run | `latest` | `latest`(목표 Boot 가 지원하는 가장 높은 LTS: 3.0 ~ 3.4 는 21, 3.5 ~ 4.1 은 25), `keep`(목표 Boot 가 지원하면 유지), `17` `21` `25`, `none`. 이미 그 이상이면 건너뜀. 목표 Boot 지원 범위 밖이면 거부. 필요한 Gradle 은 Java stage 앞에서 함께 올린다 |
+| `--java=<값>` | Plan, Run | `latest` | `latest`(목표 Boot 가 지원하는 가장 높은 LTS: 3.0 ~ 3.4 는 21, 3.5 ~ 4.1 은 25), `keep`(목표 Boot 가 지원하면 유지. 지원 범위보다 낮으면 Boot stage 레시피가 최소 버전으로 올린다), `17` `21` `25`. 이미 그 이상이면 건너뜀. 목표 Boot 지원 범위 밖이면 거부. 필요한 Gradle 은 Java stage 앞에서 함께 올린다 |
 | `--mode=<값>` | Plan, Run | `staged` | `staged`(stage 마다 게이트), `all`(목표까지 한 번에 적용하고 게이트 한 번), `preview`(소스를 바꾸지 않고 patch 만) |
 | `--gate=<값>` | Run, Verify | `build` | `compile` / `build` (전체 테스트 + 패키징, asciidoctor, checkstyle 등) / `none` (Run 만) |
 | `--commit` | Run | 커밋 안 함 | 게이트를 통과한 stage 마다 commit (작업 트리가 깨끗해야 함) |
@@ -185,9 +190,10 @@ stage 결과(`NN-stage/result.md`)의 섹션과 출처다.
 | Boot 4.1 과 Spring Cloud | 2025.1.2 이상이 필요하다 (레시피가 2025.1.x 최신으로 올린다) |
 | 대체 레시피가 없는 deprecated API | 결과에 위치만 남긴다. 대체 레시피가 생기면 `guides/` 의 `deprecations` 에 추가한다 |
 
-## Runtime Risk Review
+## Manual Review Items
 
-`detect/runtime-risks.yml` 의 검색 레시피와 `FindSpyStubbingThroughCachingProxy` 를 `detect.ManualMigrationItems` 에 연결했다.
+`detect/manual-items.yml` 의 `detect.ManualMigrationItems` 가 검색을 모두 묶는다. 컴파일과 테스트가 통과해도 동작이 바뀔 수 있는 곳은
+같은 파일에 이름 있는 검색 레시피로 두고(`FindSpyStubbingThroughCachingProxy` 는 Java 레시피), 아래 표처럼 가이드 체크리스트 항목과 짝을 짓는다.
 scan 과 preview 에서 후보 위치를 표시하고, stage 별 영향과 공식 출처는 가이드 체크리스트 항목(`fix: manual`, `detect`)으로 제공한다.
 이 검색 레시피들은 소스를 자동 수정하지 않는다. 변환 결과가 분명한 두 가지(3.4 조건부 빈의 반환 타입, 4.0 `@Bean ObjectMapper` 반환 타입)는
 stage 레시피가 고친다.

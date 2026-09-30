@@ -9,6 +9,7 @@ import java.util.Map;
 
 import com.eottabom.migration.plan.Stage;
 import com.eottabom.migration.recipe.ProjectRecipes.Order;
+import com.eottabom.migration.stage.StageId;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -55,10 +56,15 @@ class AssembledRecipeTests {
 
 		assertThat(recipes.files()).hasSize(2);
 		assertThat(recipes.documents()).hasSize(3);
-		assertThat(recipes.names(List.of("3.4"), Order.BEFORE)).containsExactly("com.example.MigrateLegacyAuthClient");
-		assertThat(recipes.names(List.of("3.4"), Order.AFTER)).containsExactly("com.example.EveryStageCleanup");
-		assertThat(recipes.names(List.of("3.5"), Order.BEFORE)).isEmpty();
-		assertThat(recipes.names(List.of("java21"), Order.AFTER)).containsExactly("com.example.EveryStageCleanup");
+		assertThat(recipes.names(List.of(StageId.boot("3.4")), Order.BEFORE))
+			.containsExactly("com.example.MigrateLegacyAuthClient");
+		assertThat(recipes.names(List.of(StageId.boot("3.4")), Order.AFTER))
+			.containsExactly("com.example.EveryStageCleanup");
+		assertThat(recipes.names(List.of(StageId.boot("3.5")), Order.BEFORE)).isEmpty();
+		assertThat(recipes.names(List.of(StageId.java(21)), Order.AFTER))
+			.containsExactly("com.example.EveryStageCleanup");
+		assertThat(recipes.names(List.of(StageId.gradle("8.14")), Order.AFTER))
+			.containsExactly("com.example.EveryStageCleanup");
 	}
 
 	@Test
@@ -70,15 +76,15 @@ class AssembledRecipeTests {
 				recipeList:
 				  - org.openrewrite.java.RemoveUnusedImports
 				""");
-		Stage stage = new Stage(Stage.Kind.BOOT, "3.4", "com.eottabom.rewrite.stage.Boot_3_4");
+		Stage stage = new Stage(StageId.boot("3.4"), "com.eottabom.rewrite.stage.Boot_3_4");
 
-		AssembledRecipe.Assembled generated = AssembledRecipe.write(this.dir, "product-api", stage, stage.tag(3),
+		AssembledRecipe.Assembled generated = AssembledRecipe.write(this.dir, stage, stage.tag(3),
 				ProjectRecipes.discover(this.dir));
 
 		assertThat(generated.name()).isEqualTo("migration.assembled.Stage_03_boot_3_4");
 		assertThat(generated.file()).isEqualTo(this.dir.resolve(".rewrite/rewrite.assembled.yml"));
 		List<Map<String, Object>> docs = new ArrayList<>();
-		new Yaml().loadAll(Files.readString(generated.file())).forEach((d) -> docs.add((Map<String, Object>) d));
+		new Yaml().loadAll(Files.readString(generated.file())).forEach((doc) -> docs.add((Map<String, Object>) doc));
 		assertThat(docs).hasSize(2);
 		assertThat(docs.get(0)).containsEntry("name", generated.name());
 		assertThat((List<Object>) docs.get(0).get("recipeList")).containsExactly("com.example.MigrateLegacyAuthClient",
@@ -88,13 +94,11 @@ class AssembledRecipeTests {
 
 	@Test
 	void generatesStageRecipeWithoutProjectRecipes() {
-		Stage stage = new Stage(Stage.Kind.GRADLE, "gradle8.14", "com.eottabom.rewrite.stage.Gradle_8_14");
+		Stage stage = new Stage(StageId.gradle("8.14"), "com.eottabom.rewrite.stage.Gradle_8_14");
 
-		AssembledRecipe.Assembled generated = AssembledRecipe.write(this.dir, "p", stage, stage.tag(1),
+		AssembledRecipe.Assembled generated = AssembledRecipe.write(this.dir, stage, stage.tag(1),
 				ProjectRecipes.discover(this.dir));
 
-		assertThat(generated.before()).isEmpty();
-		assertThat(generated.after()).isEmpty();
 		assertThat(generated.name()).isEqualTo("migration.assembled.Stage_01_gradle8_14");
 	}
 

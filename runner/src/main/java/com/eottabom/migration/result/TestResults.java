@@ -178,9 +178,9 @@ public final class TestResults {
 	}
 
 	static @Nullable Element firstChild(Element parent, String tag) {
-		for (Node n = parent.getFirstChild(); n != null; n = n.getNextSibling()) {
-			if (n instanceof Element e && e.getTagName().equals(tag)) {
-				return e;
+		for (Node child = parent.getFirstChild(); child != null; child = child.getNextSibling()) {
+			if (child instanceof Element element && element.getTagName().equals(tag)) {
+				return element;
 			}
 		}
 		return null;
@@ -212,9 +212,9 @@ public final class TestResults {
 
 	/** 파일을 감싸는 가장 가까운 build/test-results 디렉토리 */
 	private static @Nullable Path testResultsDir(Path file) {
-		for (Path p = file.getParent(); p != null && p.getParent() != null; p = p.getParent()) {
-			if ("test-results".equals(fileName(p)) && "build".equals(fileName(p.getParent()))) {
-				return p;
+		for (Path dir = file.getParent(); dir != null && dir.getParent() != null; dir = dir.getParent()) {
+			if ("test-results".equals(fileName(dir)) && "build".equals(fileName(dir.getParent()))) {
+				return dir;
 			}
 		}
 		return null;

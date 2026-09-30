@@ -10,8 +10,9 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import com.eottabom.migration.console.RunnerConsole;
-import com.eottabom.migration.gradle.BuildTool;
-import com.eottabom.migration.gradle.VerifyScript;
+import com.eottabom.migration.gradle.ProjectGradle;
+import com.eottabom.migration.gradle.ProjectGradle.RewriteTask;
+import com.eottabom.migration.stage.StageTag;
 import com.eottabom.migration.workspace.MigrationWorkspace;
 import org.gradle.api.logging.Logging;
 import org.jspecify.annotations.Nullable;
@@ -49,14 +50,14 @@ class FlakyTestRetryTests {
 		Path xml = this.project.resolve("build/test-results/test/TEST-demo.AppTest.xml");
 		Files.createDirectories(xml.getParent());
 		Files.writeString(xml, result("failure", "target"));
-		BuildTool build = new BuildTool() {
+		ProjectGradle build = new ProjectGradle() {
 			@Override
 			public @Nullable String javaHome() {
 				return null;
 			}
 
 			@Override
-			public boolean run(Path log, List<String> args) {
+			public boolean verify(Path log, List<String> args) {
 				try {
 					switch (scenario) {
 						case "deleted" -> Files.delete(xml);
@@ -75,17 +76,17 @@ class FlakyTestRetryTests {
 			}
 
 			@Override
-			public boolean runQuietly(List<String> args) {
+			public boolean verifyQuietly(List<String> args) {
 				throw new AssertionError();
 			}
 
 			@Override
-			public boolean rewrite(Path log, String task, String recipe, Path init, Path libs, @Nullable Path config) {
+			public boolean rewrite(Path log, RewriteTask task, String recipe, @Nullable Path config) {
 				throw new AssertionError();
 			}
 		};
-		FlakyTestRetry.Retried retried = retry(build, 1).retry(ws.stage("01-boot-3.4"), Set.of("demo.AppTest#target"),
-				List.of(xml));
+		FlakyTestRetry.Retried retried = retry(build, 1).retry(ws.stage(StageTag.parse("01-boot-3.4")),
+				Set.of("demo.AppTest#target"), List.of(xml));
 		assertThat(retried.failing()).isEqualTo(expectFailure ? Set.of("demo.AppTest#target") : Set.of());
 		assertThat(retried.flaky()).isEqualTo(expectFailure ? Set.of() : Set.of("demo.AppTest#target"));
 	}
@@ -104,7 +105,7 @@ class FlakyTestRetryTests {
 		List<Path> build = List.of(app, other, slow);
 		// 재시도마다 test 태스크가 결과 디렉토리를 비우고 거른 클래스만 쓴다. 1회차에 AppTest 가 통과하고 2회차는 SlowTest 만 돈다
 		int[] attempt = { 0 };
-		BuildTool gradle = new RetryOnly((args) -> {
+		ProjectGradle gradle = new RetryOnly((args) -> {
 			attempt[0]++;
 			clear(dir);
 			if (args.contains("demo.AppTest*")) {
@@ -114,7 +115,7 @@ class FlakyTestRetryTests {
 		});
 
 		Set<String> remaining = retry(gradle, 2)
-			.retry(ws.stage("01-boot-3.4"), Set.of("demo.AppTest#a", "demo.SlowTest#s"), build)
+			.retry(ws.stage(StageTag.parse("01-boot-3.4")), Set.of("demo.AppTest#a", "demo.SlowTest#s"), build)
 			.failing();
 
 		assertThat(attempt[0]).isEqualTo(2);
@@ -122,25 +123,25 @@ class FlakyTestRetryTests {
 		assertThat(Files.readString(other)).isEqualTo(result("", "o", "demo.OtherTest"));
 		// 2회차에 지워진 AppTest 는 build 결과(실패)가 아니라 1회차 결과(통과)로 되돌린다
 		assertThat(Files.readString(app)).isEqualTo(result("", "a", "demo.AppTest"));
-		assertThat(ws.stage("01-boot-3.4").keptResults()).doesNotExist();
+		assertThat(ws.stage(StageTag.parse("01-boot-3.4")).keptResults()).doesNotExist();
 	}
 
 	@Test
 	void doesNotCopyResultsWhenNothingIsRetried() {
 		MigrationWorkspace ws = MigrationWorkspace.in(this.project);
-		BuildTool gradle = new RetryOnly((args) -> {
+		ProjectGradle gradle = new RetryOnly((args) -> {
 			throw new AssertionError("다시 돌리지 않는다");
 		});
 
-		retry(gradle, 1).retry(ws.stage("01-boot-3.4"), Set.of(),
+		retry(gradle, 1).retry(ws.stage(StageTag.parse("01-boot-3.4")), Set.of(),
 				List.of(this.project.resolve("build/test-results/test/TEST-x.xml")));
 
-		assertThat(ws.stage("01-boot-3.4").keptResults()).doesNotExist();
+		assertThat(ws.stage(StageTag.parse("01-boot-3.4")).keptResults()).doesNotExist();
 	}
 
-	private FlakyTestRetry retry(BuildTool gradle, int retries) {
-		return new FlakyTestRetry(gradle, new VerifyScript(this.project.resolve("verify.gradle")),
-				new RunnerConsole(Logging.getLogger(FlakyTestRetryTests.class)), this.project, retries);
+	private FlakyTestRetry retry(ProjectGradle gradle, int retries) {
+		return new FlakyTestRetry(gradle, new RunnerConsole(Logging.getLogger(FlakyTestRetryTests.class)), this.project,
+				retries);
 	}
 
 	private static void clear(Path dir) {
@@ -173,7 +174,7 @@ class FlakyTestRetryTests {
 	}
 
 	/** test --tests 만 받는 가짜 대상 빌드 */
-	private record RetryOnly(Consumer<List<String>> onRetry) implements BuildTool {
+	private record RetryOnly(Consumer<List<String>> onRetry) implements ProjectGradle {
 
 		@Override
 		public @Nullable String javaHome() {
@@ -181,18 +182,18 @@ class FlakyTestRetryTests {
 		}
 
 		@Override
-		public boolean run(Path log, List<String> args) {
+		public boolean verify(Path log, List<String> args) {
 			this.onRetry.accept(args);
 			return true;
 		}
 
 		@Override
-		public boolean runQuietly(List<String> args) {
+		public boolean verifyQuietly(List<String> args) {
 			throw new AssertionError();
 		}
 
 		@Override
-		public boolean rewrite(Path log, String task, String recipe, Path init, Path libs, @Nullable Path config) {
+		public boolean rewrite(Path log, RewriteTask task, String recipe, @Nullable Path config) {
 			throw new AssertionError();
 		}
 

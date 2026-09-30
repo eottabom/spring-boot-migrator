@@ -6,10 +6,13 @@ import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
 
 import com.eottabom.migration.GitFixture;
-import com.eottabom.migration.config.Gate;
+import com.eottabom.migration.MigrationException;
+import com.eottabom.migration.config.GateLevel;
 import com.eottabom.migration.config.JavaTarget;
 import com.eottabom.migration.config.MigrationConfig;
 import com.eottabom.migration.config.MigrationConfig.BuildSettings;
@@ -18,9 +21,9 @@ import com.eottabom.migration.config.MigrationConfig.Jdk;
 import com.eottabom.migration.config.MigrationConfig.RecipeSettings;
 import com.eottabom.migration.config.MigrationConfig.Target;
 import com.eottabom.migration.config.Mode;
-import com.eottabom.migration.gradle.FakeBuildTool;
-import com.eottabom.migration.gradle.FakeBuildTool.BuildOutcome;
-import org.gradle.api.GradleException;
+import com.eottabom.migration.gradle.FakeProjectGradle;
+import com.eottabom.migration.gradle.FakeProjectGradle.BuildOutcome;
+import com.eottabom.migration.gradle.InitScripts;
 import org.gradle.api.logging.Logging;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,7 +41,7 @@ class MigrationRunnerFlowTests {
 	@TempDir
 	Path project;
 
-	FakeBuildTool fake;
+	FakeProjectGradle fake;
 
 	MigrationRunner runner;
 
@@ -52,18 +55,19 @@ class MigrationRunnerFlowTests {
 		write("src/main/java/demo/App.java", "package demo;\nclass App {}\n");
 		GitFixture.init(this.project);
 
-		this.fake = new FakeBuildTool(this.project);
+		this.fake = new FakeProjectGradle(this.project);
 		// 3.4 단계는 Boot 버전을 올리고 lombok.config 를 만들고, 3.5 단계는 버전만 올린다. dir 은 대상 프로젝트나
 		// preview worktree
 		this.fake.rewrites.add((dir) -> {
 			replace(dir.resolve("build.gradle"), "3.3.5", "3.4.0");
-			FakeBuildTool.write(dir.resolve("lombok.config"), "config.stopBubbling = true\n");
+			FakeProjectGradle.write(dir.resolve("lombok.config"), "config.stopBubbling = true\n");
 		});
 		this.fake.rewrites.add((dir) -> replace(dir.resolve("build.gradle"), "3.4.0", "3.5.0"));
 		this.runner = new MigrationRunner(
-				new MigrationRunner.RunnerPaths(this.project.resolve("rewrite.init.gradle"),
-						this.project.resolve("verify.init.gradle"), this.project.resolve("libs"), Path.of("../guides"),
-						Path.of("../schema")),
+				new MigrationRunner.RunnerPaths(
+						new InitScripts(this.project.resolve("rewrite.init.gradle"),
+								this.project.resolve("verify.init.gradle"), this.project.resolve("libs")),
+						Path.of("../guides"), Path.of("../schema")),
 				Logging.getLogger(MigrationRunnerFlowTests.class), (dir, javaHome) -> this.fake.at(dir));
 	}
 
@@ -106,6 +110,7 @@ class MigrationRunnerFlowTests {
 		this.runner.run(request("3.5", true));
 
 		assertThat(migrationCommits()).hasSize(2);
+		assertThat(migrationCommits().get(1)).startsWith("chore: Spring Boot 3.4 마이그레이션");
 		assertThat(git("show", "--name-only", "--format=", "HEAD~1")).contains("build.gradle", "lombok.config");
 		// 빌드가 만든 추적 안 되는 파일은 커밋에 들어가지 않는다
 		assertThat(git("log", "--name-only", "--format=")).doesNotContain("test-output.log");
@@ -117,7 +122,7 @@ class MigrationRunnerFlowTests {
 	@Test
 	void resumeAfterFixedCompileRunsBuildGateBeforeCommit() throws IOException {
 		this.fake.compiles.add(false);
-		assertThatThrownBy(() -> this.runner.run(request("3.5", true))).isInstanceOf(GradleException.class)
+		assertThatThrownBy(() -> this.runner.run(request("3.5", true))).isInstanceOf(MigrationException.class)
 			.hasMessageContaining("컴파일 실패");
 		assertThat(migrationCommits()).isEmpty();
 		assertThat(read(".spring-boot-migrator/run-state.json")).contains("\"reason\" : \"compile\"");
@@ -126,8 +131,10 @@ class MigrationRunnerFlowTests {
 		write("src/main/java/demo/Fix.java", "package demo;\nclass Fix {}\n");
 		this.runner.run(request("3.5", true));
 
-		// 원본 빌드 1번과 재개 게이트 1번
-		assertThat(this.fake.count("clean build --continue")).isEqualTo(2);
+		// 원본 빌드, 재개한 3.4 의 build 게이트, 3.5 의 build 게이트. clean 부터 하는 것은 원본 빌드뿐이다 (게이트는
+		// compile 이 clean 을 한다)
+		assertThat(this.fake.count("build --continue")).isEqualTo(3);
+		assertThat(this.fake.count("clean build --continue")).isEqualTo(1);
 		assertThat(migrationCommits()).hasSize(2);
 		assertThat(git("show", "--name-only", "--format=", "HEAD~1")).contains("Fix.java", "lombok.config");
 		assertThat(git("log", "--name-only", "--format=")).doesNotContain("test-output.log");
@@ -156,6 +163,78 @@ class MigrationRunnerFlowTests {
 		this.runner.run(request("3.5", false));
 
 		assertThat(read("build.gradle")).contains("3.5.0");
+		assertThat(this.project.resolve(".spring-boot-migrator/run-state.json")).doesNotExist();
+	}
+
+	@Test
+	void finishesRunWhenResumedLastStagePasses() throws IOException {
+		this.fake.builds.add(new BuildOutcome(true, 2, List.of()));
+		assertThatThrownBy(() -> this.runner.run(request("3.4", true))).hasMessageContaining("테스트 2개 실패");
+
+		this.runner.run(request("3.4", true));
+
+		// 남은 stage 가 없어도 실행을 마무리한다 (재개 기록과 시작 ref 정리, 완료 기록, 커밋)
+		assertThat(this.project.resolve(".spring-boot-migrator/run-state.json")).doesNotExist();
+		assertThat(git("for-each-ref", "refs/spring-boot-migrator")).isBlank();
+		assertThat(migrationCommits()).hasSize(1);
+		String history = read(".spring-boot-migrator/history.md");
+		assertThat(history).contains("Boot 3.3.5 → 3.4.0 완료");
+		// 재개한 stage 의 한 줄이 표 머리 아래에 온다
+		assertThat(history)
+			.containsPattern("재개: 3\\.4 stage 의 게이트를 다시 확인\\n\\n\\| stage \\|[^\\n]*\\n\\|---[^\\n]*\\n\\| 3\\.4 \\|");
+	}
+
+	@Test
+	void numbersStagesAfterHighestExistingFolder() throws IOException {
+		// 지난 실행의 폴더가 중간이 비어 있어도 남은 번호와 겹치지 않는다
+		write(".spring-boot-migrator/03-boot-3.2/result.md", "old");
+
+		this.runner.run(request("3.4", false));
+
+		assertThat(read(".spring-boot-migrator/03-boot-3.2/result.md")).isEqualTo("old");
+		assertThat(this.project.resolve(".spring-boot-migrator/04-boot-3.4/result.md")).exists();
+	}
+
+	@Test
+	void continuesWithoutStartVersionsAndSaysSo() throws IOException {
+		this.fake.resolvesStartVersions = false;
+
+		this.runner.run(request("3.4", false));
+
+		assertThat(read("build.gradle")).contains("3.4.0");
+		assertThat(read(".spring-boot-migrator/history.md")).contains("시작할 때 의존성 버전을 모으지 못해");
+	}
+
+	@Test
+	void projectWithoutGitVerifiesStoppedStageAgainInsteadOfSkippingIt() throws IOException {
+		removeGit();
+		this.fake.builds.add(new BuildOutcome(true, 2, List.of()));
+		assertThatThrownBy(() -> this.runner.run(request("3.5", false))).hasMessageContaining("테스트 2개 실패");
+		assertThat(read(".spring-boot-migrator/run-state.json")).contains("\"reason\" : \"build\"");
+
+		// 고치지 않고 다시 실행하면 같은 stage 의 게이트에서 다시 멈춘다 (다음 stage 로 넘어가지 않는다)
+		this.fake.builds.add(new BuildOutcome(true, 1, List.of()));
+		assertThatThrownBy(() -> this.runner.run(request("3.5", false))).hasMessageContaining("테스트 1개 실패");
+		assertThat(read("build.gradle")).contains("3.4.0");
+
+		this.runner.run(request("3.5", false));
+
+		assertThat(read("build.gradle")).contains("3.5.0");
+		assertThat(this.project.resolve(".spring-boot-migrator/run-state.json")).doesNotExist();
+	}
+
+	@Test
+	void projectWithoutGitStopsAgainWhileCompileIsStillBroken() throws IOException {
+		removeGit();
+		this.fake.compiles.add(false);
+		assertThatThrownBy(() -> this.runner.run(request("3.4", false))).hasMessageContaining("컴파일 실패")
+			.hasMessageContaining("되돌릴 수 없어요");
+
+		this.fake.compiles.add(false);
+		assertThatThrownBy(() -> this.runner.run(request("3.4", false))).hasMessageContaining("컴파일 에러가 남아 있어요");
+
+		// 고치면 이 stage 의 게이트를 이어서 확인하고 끝낸다
+		this.runner.run(request("3.4", false));
 		assertThat(this.project.resolve(".spring-boot-migrator/run-state.json")).doesNotExist();
 	}
 
@@ -344,7 +423,8 @@ class MigrationRunnerFlowTests {
 		assertThatThrownBy(() -> this.runner.run(request("3.5", false))).hasMessageContaining("테스트 1개 실패");
 		write("src/main/java/demo/Fix.java", "package demo;\nclass Fix {}\n");
 		replace(this.project.resolve("src/main/java/demo/App.java"), "class App {}", "class App { int fixed; }");
-		// 재개는 통과하고 3.5 는 컴파일로 멈춘다
+		// 재개는 통과하고(3.4 의 compile 게이트) 3.5 는 컴파일로 멈춘다
+		this.fake.compiles.add(true);
 		this.fake.compiles.add(false);
 		assertThatThrownBy(() -> this.runner.run(request("3.5", false))).hasMessageContaining("컴파일 실패");
 		assertThat(read(".spring-boot-migrator/01-boot-3.4/cumulative.patch")).contains("Fix.java", "int fixed;");
@@ -408,6 +488,26 @@ class MigrationRunnerFlowTests {
 	}
 
 	@Test
+	void resumedStageRunsDeprecationStepAndReportsFreshCompileLog() throws IOException {
+		this.fake.compiles.add(false);
+		assertThatThrownBy(() -> this.runner.run(request("3.4", false))).hasMessageContaining("컴파일 실패");
+		assertThat(read(".spring-boot-migrator/01-boot-3.4/compile.log")).contains("Compilation failed");
+
+		// 고친 뒤의 컴파일에서 나온 경고로 대체 레시피를 돌리고, 결과도 그 컴파일 로그로 만든다
+		this.fake.compileWarnings.add(this.project.resolve("src/main/java/demo/App.java")
+				+ ":3: warning: [removal] Integer(int) in Integer has been deprecated and marked for removal");
+		this.fake.compileWarnings.add(this.project.resolve("src/main/java/demo/App.java")
+				+ ":5: warning: [removal] old() in App has been deprecated and marked for removal");
+		this.runner.run(request("3.4", false));
+
+		assertThat(this.fake.count("rewriteRun migration.assembled.Deprecations_01_boot_3_4")).isEqualTo(1);
+		assertThat(read(".spring-boot-migrator/01-boot-3.4/compile.log")).doesNotContain("Compilation failed");
+		assertThat(read(".spring-boot-migrator/01-boot-3.4/result.md")).contains("## deprecated API 대체")
+			.contains("old() in App has been deprecated");
+		assertThat(this.project.resolve(".spring-boot-migrator/run-state.json")).doesNotExist();
+	}
+
+	@Test
 	void keepsDeprecatedApiWithoutGuideRecipeInResult() throws IOException {
 		this.fake.compileWarnings.add(this.project.resolve("src/main/java/demo/App.java")
 				+ ":3: warning: [removal] old() in App has been deprecated and marked for removal");
@@ -441,6 +541,14 @@ class MigrationRunnerFlowTests {
 		assertThat(read("build.gradle")).contains("3.4.0");
 	}
 
+	private void removeGit() throws IOException {
+		try (Stream<Path> files = Files.walk(this.project.resolve(".git"))) {
+			for (Path file : files.sorted(Comparator.reverseOrder()).toList()) {
+				Files.delete(file);
+			}
+		}
+	}
+
 	private MigrationConfig dirty(String target) {
 		return config(target, Mode.STAGED, false, true, true);
 	}
@@ -460,14 +568,14 @@ class MigrationRunnerFlowTests {
 	/** gate=build, java 유지, JAVA_HOME 그대로, 프로젝트 레시피 없음 */
 	private MigrationConfig config(String target, Mode mode, boolean commit, boolean allowDirty,
 			boolean baselineTests) {
-		return new MigrationConfig(this.project, new Target(target, JavaTarget.parse("none")), mode,
-				new GateSettings(Gate.BUILD, MigrationConfig.DEFAULT_TEST_RETRIES, baselineTests),
+		return new MigrationConfig(this.project, new Target(target, JavaTarget.parse("keep")), mode,
+				new GateSettings(GateLevel.BUILD, MigrationConfig.DEFAULT_TEST_RETRIES, baselineTests),
 				new RecipeSettings(true, false), new BuildSettings(Jdk.CURRENT, null, Duration.ZERO), commit,
 				allowDirty);
 	}
 
 	private List<String> migrationCommits() throws IOException {
-		return git("log", "--format=%s").lines().filter((l) -> l.contains("마이그레이션")).toList();
+		return git("log", "--format=%s").lines().filter((subject) -> subject.contains("마이그레이션")).toList();
 	}
 
 	private String git(String... args) {
@@ -475,7 +583,7 @@ class MigrationRunnerFlowTests {
 	}
 
 	private void write(String path, String content) {
-		FakeBuildTool.write(this.project.resolve(path), content);
+		FakeProjectGradle.write(this.project.resolve(path), content);
 	}
 
 	private String read(String path) throws IOException {
@@ -484,7 +592,7 @@ class MigrationRunnerFlowTests {
 
 	private static void replace(Path file, String from, String to) {
 		try {
-			FakeBuildTool.write(file, Files.readString(file).replace(from, to));
+			FakeProjectGradle.write(file, Files.readString(file).replace(from, to));
 		}
 		catch (IOException ex) {
 			throw new IllegalStateException(ex);

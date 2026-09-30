@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Predicate;
 
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.Cursor;
@@ -36,12 +35,12 @@ import org.openrewrite.java.tree.JavaSourceFile;
  */
 public class DeclareUsedDependency extends ScanningRecipe<DeclareUsedDependency.Accumulator> {
 
-	@Option(displayName = "Package",
-			description = "이 패키지(하위 포함)를 import 하면 대상으로 본다. 쉼표로 여러 개 지정할 수 있다. "
+	@Option(displayName = "Packages",
+			description = "이 패키지(하위 포함)를 import 하면 대상으로 본다. "
 					+ "같은 실행 안에서 upstream 레시피가 패키지를 바꾸는 경우(ex. commons-lang -> lang3) 바뀌기 전 패키지도 함께 적는다. "
 					+ "(스캔은 편집 전 원본 소스 기준으로 한 번만 돈다)",
-			example = "org.apache.commons.lang3, org.apache.commons.lang")
-	private final String packageName;
+			example = "org.apache.commons.lang3")
+	private final List<String> packageNames;
 
 	@Option(displayName = "Group", example = "org.apache.commons")
 	private final String groupId;
@@ -57,9 +56,9 @@ public class DeclareUsedDependency extends ScanningRecipe<DeclareUsedDependency.
 			required = false)
 	private final @Nullable String versionPattern;
 
-	public DeclareUsedDependency(String packageName, String groupId, String artifactId, @Nullable String version,
+	public DeclareUsedDependency(List<String> packageNames, String groupId, String artifactId, @Nullable String version,
 			@Nullable String versionPattern) {
-		this.packageName = packageName;
+		this.packageNames = packageNames;
 		this.groupId = groupId;
 		this.artifactId = artifactId;
 		this.version = version;
@@ -83,11 +82,7 @@ public class DeclareUsedDependency extends ScanningRecipe<DeclareUsedDependency.
 
 	@Override
 	public TreeVisitor<?, ExecutionContext> getScanner(Accumulator acc) {
-		List<String> prefixes = Arrays.stream(this.packageName.split(","))
-			.map(String::trim)
-			.filter(Predicate.not(String::isEmpty))
-			.map((name) -> name + ".")
-			.toList();
+		List<String> prefixes = this.packageNames.stream().map((name) -> name + ".").toList();
 		return new TreeVisitor<>() {
 			@Override
 			public @Nullable Tree visit(@Nullable Tree tree, ExecutionContext ctx) {
@@ -111,7 +106,7 @@ public class DeclareUsedDependency extends ScanningRecipe<DeclareUsedDependency.
 	 * import(정적 import, * 포함) 나 본문의 패키지 전체 이름으로 패키지를 쓴다. 의존성이 빠지면 타입이 해석되지 않으므로 이름으로 본다
 	 */
 	private static boolean usesPackage(J.CompilationUnit cu, List<String> prefixes) {
-		if (cu.getImports().stream().anyMatch((imp) -> inPackage(qualifiedName(imp.getQualid()), prefixes))) {
+		if (cu.getImports().stream().anyMatch((imported) -> inPackage(qualifiedName(imported.getQualid()), prefixes))) {
 			return true;
 		}
 		var found = new AtomicBoolean();
@@ -129,8 +124,8 @@ public class DeclareUsedDependency extends ScanningRecipe<DeclareUsedDependency.
 			}
 
 			@Override
-			public J.Import visitImport(J.Import imp, AtomicBoolean uses) {
-				return imp;
+			public J.Import visitImport(J.Import imported, AtomicBoolean uses) {
+				return imported;
 			}
 		}.visit(cu, found);
 		return found.get();
@@ -167,19 +162,19 @@ public class DeclareUsedDependency extends ScanningRecipe<DeclareUsedDependency.
 					.orElse(Set.of());
 				return buildScript.getMarkers()
 					.findFirst(GradleProject.class)
-					.map((gp) -> addDependency(buildScript, gp, using, ctx))
+					.map((gradleProject) -> addDependency(buildScript, gradleProject, using, ctx))
 					.orElse(buildScript);
 			}
 
-			private J addDependency(JavaSourceFile buildScript, GradleProject gp, Set<String> using,
+			private J addDependency(JavaSourceFile buildScript, GradleProject gradleProject, Set<String> using,
 					ExecutionContext ctx) {
 				// 소스셋마다 자기 configuration 에 넣는다 (main 에 넣으면 test 는 따라오고 testFixtures 는
 				// 아니다)
 				J result = buildScript;
 				for (String sourceSet : using) {
 					String configuration = "main".equals(sourceSet) ? "implementation" : sourceSet + "Implementation";
-					if (gp.getConfiguration(configuration) == null
-							|| isDeclared(gp, coveringConfigurations(sourceSet, using))) {
+					if (gradleProject.getConfiguration(configuration) == null
+							|| isDeclared(gradleProject, coveringConfigurations(sourceSet, using))) {
 						continue;
 					}
 					result = new AddDependencyVisitor(DeclareUsedDependency.this.groupId,
@@ -212,12 +207,12 @@ public class DeclareUsedDependency extends ScanningRecipe<DeclareUsedDependency.
 		return configurations;
 	}
 
-	private boolean isDeclared(GradleProject gp, @Nullable List<String> configurations) {
+	private boolean isDeclared(GradleProject gradleProject, @Nullable List<String> configurations) {
 		if (configurations == null) {
 			return true;
 		}
 		for (String name : configurations) {
-			GradleDependencyConfiguration configuration = gp.getConfiguration(name);
+			GradleDependencyConfiguration configuration = gradleProject.getConfiguration(name);
 			if (configuration != null && configuration.findRequestedDependency(this.groupId, this.artifactId) != null) {
 				return true;
 			}

@@ -24,7 +24,7 @@ public record MigrationConfig(Path projectDir, Target target, Mode mode, GateSet
 	/** 설정 파일과 CLI 옵션이 없을 때의 값. schema/config.schema.json 의 default 와 같다 */
 	public static MigrationConfig defaults(Path projectDir) {
 		return new MigrationConfig(projectDir, new Target(null, JavaTarget.LATEST), Mode.STAGED,
-				new GateSettings(Gate.BUILD, DEFAULT_TEST_RETRIES, true), new RecipeSettings(true, true),
+				new GateSettings(GateLevel.BUILD, DEFAULT_TEST_RETRIES, true), new RecipeSettings(true, true),
 				new BuildSettings(Jdk.AUTO, null, DEFAULT_TIMEOUT), false, false);
 	}
 
@@ -48,7 +48,7 @@ public record MigrationConfig(Path projectDir, Target target, Mode mode, GateSet
 		addIf(options, this.allowDirty, "allow-dirty");
 		addIf(options, !this.gate.baselineTests(), "gate.baselineTests=false");
 		addIf(options, this.gate.testRetries() != DEFAULT_TEST_RETRIES, "gate.testRetries=" + this.gate.testRetries());
-		addIf(options, this.build.jdk() != Jdk.AUTO, "build.jdk=" + this.build.jdk().name().toLowerCase(Locale.ROOT));
+		addIf(options, this.build.jdk() != Jdk.AUTO, "build.jdk=" + this.build.jdk().option());
 		return String.join(", ", options);
 	}
 
@@ -69,7 +69,7 @@ public record MigrationConfig(Path projectDir, Target target, Mode mode, GateSet
 	 * @param baselineTests 원본 빌드에서도 테스트를 돌린다. false 면 원래 실패하던 테스트를 알 수 없어 stage 의 테스트 실패는
 	 * 모두 새 실패로 본다
 	 */
-	public record GateSettings(Gate level, int testRetries, boolean baselineTests) {
+	public record GateSettings(GateLevel level, int testRetries, boolean baselineTests) {
 	}
 
 	/**
@@ -86,7 +86,7 @@ public record MigrationConfig(Path projectDir, Target target, Mode mode, GateSet
 	public record BuildSettings(Jdk jdk, @Nullable String jvmArgs, Duration timeout) {
 
 		/** JDK 자동 선택을 끄고 지금 JAVA_HOME 으로 대상 Gradle 을 띄운다 */
-		public boolean currentJavaHome() {
+		public boolean usesCurrentJavaHome() {
 			return this.jdk == Jdk.CURRENT;
 		}
 
@@ -98,7 +98,19 @@ public record MigrationConfig(Path projectDir, Target target, Mode mode, GateSet
 		AUTO,
 
 		/** 지금 JAVA_HOME 그대로 */
-		CURRENT
+		CURRENT;
+
+		public static Jdk parse(String option) {
+			return switch (option.trim().toLowerCase(Locale.ROOT)) {
+				case "auto" -> AUTO;
+				case "current" -> CURRENT;
+				default -> throw new IllegalArgumentException("build.jdk 는 auto | current");
+			};
+		}
+
+		public String option() {
+			return name().toLowerCase(Locale.ROOT);
+		}
 
 	}
 

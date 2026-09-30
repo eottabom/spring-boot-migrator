@@ -10,7 +10,11 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import com.eottabom.migration.guide.ChecklistItem.Fix;
 import com.eottabom.migration.guide.FailureHint;
+import com.eottabom.migration.stage.StageId;
+import com.eottabom.migration.stage.StageTag;
+import com.eottabom.migration.version.ResolvedVersions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
@@ -81,9 +85,9 @@ class StageResultTests {
 	}
 
 	@ParameterizedTest(name = "[{index}] {0} -> {1} ({2})")
-	@CsvSource({ "1.2.3, 2.0.0, major", "1.2.3, 1.3.0, minor", "1.2.3, 1.2.4, patch", "6.6.2.Final, 6.6.3.Final, patch",
-			"33.4.8-jre, 33.5.0-jre, minor" })
-	void classifiesVersionChange(String beforeVersion, String afterVersion, String expectedLevel) {
+	@CsvSource({ "1.2.3, 2.0.0, MAJOR", "1.2.3, 1.3.0, MINOR", "1.2.3, 1.2.4, PATCH", "6.6.2.Final, 6.6.3.Final, PATCH",
+			"33.4.8-jre, 33.5.0-jre, MINOR" })
+	void classifiesVersionChange(String beforeVersion, String afterVersion, DependencyChanges.Level expectedLevel) {
 		assertThat(DependencyChanges.level(beforeVersion, afterVersion)).isEqualTo(expectedLevel);
 	}
 
@@ -129,11 +133,14 @@ class StageResultTests {
 		Path before = write("before.txt", "org.hibernate.orm:hibernate-core=6.5.2.Final\norg.old:lib=1.0\n");
 		Path after = write("after.txt", "org.hibernate.orm:hibernate-core=6.6.4.Final\norg.new:lib=1.0\n");
 		List<ReportedChecklistItem> issues = List
-			.of(new ReportedChecklistItem("x", "manual", "제목", "설명", null, null, "com.example.FindX", null));
+			.of(new ReportedChecklistItem("x", Fix.MANUAL, "제목", "설명", null, null, "com.example.FindX", null));
 
-		StageResult result = StageResult.assess(new StageResult.Input("3.4", List.of("3.4"), this.project, log, rewrite,
-				find, before, after, Outcome.PASSED, Outcome.PASSED, false, issues, "https://guide", HINTS, Set.of(),
-				Set.of(), Set.of("demo.AppTest#flaky"), allResults(), List.of(this.project.resolve("bad.xml")),
+		StageResult result = StageResult.assess(new StageResult.Input(StageId.boot("3.4"), List.of(StageId.boot("3.4")),
+				this.project, new StageResult.Logs(log, rewrite, find), ResolvedVersions.read(before),
+				ResolvedVersions.read(after),
+				new StageResult.Gates(Outcome.PASSED, Outcome.PASSED, false, Set.of("demo.AppTest#flaky"), allResults(),
+						List.of(this.project.resolve("bad.xml"))),
+				new StageResult.Guidance(issues, "https://guide", HINTS), Set.of(), Set.of(),
 				List.of("org.openrewrite.java.migrate.util.UseLocaleOf")));
 		result.write(this.project.resolve("out.md"), this.project.resolve("out.json"));
 		StageSummary summary = result.summary();
@@ -164,7 +171,7 @@ class StageResultTests {
 			.containsExactly("org.openrewrite.java.migrate.util.UseLocaleOf");
 		assertThat((List<Object>) json.get("covers")).containsExactly("3.4");
 		assertThat(json).containsEntry("compile", "ok").containsEntry("source", "https://guide");
-		assertThat(summary.historyRow("3.4", "01-boot-3.4")).isEqualTo(
+		assertThat(summary.historyRow(StageTag.parse("01-boot-3.4"))).isEqualTo(
 				"| 3.4 | ✅ 통과 | ❌ 1 / 2 실패 (다시 돌려 통과한 1개 포함) | ✅ 통과 | 1 개 (custom 레시피 1 종) | 1 곳 | 사람 1 / 확인 0 / 자동 0 | [01-boot-3.4](01-boot-3.4/result.md) |\n");
 		assertThat(md).contains("## deprecated API 대체", "`org.openrewrite.java.migrate.util.UseLocaleOf`", "## 레시피 변경");
 		assertThat(md).contains(String.join("\n", summary.table()));
@@ -191,9 +198,10 @@ class StageResultTests {
 		Path none = this.project.resolve("missing");
 
 		StageResult
-			.assess(new StageResult.Input("4.1", List.of("4.1"), this.project, none, none, none, none, none,
-					Outcome.PASSED, Outcome.PASSED, false, List.of(), null, HINTS, Set.of(),
-					Set.of("demo.AppTest#boom"), Set.of(), allResults(), List.of(), List.of()))
+			.assess(new StageResult.Input(StageId.boot("4.1"), List.of(StageId.boot("4.1")), this.project,
+					new StageResult.Logs(none, none, none), ResolvedVersions.read(none), ResolvedVersions.UNKNOWN,
+					new StageResult.Gates(Outcome.PASSED, Outcome.PASSED, false, Set.of(), allResults(), List.of()),
+					new StageResult.Guidance(List.of(), null, HINTS), Set.of(), Set.of("demo.AppTest#boom"), List.of()))
 			.write(this.project.resolve("out.md"), this.project.resolve("out.json"));
 
 		assertMatchesSchema(this.project.resolve("out.json"));

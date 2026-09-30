@@ -14,9 +14,9 @@
           "pattern": "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$"
         },
         "java": {
-          "description": "목표 Java (--java). latest 는 목표 Boot 가 지원하는 가장 높은 LTS, keep 은 지원하면 유지, none 은 올리지 않는다",
+          "description": "목표 Java (--java). latest 는 목표 Boot 가 지원하는 가장 높은 LTS, keep 은 지원하면 유지 (지원 범위보다 낮으면 Boot stage 레시피가 최소 버전으로 올린다)",
           "type": ["string", "integer"],
-          "pattern": "^(latest|keep|none|[0-9]+)$",
+          "pattern": "^(latest|keep|[0-9]+)$",
           "default": "latest"
         }
       },

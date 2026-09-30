@@ -15,7 +15,12 @@ public enum Mode {
 	PREVIEW;
 
 	public static Mode parse(String option) {
-		return valueOf(option.trim().toUpperCase(Locale.ROOT));
+		return switch (option.trim().toLowerCase(Locale.ROOT)) {
+			case "staged" -> STAGED;
+			case "all" -> ALL;
+			case "preview" -> PREVIEW;
+			default -> throw new IllegalArgumentException("mode (--mode) 는 staged | all | preview");
+		};
 	}
 
 	public String option() {

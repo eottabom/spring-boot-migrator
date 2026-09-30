@@ -6,8 +6,6 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import com.eottabom.migration.GitFixture;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -23,7 +21,7 @@ class ProjectInspectorTests {
 	@ParameterizedTest(name = "[{index}] {0}")
 	@MethodSource("buildLayouts")
 	void readsVersionsFromBuildFiles(String scenario, Map<String, String> files, String boot, String gradle,
-			Integer java, Integer toolchainJava) throws IOException {
+			Integer java, Integer highestToolchainJava) throws IOException {
 		for (Map.Entry<String, String> file : files.entrySet()) {
 			write(file.getKey(), file.getValue());
 		}
@@ -32,9 +30,8 @@ class ProjectInspectorTests {
 
 		assertThat(model.bootVersion()).isEqualTo(boot);
 		assertThat(model.gradleVersion()).isEqualTo(gradle);
-		assertThat(model.javaVersion()).isEqualTo(java);
-		assertThat(model.toolchainJava()).isEqualTo(toolchainJava);
-		assertThat(model.git()).isFalse();
+		assertThat(model.lowestDeclaredJava()).isEqualTo(java);
+		assertThat(model.highestToolchainJava()).isEqualTo(highestToolchainJava);
 	}
 
 	// @formatter:off
@@ -118,6 +115,19 @@ class ProjectInspectorTests {
 				"4.0.7", null, 25, 25
 			),
 			Arguments.of(
+				"version catalog 의 version = { ref = .. } 표기",
+				Map.of(
+					"build.gradle", "plugins {\n    alias(libs.plugins.spring.boot) apply false\n}\n",
+					"gradle/libs.versions.toml", """
+						[versions]
+						spring-boot = "3.4.5"
+
+						[plugins]
+						spring-boot = { id = "org.springframework.boot", version = { ref = "spring-boot" } }
+						"""),
+				"3.4.5", null, null, null
+			),
+			Arguments.of(
 				"이름이 libs 가 아닌 version catalog",
 				Map.of(
 					"build.gradle", "plugins {\n    alias(deps.plugins.spring.boot) apply false\n}\n",
@@ -153,19 +163,6 @@ class ProjectInspectorTests {
 		Path file = this.dir.resolve(path);
 		Files.createDirectories(file.getParent());
 		Files.writeString(file, content);
-	}
-
-	@Test
-	void treatsRepositoryRootAndLinkedWorktreeAsGitButNotSubdirectory() {
-		Path repo = this.dir.resolve("repo");
-		GitFixture.write(repo.resolve("api/build.gradle"), "plugins {}\n");
-		GitFixture.init(repo);
-		Path worktree = this.dir.resolve("worktree");
-		GitFixture.git(repo, "worktree", "add", "-q", "-b", "feature", worktree.toString());
-
-		assertThat(ProjectInspector.isGitRoot(repo)).isTrue();
-		assertThat(ProjectInspector.isGitRoot(worktree)).isTrue();
-		assertThat(ProjectInspector.isGitRoot(repo.resolve("api"))).isFalse();
 	}
 
 }

@@ -1,6 +1,7 @@
 package com.eottabom.rewrite.custom.gradle;
 
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -21,10 +22,26 @@ class VersionCatalogEditorTests {
 		if (newVersion.equals("unresolvable")) {
 			return null;
 		}
-		String latest = newVersion.endsWith(".x") ? newVersion.replaceAll("\\.x$",
-				(newVersion.chars().filter((c) -> c == '.').count() > 1) ? ".9" : ".9.0") : newVersion;
+		String latest = newVersion.endsWith(".x")
+				? newVersion.replaceAll("\\.x$",
+						(newVersion.chars().filter((character) -> character == '.').count() > 1) ? ".9" : ".9.0")
+				: newVersion;
 		return (current == null || new LatestRelease(null).compare(null, current, latest) < 0) ? latest : null;
 	};
+
+	@Test
+	void parsesRuleKindRegardlessOfDefaultLocale() {
+		Locale original = Locale.getDefault();
+		// 터키어는 i 의 대문자가 İ 라서 Locale 없이 바꾸면 PLUGIN 이 되지 않는다
+		Locale.setDefault(Locale.forLanguageTag("tr"));
+		try {
+			assertThat(VersionCatalogEditor.Rule.parse("plugin org.springframework.boot 3.4.x").kind())
+				.isEqualTo(VersionCatalogEditor.Rule.Kind.PLUGIN);
+		}
+		finally {
+			Locale.setDefault(original);
+		}
+	}
 
 	@ParameterizedTest(name = "[{index}] {0}")
 	@MethodSource("scenarios")

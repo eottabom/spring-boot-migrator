@@ -3,6 +3,7 @@ package com.eottabom.rewrite.custom.spring;
 import java.util.Arrays;
 import java.util.List;
 
+import com.eottabom.rewrite.support.SpringAnnotations;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -26,9 +27,6 @@ public class RemoveDependsOnDatabaseInitializationFromDataSourceConfig extends R
 
 	private static final AnnotationMatcher DEPENDS_ON_MATCHER = new AnnotationMatcher("@" + DEPENDS_ON);
 
-	private static final AnnotationMatcher BEAN_MATCHER = new AnnotationMatcher(
-			"@org.springframework.context.annotation.Bean");
-
 	private static final List<String> DATA_SOURCE_CONFIG_TYPES = Arrays.asList("com.zaxxer.hikari.HikariConfig",
 			"org.springframework.boot.autoconfigure.jdbc.DataSourceProperties",
 			"org.springframework.boot.jdbc.autoconfigure.DataSourceProperties", "javax.sql.DataSource");
@@ -50,7 +48,7 @@ public class RemoveDependsOnDatabaseInitializationFromDataSourceConfig extends R
 			@Override
 			public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method, ExecutionContext ctx) {
 				J.MethodDeclaration visited = super.visitMethodDeclaration(method, ctx);
-				if (visited.getLeadingAnnotations().stream().noneMatch(BEAN_MATCHER::matches)
+				if (visited.getLeadingAnnotations().stream().noneMatch(SpringAnnotations.BEAN::matches)
 						|| visited.getLeadingAnnotations().stream().noneMatch(DEPENDS_ON_MATCHER::matches)
 						|| !isDataSourceConfig((visited.getReturnTypeExpression() == null) ? null
 								: visited.getReturnTypeExpression().getType())) {
