@@ -8,6 +8,7 @@ import com.eottabom.migration.console.RunnerConsole;
 import com.eottabom.migration.gradle.ProjectGradle;
 import com.eottabom.migration.gradle.VerifyInitScript;
 import com.eottabom.migration.pipeline.step.GateStep;
+import com.eottabom.migration.pipeline.step.RecipeRun;
 import com.eottabom.migration.pipeline.step.RewriteStep;
 import com.eottabom.migration.project.ProjectState;
 import com.eottabom.migration.recipe.ProjectRecipes;
@@ -166,9 +167,13 @@ final class RunSession {
 		return components().scanner().verifyInitScript();
 	}
 
+	RecipeRun recipeRun() {
+		return new RecipeRun(this.gradle, this.runner.paths().rewriteInit(), this.runner.paths().recipeLibs(),
+				this.isGit ? this.git : null);
+	}
+
 	RewriteStep rewriteStep() {
-		return new RewriteStep(this.gradle, console(), projectDir(), this.runner.paths().rewriteInit(),
-				this.runner.paths().recipeLibs(), this.isGit ? this.git : null);
+		return new RewriteStep(recipeRun(), console(), projectDir());
 	}
 
 	GateStep gateStep() {

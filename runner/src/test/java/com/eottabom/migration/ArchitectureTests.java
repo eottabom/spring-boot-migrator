@@ -7,6 +7,7 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.lang.syntax.ArchRuleDefinition;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -54,15 +55,26 @@ class ArchitectureTests {
 			.check(classes);
 	}
 
-	@ParameterizedTest(name = "[{index}] step 은 {0} 를 모른다")
-	@CsvSource({ "com.eottabom.migration.pipeline" })
-	void stepsDoNotCallBackIntoPipeline(String pipeline) {
+	@Test
+	void stepsDoNotCallBackIntoPipeline() {
 		ArchRuleDefinition.noClasses()
 			.that()
 			.resideInAPackage(BASE + "pipeline.step..")
 			.should()
 			.dependOnClassesThat()
-			.resideInAPackage(pipeline)
+			.resideInAPackage("com.eottabom.migration.pipeline")
+			.check(classes);
+	}
+
+	/** step 이 같이 쓰는 동작은 step 이 아닌 도우미(RecipeRun, TestRun 등)로 뺀다 */
+	@Test
+	void stepsDoNotDependOnOtherSteps() {
+		ArchRuleDefinition.noClasses()
+			.that()
+			.haveSimpleNameEndingWith("Step")
+			.should()
+			.dependOnClassesThat()
+			.haveSimpleNameEndingWith("Step")
 			.check(classes);
 	}
 

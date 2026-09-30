@@ -49,7 +49,7 @@ record StageRunner(RunSession session) {
 			Outcome compile = gateStep.compile(stage.name(), files);
 			if (compile == Outcome.PASSED) {
 				DeprecationStep.Fixed fixed = new DeprecationStep(session().components().guides(),
-						session().rewriteStep(), session().console())
+						session().recipeRun(), session().console())
 					.fix(stage, tag, files, session().projectDir());
 				if (fixed.applied()) {
 					deprecationFixes = fixed.recipes();

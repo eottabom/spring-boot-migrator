@@ -1,0 +1,40 @@
+package com.eottabom.migration.pipeline.step;
+
+import java.nio.file.Path;
+import java.util.Set;
+
+import com.eottabom.migration.gradle.ProjectGradle;
+import com.eottabom.migration.recipe.AssembledRecipe.Assembled;
+import com.eottabom.migration.workspace.Git;
+import org.gradle.api.GradleException;
+import org.jspecify.annotations.Nullable;
+
+/**
+ * 조립한 레시피로 rewriteRun 을 한 번 돌린다. stage 레시피(Rewrite)와 deprecated API 대체(Deprecation)가 같이
+ * 쓴다.
+ *
+ * @param rewriteInit init/rewrite.init.gradle
+ * @param recipeLibs 레시피 jar 와 의존 jar
+ * @param git git 저장소가 아니면 null
+ */
+public record RecipeRun(ProjectGradle gradle, Path rewriteInit, Path recipeLibs, @Nullable Git git) {
+
+	/**
+	 * @return rewriteRun 이 새로 만든 파일. 이후 빌드가 만든 파일은 patch 와 커밋에 넣지 않으려고 여기서 가려 둔다. git
+	 * 저장소가 아니면 빈 집합
+	 */
+	public Set<String> run(Assembled assembled, Path log) {
+		Set<String> untrackedBefore = (this.git != null) ? this.git.untracked() : Set.of();
+		if (!this.gradle.rewrite(log, "rewriteRun", assembled.name(), this.rewriteInit, this.recipeLibs,
+				assembled.file())) {
+			throw new GradleException("rewriteRun 실패 → " + log);
+		}
+		if (this.git == null) {
+			return Set.of();
+		}
+		Set<String> created = this.git.untracked();
+		created.removeAll(untrackedBefore);
+		return created;
+	}
+
+}
