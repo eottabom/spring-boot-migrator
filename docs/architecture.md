@@ -266,7 +266,7 @@ OpenRewrite 레시피는 소스를 LST(Lossless Semantic Tree, 타입 정보가 
 | 패키지 | 역할 | 주요 클래스 |
 |---|---|---|
 | `plugin` | Gradle 어댑터. 옵션을 설정으로 바꿔 넘긴다 | `MigrationPlugin`, `MigrationRunTask`, `MigrationPlanTask`, `MigrationScanTask`, `MigrationVerifyTask`, `MigrationHelpTask` |
-| `config` | 설정 파일과 CLI 병합, 스키마 검증 | `MigrationConfig`, `ConfigLoader`, `Mode`, `Gate`, `JavaTarget` |
+| `config` | 설정 파일과 CLI 병합, 스키마 검증 | `MigrationConfig`, `ConfigLoader`, `Mode`, `GateLevel`, `JavaTarget` |
 | `project` | 대상 프로젝트 읽기 | `ProjectInspector`, `ProjectState`, `VersionCatalog`, `JdkLocator` |
 | `guide` | guides/ 읽기 | `Guides`, `BootGuide`, `JavaGuide`, `GradleGuide`, `LibraryGuide`, `ChecklistItem`, `FailureHint`, `Deprecation` |
 | `stage` | stage 식별 (다른 패키지를 모른다) | `StageId` (종류와 버전. 이름 `3.4`, `java21`, `gradle8.14`), `StageTag` (번호와 stage. 결과 폴더 이름 `03-boot-3.4`) |
@@ -282,7 +282,7 @@ OpenRewrite 레시피는 소스를 LST(Lossless Semantic Tree, 타입 정보가 
 | `version` | 버전 비교 | `Versions` |
 
 의존 방향은 `plugin → config, pipeline → step → 도메인 패키지` 한쪽으로만 흐른다. `plan`, `guide`, `result`, `project`, `workspace`, `config` 는
-실행 흐름을 모르고, step 은 서로 부르지 않는다. `ArchitectureTests` 가 이 방향을 검사한다.
+실행 흐름을 모르고, step 은 서로 부르지 않는다. `stage`, `io`, `version` 은 다른 패키지를 모른다. `ArchitectureTests` 가 이 방향을 검사한다.
 러너 통합 테스트(`MigrationRunnerFlowTests`)는 `ProjectGradle` 을 가짜 구현으로 바꿔 실패, 수정, 재개, deprecated API 대체, `--mode=all` 흐름을 재현한다.
 
 ## Extending
