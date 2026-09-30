@@ -90,7 +90,7 @@ recipes/                              OpenRewrite 레시피 jar (대상 프로�
     upstream/                         boot-stages.yml, catalog.yml (생성 파일, ./gradlew :recipes:syncUpstreamStages), boot.yml (3.0 입구, 4.1 대체)
     custom/                           도메인별 보정 (aws, elasticsearch, gradle, hibernate, kafka, logging, misc, querydsl, search, spring) 과 common.yml
     detect/                           manual-items.yml (수동 검토 대상과 동작이 바뀔 수 있는 곳)
-  src/main/java/                      yml(upstream 조합)로는 불가능한 보정과 검색 (custom/, detect/)
+  src/main/java/                      yml(upstream 조합)로는 불가능한 보정과 검색 (custom/, detect/) 과 레시피가 같이 쓰는 도우미 (support/)
   src/test/java/                      레시피 이름/옵션 검증 + Java 레시피 단위 테스트
 runner/                               러너 Gradle 플러그인 (루트 빌드가 쓰는 플러그인이라 included build). 패키지는 아래 Runner 참고
 guides/                               버전별 가이드 (아래 Guides 참고)
@@ -257,6 +257,7 @@ OpenRewrite 레시피는 소스를 LST(Lossless Semantic Tree, 타입 정보가 
 | `ScanningRecipe` | 1) `getScanner()` 로 전체 파일을 먼저 훑어 정보 수집 2) `getVisitor()` 에서 그 정보로 수정 | DeclareUsedDependency (Java import 를 모은 뒤 build.gradle 수정), FixJsonColumnValueTypes (JSON 속성 타입을 모은 뒤 해당 클래스 수정), EnableLombokCopyJacksonAnnotations (Lombok + Jackson 사용 여부와 lombok.config 존재 여부를 본 뒤 파일 생성 또는 추가), UpgradeVersionCatalog (루트 프로젝트의 저장소 정보를 모은 뒤 catalog 수정), FindSpyStubbingThroughCachingProxy (캐시 어노테이션이 있는 타입을 모은 뒤 테스트의 spy 필드 표시) |
 
 - build.gradle 은 Groovy LST, build.gradle.kts 는 Kotlin LST 로 읽힌다. 둘 다 `J.MethodInvocation` / `J.Literal` 로 보이므로 `JavaIsoVisitor` 로 함께 처리한다 (`GroovyIsoVisitor` 는 kts 를 조용히 건너뛴다). `IsBuildGradle` 로 대상을 제한하고, Gradle 모델(선언된 의존성, configuration)은 `GradleProject` 마커에서 읽는다
+- 빌드 스크립트 레시피가 같이 쓰는 동작(`dependencies { }` 안인지, 첫 인자 바꾸기, 따옴표를 지키며 문자열 바꾸기)은 `support/GradleDsl`, `@Bean` matcher 는 `support/SpringAnnotations` 에 둔다
 - Java 소스는 `JavaIsoVisitor` 로 돈다. 어노테이션 추가는 `JavaTemplate`, 인터페이스 추가는 `ImplementInterface` 를 쓴다
 - yml 에서 옵션을 주는 레시피(DeclareUsedDependency, RemoveDependencyVersion)는 생성자 파라미터 이름으로 매핑된다 (`-parameters` 컴파일 옵션)
 - 스캔은 편집 전 원본 기준으로 한 번 돈다. 같은 실행 안에서 upstream 이 패키지를 바꾸는 경우(commons-lang → lang3) 바뀌기 전 패키지도 같이 적는 이유다
@@ -269,22 +270,25 @@ OpenRewrite 레시피는 소스를 LST(Lossless Semantic Tree, 타입 정보가 
 
 | 패키지 | 역할 | 주요 클래스 |
 |---|---|---|
-| `plugin` | Gradle 어댑터. 옵션을 설정으로 바꿔 넘긴다 | `MigrationPlugin`, `MigrationRunTask`, `MigrationPlanTask`, `MigrationScanTask`, `MigrationVerifyTask`, `MigrationHelpTask` |
+| `plugin` | Gradle 어댑터. 옵션을 설정으로 바꿔 넘기고, 사용자에게 보여 줄 실패(`MigrationException`)를 Gradle 의 실패로 바꾼다 | `MigrationPlugin`, `MigrationRunTask`, `MigrationPlanTask`, `MigrationScanTask`, `MigrationVerifyTask`, `MigrationHelpTask` |
 | `config` | 설정 파일과 CLI 병합, 스키마 검증 | `MigrationConfig`, `ConfigLoader`, `Mode`, `GateLevel`, `JavaTarget` |
 | `project` | 대상 프로젝트 읽기 | `ProjectInspector`, `ProjectState`, `VersionCatalog`, `JdkLocator` |
 | `guide` | guides/ 읽기 | `Guides`, `BootGuide`, `JavaGuide`, `GradleGuide`, `LibraryGuide`, `ChecklistItem`, `FailureHint`, `Deprecation` |
 | `stage` | stage 식별 (다른 패키지를 모른다) | `StageId` (종류와 버전. 이름 `3.4`, `java21`, `gradle8.14`), `StageTag` (번호와 stage. 결과 폴더 이름 `03-boot-3.4`) |
 | `plan` | stage 결정 (파일과 프로세스를 다루지 않는다) | `MigrationPlanner`, `MigrationPlan`, `Stage` |
 | `recipe` | 대상 프로젝트 레시피 | `ProjectRecipes` (`.rewrite/` 탐색), `AssembledRecipe` (`rewrite.assembled.yml`) |
-| `pipeline` | 실행 흐름 | `MigrationRunner` (태스크 진입점), `MigrationPipeline` (한 번의 실행), `StageRunner` (stage 의 step 순서), `Resumption` (재개), `RunSession`, `RunHistory`, `PreviewRun`, `RunLock` |
+| `pipeline` | 실행 흐름 | `MigrationRunner` (태스크 진입점), `MigrationPipeline` (한 번의 실행), `StageRunner` (stage 의 step 순서), `Resumption` (재개), `RunSession` (한 실행의 상태와 재개 기록), `RunnerComponents` (함께 쓰는 협력 객체), `RunHistory`, `PreviewRun`, `RunLock` |
 | `pipeline.step` | stage 안의 동작 | `RewriteStep`, `GateStep`, `DeprecationStep`, `AssessStep`, `RecordStep`, `CommitStep` 과 step 이 같이 쓰는 도우미 `RecipeRun`, `TestRun`, `FlakyTestRetry`, `BaselineBuild`, `StagePatches` |
-| `gradle` | 대상 빌드 실행 | `ProjectGradle`, `GradleWrapperProcess` (gradlew 프로세스, 제한 시간), `InitScripts` (대상에 붙이는 init script 와 레시피 jar), `FailedTasks` |
+| `gradle` | 대상 빌드 실행 | `ProjectGradle`, `GradleWrapperProcess` (gradlew 프로세스, 제한 시간), `InitScripts` (대상에 붙이는 init script 와 레시피 jar), `GradleJvmArgs`, `FailedTasks` |
 | `result` | 결과 | `StageResult`, `StageSummary`, `ResultMarkdown`, `ResultHtml`, `TestReport`, `TestResults`, `CompileWarnings`, `RecipeChanges`, `DependencyChanges` |
 | `workspace` | `.spring-boot-migrator/` | `MigrationWorkspace`, `StageFiles`, `RunFiles`, `RunState`, `RunStateStore` |
 | `git` | 대상 프로젝트의 git 조작과 작업 트리 상태 | `Git`, `WorkingTree` |
 | `console` | 콘솔 출력 | `RunnerConsole` |
-| `io` | 파일과 외부 프로세스 | `AtomicFiles`, `TextFiles`, `Processes` |
+| `io` | 파일, 외부 프로세스, JSON Schema 검증 | `AtomicFiles`, `TextFiles`, `Processes`, `SchemaValidator` |
 | `version` | 버전 비교와 resolve 된 의존성 버전 | `Versions`, `ResolvedVersions` |
+
+사용자에게 그대로 보여 줄 실패는 어느 패키지에서든 `MigrationException` 으로 던지고, `plugin` 의 태스크가 한 곳에서 Gradle 의 실패로 바꾼다.
+대상 Gradle 에 붙이는 init script 는 `ProjectGradle` 구현이 알고, step 은 `verify` 와 `rewrite` 만 부른다.
 
 의존 방향은 `plugin → config, pipeline → step → 도메인 패키지` 한쪽으로만 흐른다. `plan`, `guide`, `result`, `project`, `workspace`, `config` 는
 실행 흐름을 모르고, step 은 서로 부르지 않는다 (같이 쓰는 동작은 도우미로 뺀다). `stage`, `io`, `version` 은 다른 패키지를 모르고, `git` 은 `io` 만 안다. `ArchitectureTests` 가 이 방향을 검사한다.
