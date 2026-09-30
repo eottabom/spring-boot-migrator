@@ -95,7 +95,7 @@ git 저장소가 아니어도 재개 기록을 남기고 멈춘 stage 의 게이
 | `--project=<경로>` | 전부 | (필수) | 대상 프로젝트. 상대 경로는 명령을 실행한 위치 기준 |
 | `--config=<파일>` | 전부 | 대상 프로젝트의 `spring-boot-migrator.yml` | 설정 파일. 없으면 기본값 |
 | `--boot=<값>` | Plan, Run | 4.1 | 3.0 ~ 3.5, 4.0, 4.1 (`3.4.5` 처럼 patch 까지 적으면 minor 로 맞춘다). 현재 Boot 가 목표보다 높으면 아무것도 하지 않는다 |
-| `--java=<값>` | Plan, Run | `latest` | `latest`(목표 Boot 가 지원하는 가장 높은 LTS: 3.0 ~ 3.4 는 21, 3.5 ~ 4.1 은 25), `keep`(목표 Boot 가 지원하면 유지), `17` `21` `25`, `none`. 이미 그 이상이면 건너뜀. 목표 Boot 지원 범위 밖이면 거부. 필요한 Gradle 은 Java stage 앞에서 함께 올린다 |
+| `--java=<값>` | Plan, Run | `latest` | `latest`(목표 Boot 가 지원하는 가장 높은 LTS: 3.0 ~ 3.4 는 21, 3.5 ~ 4.1 은 25), `keep`(목표 Boot 가 지원하면 유지. 지원 범위보다 낮으면 Boot stage 레시피가 최소 버전으로 올린다), `17` `21` `25`. 이미 그 이상이면 건너뜀. 목표 Boot 지원 범위 밖이면 거부. 필요한 Gradle 은 Java stage 앞에서 함께 올린다 |
 | `--mode=<값>` | Plan, Run | `staged` | `staged`(stage 마다 게이트), `all`(목표까지 한 번에 적용하고 게이트 한 번), `preview`(소스를 바꾸지 않고 patch 만) |
 | `--gate=<값>` | Run, Verify | `build` | `compile` / `build` (전체 테스트 + 패키징, asciidoctor, checkstyle 등) / `none` (Run 만) |
 | `--commit` | Run | 커밋 안 함 | 게이트를 통과한 stage 마다 commit (작업 트리가 깨끗해야 함) |

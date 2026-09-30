@@ -22,8 +22,8 @@ class OptionsTests {
 	}
 
 	@ParameterizedTest(name = "[{index}] --java={0} -> {1} {2}")
-	@CsvSource(nullValues = "null", value = { "keep, KEEP, null, keep", "latest, LATEST, null, latest",
-			"none, NONE, null, none", "21, VERSION, 21, 21" })
+	@CsvSource(nullValues = "null",
+			value = { "keep, KEEP, null, keep", "latest, LATEST, null, latest", "21, VERSION, 21, 21" })
 	void parsesJavaTarget(String option, JavaTarget.Kind kind, Integer version, String display) {
 		JavaTarget java = JavaTarget.parse(option);
 
@@ -46,7 +46,7 @@ class OptionsTests {
 	}
 
 	@ParameterizedTest(name = "[{index}] {0}")
-	@ValueSource(strings = { "java21", "", "newest", "auto" })
+	@ValueSource(strings = { "java21", "", "newest", "auto", "none" })
 	void rejectsUnknownJavaTarget(String option) {
 		assertThatThrownBy(() -> JavaTarget.parse(option)).hasMessageContaining("--java");
 	}

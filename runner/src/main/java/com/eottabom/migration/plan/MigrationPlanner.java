@@ -92,7 +92,7 @@ public record MigrationPlanner(Guides guides) {
 			}
 			plan.add(new Stage(StageId.java(targetJava), STAGE_RECIPE + "Java_" + targetJava));
 		}
-		javaNotes(notes, config.target().java(), project.lowestDeclaredJava(), targetJava, target, targetRequirements);
+		javaNotes(notes, project.lowestDeclaredJava(), targetJava, target, targetRequirements);
 		List<Stage> stages = (config.allAtOnce() && plan.size() > 1) ? List.of(allAtOnce(plan)) : List.copyOf(plan);
 		return new MigrationPlan(target, targetRequirements, targetJava, stages, List.copyOf(notes));
 	}
@@ -157,10 +157,10 @@ public record MigrationPlanner(Guides guides) {
 			.findFirst();
 	}
 
-	/** latest(기본)는 목표 Boot 가 지원하는 가장 높은 LTS, keep 은 지원하면 유지, 숫자는 그 버전, none 은 올리지 않는다 */
+	/** latest(기본)는 목표 Boot 가 지원하는 가장 높은 LTS, keep 은 지원하면 유지, 숫자는 그 버전 */
 	private @Nullable Integer targetJava(JavaTarget option, String target, BootRequirements requirements) {
 		return switch (option.kind()) {
-			case KEEP, NONE -> null;
+			case KEEP -> null;
 			case LATEST -> this.guides.javaVersions()
 				.stream()
 				.filter(requirements::supportsJava)
@@ -178,8 +178,8 @@ public record MigrationPlanner(Guides guides) {
 		};
 	}
 
-	private static void javaNotes(List<String> notes, JavaTarget option, @Nullable Integer currentJava,
-			@Nullable Integer targetJava, String target, BootRequirements requirements) {
+	private static void javaNotes(List<String> notes, @Nullable Integer currentJava, @Nullable Integer targetJava,
+			String target, BootRequirements requirements) {
 		if (targetJava != null || currentJava == null) {
 			return;
 		}
@@ -191,7 +191,7 @@ public record MigrationPlanner(Guides guides) {
 		else if (currentJava > max) {
 			notes.add("Java " + currentJava + " 는 Boot " + target + " 가 검증한 범위(" + min + " ~ " + max + ")보다 높아요");
 		}
-		else if (option.kind() != JavaTarget.Kind.NONE) {
+		else {
 			notes.add("Java " + currentJava + " 는 Boot " + target + " 지원 범위(" + min + " ~ " + max
 					+ ") 안이라 그대로 둬요 (--java=keep. 올리려면 --java=latest)");
 		}

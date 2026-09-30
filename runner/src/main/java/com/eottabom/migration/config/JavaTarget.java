@@ -19,10 +19,9 @@ public record JavaTarget(Kind kind, @Nullable Integer version) {
 		return switch (value) {
 			case "latest" -> LATEST;
 			case "keep" -> new JavaTarget(Kind.KEEP, null);
-			case "none" -> new JavaTarget(Kind.NONE, null);
 			default -> {
 				if (!value.matches("\\d+")) {
-					throw new IllegalArgumentException("--java 는 latest | keep | none | 17 | 21 | 25");
+					throw new IllegalArgumentException("--java 는 latest | keep | 17 | 21 | 25");
 				}
 				yield new JavaTarget(Kind.VERSION, Integer.parseInt(value));
 			}
@@ -41,9 +40,6 @@ public record JavaTarget(Kind kind, @Nullable Integer version) {
 
 		/** 목표 Boot 가 지원하면 지금 Java 를 유지 */
 		KEEP,
-
-		/** 올리지 않는다 */
-		NONE,
 
 		/** 지정한 버전 */
 		VERSION

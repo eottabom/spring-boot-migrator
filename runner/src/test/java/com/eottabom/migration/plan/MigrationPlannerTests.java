@@ -75,7 +75,7 @@ class MigrationPlannerTests {
 			),
 			Arguments.of(
 				"이미 목표 버전보다 상위 버전인 경우 빈 단계 계획 반환",
-				project("3.5.3", "8.14", 21), request("3.4", "none"),
+				project("3.5.3", "8.14", 21), request("3.4", "keep"),
 				""
 			),
 			Arguments.of(
@@ -168,12 +168,12 @@ class MigrationPlannerTests {
 		return Stream.of(
 			Arguments.of(
 				"stage 마다 stage 레시피 하나",
-				project("3.2.8", "8.14", 17), request("3.3", "none", false, false),
+				project("3.2.8", "8.14", 17), request("3.3", "keep", false, false),
 				"3.3", "~stage.Boot_3_3"
 			),
 			Arguments.of(
 				"--mode=all 은 목표까지의 stage 레시피를 이어 한 stage 로 돈다",
-				project("3.0.13", "8.14", 17), request("3.2", "none", true, false),
+				project("3.0.13", "8.14", 17), request("3.2", "keep", true, false),
 				"3.2", "~stage.Boot_3_1, ~stage.Boot_3_2"
 			),
 			Arguments.of(
@@ -184,12 +184,12 @@ class MigrationPlannerTests {
 			),
 			Arguments.of(
 				"custom 레시피를 끄면 upstream stage 와 catalog 규칙만",
-				project("3.5.1", "8.14", 17), request("4.0", "none", false, true),
+				project("3.5.1", "8.14", 17), request("4.0", "keep", false, true),
 				"4.0", "~upstream.Boot_4_0, ~upstream.catalog.Boot_4_0"
 			),
 			Arguments.of(
 				"upstream 에 없는 4.1 도 같은 이름의 대체 레시피",
-				project("4.0.3", "8.14", 21), request("4.1", "none", false, true),
+				project("4.0.3", "8.14", 21), request("4.1", "keep", false, true),
 				"4.1", "~upstream.Boot_4_1, ~upstream.catalog.Boot_4_1"
 			),
 			Arguments.of(

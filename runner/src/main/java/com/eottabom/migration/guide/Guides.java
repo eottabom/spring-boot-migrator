@@ -59,9 +59,8 @@ public record Guides(List<BootGuide> boot, List<JavaGuide> java, List<GradleGuid
 		return this.java.stream()
 			.filter((guide) -> guide.version() == version)
 			.findFirst()
-			.orElseThrow(() -> new IllegalArgumentException(
-					"--java 는 " + String.join(" | ", javaVersions().stream().map(String::valueOf).toList())
-							+ " | latest | keep | none"));
+			.orElseThrow(() -> new IllegalArgumentException("--java 는 "
+					+ String.join(" | ", javaVersions().stream().map(String::valueOf).toList()) + " | latest | keep"));
 	}
 
 	public GradleGuide gradle(String version) {

@@ -543,7 +543,7 @@ class MigrationRunnerFlowTests {
 	/** gate=build, java 유지, JAVA_HOME 그대로, 프로젝트 레시피 없음 */
 	private MigrationConfig config(String target, Mode mode, boolean commit, boolean allowDirty,
 			boolean baselineTests) {
-		return new MigrationConfig(this.project, new Target(target, JavaTarget.parse("none")), mode,
+		return new MigrationConfig(this.project, new Target(target, JavaTarget.parse("keep")), mode,
 				new GateSettings(GateLevel.BUILD, MigrationConfig.DEFAULT_TEST_RETRIES, baselineTests),
 				new RecipeSettings(true, false), new BuildSettings(Jdk.CURRENT, null, Duration.ZERO), commit,
 				allowDirty);
