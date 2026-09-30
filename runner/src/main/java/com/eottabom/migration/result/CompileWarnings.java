@@ -10,7 +10,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.eottabom.migration.misc.TextFiles;
+import com.eottabom.migration.io.TextFiles;
 
 /**
  * 컴파일 로그의 [removal] / [deprecation] 경고. 같은 메시지는 위치를 모아 한 번만 두고, 위치가 많은 것부터 둔다.

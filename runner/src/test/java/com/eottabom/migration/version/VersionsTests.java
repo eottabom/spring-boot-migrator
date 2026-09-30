@@ -1,4 +1,4 @@
-package com.eottabom.migration.misc;
+package com.eottabom.migration.version;
 
 import java.util.stream.Stream;
 

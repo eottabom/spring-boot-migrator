@@ -12,7 +12,7 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.eottabom.migration.misc.TextFiles;
+import com.eottabom.migration.io.TextFiles;
 
 /**
  * rewriteRun 로그의 파일별 레시피 트리에서 말단 레시피를 가장 가까운 custom 레시피에 귀속시킨 변경 내역. custom 레시피에 귀속되지 않은

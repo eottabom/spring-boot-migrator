@@ -7,7 +7,7 @@ import java.util.List;
 
 import com.eottabom.migration.gradle.ProjectGradle;
 import com.eottabom.migration.gradle.VerifyInitScript;
-import com.eottabom.migration.misc.TextFiles;
+import com.eottabom.migration.io.TextFiles;
 import com.eottabom.migration.result.TestResults;
 import com.eottabom.migration.result.TestResults.Snapshot;
 

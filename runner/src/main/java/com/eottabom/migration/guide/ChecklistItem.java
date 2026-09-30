@@ -3,7 +3,7 @@ package com.eottabom.migration.guide;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import com.eottabom.migration.misc.Versions;
+import com.eottabom.migration.version.Versions;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.jspecify.annotations.Nullable;
 

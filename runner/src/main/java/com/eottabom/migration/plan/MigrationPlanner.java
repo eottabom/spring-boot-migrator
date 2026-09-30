@@ -14,8 +14,8 @@ import com.eottabom.migration.guide.BootRequirements.GradleSupport;
 import com.eottabom.migration.guide.GradleGuide;
 import com.eottabom.migration.guide.Guides;
 import com.eottabom.migration.guide.JavaGuide;
-import com.eottabom.migration.misc.Versions;
 import com.eottabom.migration.project.ProjectState;
+import com.eottabom.migration.version.Versions;
 import org.jspecify.annotations.Nullable;
 
 /**

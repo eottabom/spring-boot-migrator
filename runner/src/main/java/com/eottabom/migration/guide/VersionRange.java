@@ -1,6 +1,6 @@
 package com.eottabom.migration.guide;
 
-import com.eottabom.migration.misc.Versions;
+import com.eottabom.migration.version.Versions;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 

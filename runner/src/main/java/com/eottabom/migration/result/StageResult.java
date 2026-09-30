@@ -7,8 +7,8 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import com.eottabom.migration.guide.FailureHint;
-import com.eottabom.migration.misc.AtomicFiles;
-import com.eottabom.migration.misc.TextFiles;
+import com.eottabom.migration.io.AtomicFiles;
+import com.eottabom.migration.io.TextFiles;
 import com.eottabom.migration.result.RecipeChanges.CustomChange;
 import com.eottabom.migration.result.TestReport.PropertyChange;
 import com.eottabom.migration.result.TestReport.TestFailure;

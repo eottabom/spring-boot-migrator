@@ -7,7 +7,7 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.eottabom.migration.misc.TextFiles;
+import com.eottabom.migration.io.TextFiles;
 
 /**
  * --continue 로 돌린 빌드에서 실패한 태스크 경로. verify.init.gradle 이 남긴 파일을 먼저 읽고, 없으면(init script 가

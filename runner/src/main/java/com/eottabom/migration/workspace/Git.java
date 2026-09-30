@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.eottabom.migration.misc.Processes;
+import com.eottabom.migration.io.Processes;
 import org.jspecify.annotations.Nullable;
 
 /** 대상 프로젝트의 git 조작. */

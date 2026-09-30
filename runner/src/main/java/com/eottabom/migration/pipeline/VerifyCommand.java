@@ -5,7 +5,7 @@ import java.util.List;
 import com.eottabom.migration.config.GateLevel;
 import com.eottabom.migration.console.RunnerConsole;
 import com.eottabom.migration.gradle.ProjectGradle;
-import com.eottabom.migration.misc.TextFiles;
+import com.eottabom.migration.io.TextFiles;
 import com.eottabom.migration.pipeline.step.TestRun;
 import com.eottabom.migration.project.ProjectState;
 import com.eottabom.migration.result.TestResults;

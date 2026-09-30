@@ -12,8 +12,8 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import com.eottabom.migration.misc.AtomicFiles;
-import com.eottabom.migration.misc.TextFiles;
+import com.eottabom.migration.io.AtomicFiles;
+import com.eottabom.migration.io.TextFiles;
 import org.jspecify.annotations.Nullable;
 
 /**

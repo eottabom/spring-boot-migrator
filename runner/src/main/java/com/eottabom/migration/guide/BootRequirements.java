@@ -3,7 +3,7 @@ package com.eottabom.migration.guide;
 import java.util.Map;
 import java.util.TreeMap;
 
-import com.eottabom.migration.misc.Versions;
+import com.eottabom.migration.version.Versions;
 
 /**
  * Boot 의 시스템 요구 사항.

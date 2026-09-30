@@ -10,7 +10,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import com.eottabom.migration.misc.Processes;
+import com.eottabom.migration.io.Processes;
 import org.jspecify.annotations.Nullable;
 
 /**

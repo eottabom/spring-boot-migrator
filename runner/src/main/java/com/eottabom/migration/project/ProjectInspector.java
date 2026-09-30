@@ -15,8 +15,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import com.eottabom.migration.misc.Processes;
-import com.eottabom.migration.misc.Versions;
+import com.eottabom.migration.io.Processes;
+import com.eottabom.migration.version.Versions;
 import org.jspecify.annotations.Nullable;
 
 /** 대상 프로젝트의 빌드 파일만 읽어 {@link ProjectState} 을 만든다. 대상 Gradle 을 띄우지 않는다. */

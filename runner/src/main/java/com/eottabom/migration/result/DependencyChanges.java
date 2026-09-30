@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
 
-import com.eottabom.migration.misc.TextFiles;
+import com.eottabom.migration.io.TextFiles;
 
 /**
  * stage 전후 resolve 된 의존성 버전 비교.

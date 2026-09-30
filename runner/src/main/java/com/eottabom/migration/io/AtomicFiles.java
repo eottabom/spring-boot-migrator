@@ -1,4 +1,4 @@
-package com.eottabom.migration.misc;
+package com.eottabom.migration.io;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;

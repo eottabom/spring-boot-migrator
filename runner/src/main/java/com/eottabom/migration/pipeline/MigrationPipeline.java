@@ -6,7 +6,7 @@ import java.util.Set;
 
 import com.eottabom.migration.config.MigrationConfig;
 import com.eottabom.migration.console.RunnerConsole;
-import com.eottabom.migration.misc.TextFiles;
+import com.eottabom.migration.io.TextFiles;
 import com.eottabom.migration.pipeline.Resumption.Resumed;
 import com.eottabom.migration.pipeline.step.BaselineBuild;
 import com.eottabom.migration.plan.MigrationPlan;
