@@ -3,6 +3,8 @@ package com.eottabom.migration.result;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.eottabom.migration.guide.ChecklistItem.Fix;
+
 /**
  * stage 결과 상단의 요약 표. 마크다운 표, history.md 의 stage 한 줄, 콘솔 출력이 모두 이 모델에서 나온다.
  */
@@ -37,8 +39,8 @@ public record StageSummary(List<Row> rows) {
 				+ result.properties().unsupported().size()));
 		rows.add(new Row(DETECTED, result.detect().size() + " 곳"));
 		if (!result.checklist().isEmpty()) {
-			rows.add(new Row(CHECKLIST, "사람 " + countFix(result, "manual") + " / 확인 " + countFix(result, "assisted")
-					+ " / 자동 " + countFix(result, "auto")));
+			rows.add(new Row(CHECKLIST, "사람 " + countFix(result, Fix.MANUAL) + " / 확인 " + countFix(result, Fix.ASSISTED)
+					+ " / 자동 " + countFix(result, Fix.AUTO)));
 		}
 		rows.add(new Row(CHANGED_FILES,
 				result.changes().files().size() + " 개 (custom 레시피 " + result.changes().custom().size() + " 종)"));
@@ -76,8 +78,8 @@ public record StageSummary(List<Row> rows) {
 		return (failed > 0) ? "❌ " + failed + " / " + total + " 실패" + note : "✅ " + (total - existing) + "개 통과" + note;
 	}
 
-	private static long countFix(StageResult result, String fix) {
-		return result.checklist().stream().filter((item) -> fix.equals(item.fix())).count();
+	private static long countFix(StageResult result, Fix fix) {
+		return result.checklist().stream().filter((item) -> item.fix() == fix).count();
 	}
 
 	private static String outcome(Outcome outcome, String failed) {

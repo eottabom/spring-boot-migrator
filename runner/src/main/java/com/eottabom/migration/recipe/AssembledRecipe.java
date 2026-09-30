@@ -5,9 +5,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import com.eottabom.migration.plan.Stage;
 import com.eottabom.migration.recipe.ProjectRecipes.Order;
@@ -40,8 +38,9 @@ public final class AssembledRecipe {
 		List<String> recipeList = new ArrayList<>(before);
 		recipeList.addAll(stage.recipes());
 		recipeList.addAll(after);
-		List<Object> documents = new ArrayList<>();
-		documents.add(recipe(name, "Assembled migration for " + projectName + " (" + stage.name() + ")", recipeList));
+		List<RecipeDocument> documents = new ArrayList<>();
+		documents
+			.add(assembled(name, "Assembled migration for " + projectName + " (" + stage.name() + ")", recipeList));
 		documents.addAll(projectRecipes.documents());
 		String sources = projectRecipes.files().isEmpty() ? "없음" : String.join(", ",
 				projectRecipes.files().stream().map((file) -> projectDir.relativize(file).toString()).toList());
@@ -51,27 +50,22 @@ public final class AssembledRecipe {
 
 	/** 레시피 목록만 묶는다 (deprecated API 대체처럼 프로젝트 레시피 없이 한 번 더 돌 때) */
 	public static Assembled write(Path projectDir, String name, List<String> recipes) {
-		Path file = writeFile(projectDir, "", List.of(recipe(name, name, recipes)));
+		Path file = writeFile(projectDir, "", List.of(assembled(name, name, recipes)));
 		return new Assembled(name, file, List.of(), List.of());
 	}
 
-	private static Map<String, Object> recipe(String name, String displayName, List<String> recipeList) {
-		Map<String, Object> recipe = new LinkedHashMap<>();
-		recipe.put("type", ProjectRecipes.RECIPE_TYPE);
-		recipe.put("name", name);
-		recipe.put("displayName", displayName);
-		recipe.put("description", "migrationRun 이 만든 파일이에요. 매 stage 덮어쓰니 직접 고치지 마세요.");
-		recipe.put("recipeList", recipeList);
-		return recipe;
+	private static RecipeDocument assembled(String name, String displayName, List<String> recipeList) {
+		return RecipeDocument.recipe(name, displayName, "migrationRun 이 만든 파일이에요. 매 stage 덮어쓰니 직접 고치지 마세요.",
+				recipeList);
 	}
 
-	private static Path writeFile(Path projectDir, String header, List<Object> documents) {
+	private static Path writeFile(Path projectDir, String header, List<RecipeDocument> documents) {
 		DumperOptions options = new DumperOptions();
 		options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
 		options.setAllowUnicode(true);
 		options.setWidth(160);
 		String yaml = "# 러너(migrationRun)가 stage 마다 만들어요. 직접 고치지 마세요.\n" + header
-				+ new Yaml(options).dumpAll(documents.iterator());
+				+ new Yaml(options).dumpAll(documents.stream().map(RecipeDocument::yaml).iterator());
 		Path file = projectDir.resolve(RELATIVE_PATH);
 		try {
 			Files.createDirectories(file.getParent());

@@ -5,10 +5,12 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeSet;
 
 import com.eottabom.migration.io.TextFiles;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * stage 전후 resolve 된 의존성 버전 비교.
@@ -16,8 +18,6 @@ import com.eottabom.migration.io.TextFiles;
  * @param changed 버전이 바뀐 것 (major, minor, patch 순, 같은 구분은 이름순)
  */
 public record DependencyChanges(List<VersionChange> changed, List<String> added, List<String> removed) {
-
-	private static final List<String> LEVEL_ORDER = List.of("major", "minor", "patch");
 
 	static DependencyChanges compare(Map<String, String> before, Map<String, String> after) {
 		if (before.isEmpty() || after.isEmpty()) {
@@ -30,8 +30,7 @@ public record DependencyChanges(List<VersionChange> changed, List<String> added,
 				changed.add(new VersionChange(name, previous, version, level(previous, version)));
 			}
 		});
-		changed.sort(Comparator.comparingInt((VersionChange change) -> LEVEL_ORDER.indexOf(change.level()))
-			.thenComparing(VersionChange::name));
+		changed.sort(Comparator.comparing(VersionChange::level).thenComparing(VersionChange::name));
 		List<String> added = new ArrayList<>(new TreeSet<>(after.keySet()));
 		added.removeAll(before.keySet());
 		List<String> removed = new ArrayList<>(new TreeSet<>(before.keySet()));
@@ -43,14 +42,14 @@ public record DependencyChanges(List<VersionChange> changed, List<String> added,
 		return this.changed.isEmpty() && this.added.isEmpty() && this.removed.isEmpty();
 	}
 
-	static String level(String before, String after) {
+	static Level level(String before, String after) {
 		String[] beforeParts = before.split("[.-]");
 		String[] afterParts = after.split("[.-]");
 		if (!beforeParts[0].equals(afterParts[0])) {
-			return "major";
+			return Level.MAJOR;
 		}
 		boolean minorChanged = beforeParts.length > 1 && afterParts.length > 1 && !beforeParts[1].equals(afterParts[1]);
-		return minorChanged ? "minor" : "patch";
+		return minorChanged ? Level.MINOR : Level.PATCH;
 	}
 
 	public static Map<String, String> readVersions(Path file) {
@@ -64,13 +63,28 @@ public record DependencyChanges(List<VersionChange> changed, List<String> added,
 		return versions;
 	}
 
-	/**
-	 * @param level major | minor | patch
-	 */
-	record VersionChange(String name, String before, String after, String level) {
+	record VersionChange(String name, String before, String after, Level level) {
 
 		boolean isPatch() {
-			return "patch".equals(this.level);
+			return this.level == Level.PATCH;
+		}
+
+	}
+
+	/** 버전의 어느 자리가 바뀌었는가. 선언 순서가 결과의 정렬 순서다 */
+	enum Level {
+
+		@JsonProperty("major")
+		MAJOR,
+
+		@JsonProperty("minor")
+		MINOR,
+
+		@JsonProperty("patch")
+		PATCH;
+
+		String label() {
+			return name().toLowerCase(Locale.ROOT);
 		}
 
 	}

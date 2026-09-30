@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import com.eottabom.migration.guide.ChecklistItem.Fix;
 import com.eottabom.migration.result.CompileWarnings.ApiWarning;
 import com.eottabom.migration.result.DependencyChanges.VersionChange;
 import com.eottabom.migration.result.TestReport.PropertyChange;
@@ -18,8 +19,9 @@ import com.eottabom.migration.result.TestReport.TestFailure;
  */
 final class ResultMarkdown {
 
-	private static final List<String[]> CHECKLIST_SECTIONS = List.of(new String[] { "manual", "사람이 처리 (자동으로 바꾸지 않음)" },
-			new String[] { "assisted", "레시피가 바꿨지만 확인 필요" }, new String[] { "auto", "레시피가 고침 (결과만 확인)" });
+	private static final List<ChecklistSection> CHECKLIST_SECTIONS = List.of(
+			new ChecklistSection(Fix.MANUAL, "사람이 처리 (자동으로 바꾸지 않음)"),
+			new ChecklistSection(Fix.ASSISTED, "레시피가 바꿨지만 확인 필요"), new ChecklistSection(Fix.AUTO, "레시피가 고침 (결과만 확인)"));
 
 	private final List<String> lines = new ArrayList<>();
 
@@ -174,7 +176,7 @@ final class ResultMarkdown {
 		if (!important.isEmpty()) {
 			add("### major / minor 변경", "| 라이브러리 | 이전 | 이후 | 구분 |", "|---|---|---|---|");
 			important.forEach((change) -> row(code(change.name()),
-					change.before() + " | " + change.after() + " | " + change.level()));
+					change.before() + " | " + change.after() + " | " + change.level().label()));
 			add("");
 		}
 		if (!deps.added().isEmpty()) {
@@ -191,15 +193,15 @@ final class ResultMarkdown {
 		}
 		section("## 체크리스트 (" + result.stage() + ")", "컴파일과 테스트가 통과해도 확인할 항목. guides/ 기준"
 				+ ((result.source() != null) ? " (원문 " + result.source() + ")" : ""));
-		for (String[] fixAndTitle : CHECKLIST_SECTIONS) {
+		for (ChecklistSection section : CHECKLIST_SECTIONS) {
 			List<ReportedChecklistItem> items = result.checklist()
 				.stream()
-				.filter((item) -> fixAndTitle[0].equals(item.fix()))
+				.filter((item) -> item.fix() == section.fix())
 				.toList();
 			if (items.isEmpty()) {
 				continue;
 			}
-			add("### " + fixAndTitle[1]);
+			add("### " + section.title());
 			for (ReportedChecklistItem item : items) {
 				String link = (item.source() != null) ? " [원문](" + item.source() + ")" : "";
 				add("- **" + item.title() + "**" + ((item.trigger() != null) ? " (" + item.trigger() + ")" : ""));
@@ -271,6 +273,9 @@ final class ResultMarkdown {
 
 	private static String truncate(String text, int max) {
 		return (text.length() > max) ? text.substring(0, max) : text;
+	}
+
+	private record ChecklistSection(Fix fix, String title) {
 	}
 
 }

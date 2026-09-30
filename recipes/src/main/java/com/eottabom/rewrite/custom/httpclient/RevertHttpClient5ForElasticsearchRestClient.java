@@ -1,6 +1,5 @@
 package com.eottabom.rewrite.custom.httpclient;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,24 +28,24 @@ public class RevertHttpClient5ForElasticsearchRestClient extends Recipe {
 
 	private static final String REST_CLIENT = "org.elasticsearch.client.RestClient";
 
-	private static final List<String[]> TYPES = Arrays.asList(
-			new String[] { "org.apache.hc.core5.http.HttpHost", "org.apache.http.HttpHost" },
-			new String[] { "org.apache.hc.core5.http.Header", "org.apache.http.Header" },
-			new String[] { "org.apache.hc.core5.http.HttpHeaders", "org.apache.http.HttpHeaders" },
-			new String[] { "org.apache.hc.core5.http.HttpResponseInterceptor",
-					"org.apache.http.HttpResponseInterceptor" },
-			new String[] { "org.apache.hc.core5.http.HttpRequestInterceptor",
-					"org.apache.http.HttpRequestInterceptor" },
-			new String[] { "org.apache.hc.core5.http.message.BasicHeader", "org.apache.http.message.BasicHeader" },
-			new String[] { "org.apache.hc.client5.http.auth.AuthScope", "org.apache.http.auth.AuthScope" },
-			new String[] { "org.apache.hc.client5.http.auth.UsernamePasswordCredentials",
-					"org.apache.http.auth.UsernamePasswordCredentials" },
-			new String[] { "org.apache.hc.client5.http.auth.CredentialsStore",
-					"org.apache.http.client.CredentialsProvider" },
-			new String[] { "org.apache.hc.client5.http.auth.CredentialsProvider",
-					"org.apache.http.client.CredentialsProvider" },
-			new String[] { "org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider",
-					"org.apache.http.impl.client.BasicCredentialsProvider" });
+	private static final List<TypeMapping> TYPES = List.of(
+			new TypeMapping("org.apache.hc.core5.http.HttpHost", "org.apache.http.HttpHost"),
+			new TypeMapping("org.apache.hc.core5.http.Header", "org.apache.http.Header"),
+			new TypeMapping("org.apache.hc.core5.http.HttpHeaders", "org.apache.http.HttpHeaders"),
+			new TypeMapping("org.apache.hc.core5.http.HttpResponseInterceptor",
+					"org.apache.http.HttpResponseInterceptor"),
+			new TypeMapping("org.apache.hc.core5.http.HttpRequestInterceptor",
+					"org.apache.http.HttpRequestInterceptor"),
+			new TypeMapping("org.apache.hc.core5.http.message.BasicHeader", "org.apache.http.message.BasicHeader"),
+			new TypeMapping("org.apache.hc.client5.http.auth.AuthScope", "org.apache.http.auth.AuthScope"),
+			new TypeMapping("org.apache.hc.client5.http.auth.UsernamePasswordCredentials",
+					"org.apache.http.auth.UsernamePasswordCredentials"),
+			new TypeMapping("org.apache.hc.client5.http.auth.CredentialsStore",
+					"org.apache.http.client.CredentialsProvider"),
+			new TypeMapping("org.apache.hc.client5.http.auth.CredentialsProvider",
+					"org.apache.http.client.CredentialsProvider"),
+			new TypeMapping("org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider",
+					"org.apache.http.impl.client.BasicCredentialsProvider"));
 
 	@Override
 	public String getDisplayName() {
@@ -65,12 +64,16 @@ public class RevertHttpClient5ForElasticsearchRestClient extends Recipe {
 			public Tree preVisit(Tree tree, ExecutionContext ctx) {
 				stopAfterPreVisit();
 				Tree reverted = tree;
-				for (String[] pair : TYPES) {
-					reverted = new ChangeType(pair[0], pair[1], true).getVisitor().visitNonNull(reverted, ctx);
+				for (TypeMapping type : TYPES) {
+					reverted = new ChangeType(type.httpClient5(), type.httpClient4(), true).getVisitor()
+						.visitNonNull(reverted, ctx);
 				}
 				return new ExpressionFixes().visitNonNull(reverted, ctx);
 			}
 		});
+	}
+
+	private record TypeMapping(String httpClient5, String httpClient4) {
 	}
 
 	private static class ExpressionFixes extends JavaVisitor<ExecutionContext> {
