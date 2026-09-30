@@ -18,7 +18,19 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 /**
  * run-state.json 읽기와 쓰기. 읽을 때 schema/run-state.schema.json 으로 검증하고 다른 프로젝트의 기록인지 확인한다.
  */
-public record RunStateStore(Path file, Path projectDir, Path schemaDir) {
+public final class RunStateStore {
+
+	private final Path file;
+
+	private final Path projectDir;
+
+	private final Path schemaDir;
+
+	public RunStateStore(Path file, Path projectDir, Path schemaDir) {
+		this.file = file;
+		this.projectDir = projectDir;
+		this.schemaDir = schemaDir;
+	}
 
 	private static final ObjectMapper JSON = JsonMapper.builder().enable(SerializationFeature.INDENT_OUTPUT).build();
 

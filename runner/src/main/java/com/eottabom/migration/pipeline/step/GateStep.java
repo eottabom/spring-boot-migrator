@@ -17,13 +17,31 @@ import com.eottabom.migration.workspace.StageFiles;
 
 /**
  * stage 게이트. compile 과 build 를 돌려 원본 빌드에 없던 실패만 막는다.
- *
- * @param projectDir 대상 프로젝트 (테스트 결과를 찾는 곳)
- * @param testRetries 새로 실패한 테스트를 다시 돌리는 횟수. 다시 돌려 통과하면 불안정한 테스트로 보고 stage 를 막지 않는다
- * @param baseline 원본에서도 실패하던 태스크와 테스트
  */
-public record GateStep(ProjectGradle gradle, RunnerConsole console, Path projectDir, int testRetries,
-		Baseline baseline) {
+public final class GateStep {
+
+	private final ProjectGradle gradle;
+
+	private final RunnerConsole console;
+
+	private final Path projectDir;
+
+	private final int testRetries;
+
+	private final Baseline baseline;
+
+	/**
+	 * @param projectDir 대상 프로젝트 (테스트 결과를 찾는 곳)
+	 * @param testRetries 새로 실패한 테스트를 다시 돌리는 횟수. 다시 돌려 통과하면 불안정한 테스트로 보고 stage 를 막지 않는다
+	 * @param baseline 원본에서도 실패하던 태스크와 테스트
+	 */
+	public GateStep(ProjectGradle gradle, RunnerConsole console, Path projectDir, int testRetries, Baseline baseline) {
+		this.gradle = gradle;
+		this.console = console;
+		this.projectDir = projectDir;
+		this.testRetries = testRetries;
+		this.baseline = baseline;
+	}
 
 	/**
 	 * compile (+deprecation/removal 경고). 컴파일이 깨져도 stage 후 의존성 버전 목록은 남긴다.

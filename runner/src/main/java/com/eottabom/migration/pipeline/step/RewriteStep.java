@@ -16,10 +16,23 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * stage 레시피와 프로젝트 레시피를 조립해 rewriteRun 을 돌린다. git 저장소면 stage 전 작업 트리와 레시피가 만든 파일을 기록한다.
- *
- * @param projectDir 대상 프로젝트
  */
-public record RewriteStep(RecipeRun recipeRun, RunnerConsole console, Path projectDir) {
+public final class RewriteStep {
+
+	private final RecipeRun recipeRun;
+
+	private final RunnerConsole console;
+
+	private final Path projectDir;
+
+	/**
+	 * @param projectDir 대상 프로젝트
+	 */
+	public RewriteStep(RecipeRun recipeRun, RunnerConsole console, Path projectDir) {
+		this.recipeRun = recipeRun;
+		this.console = console;
+		this.projectDir = projectDir;
+	}
 
 	/**
 	 * @param createdFiles 지금까지 레시피가 만든 파일 (stage 전 작업 트리에 넣는다)
@@ -30,8 +43,7 @@ public record RewriteStep(RecipeRun recipeRun, RunnerConsole console, Path proje
 		MigrationWorkspace.copyOrEmpty(assembled.file(), files.assembledRecipe());
 		this.console.heading("[" + stage.name() + "] rewriteRun " + stage.recipeNames()
 				+ RunnerConsole.projectRecipeSuffix(projectRecipes, stage));
-		String treeBefore = (this.recipeRun.git() != null) ? this.recipeRun.git().snapshotTree(createdFiles, tempIndex)
-				: null;
+		String treeBefore = this.recipeRun.snapshotTree(createdFiles, tempIndex);
 		return new RewriteOutcome(treeBefore, this.recipeRun.run(assembled, files.rewriteLog()));
 	}
 

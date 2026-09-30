@@ -16,7 +16,13 @@ import com.eottabom.migration.io.Processes;
 import org.jspecify.annotations.Nullable;
 
 /** 대상 프로젝트의 git 조작. */
-public record Git(Path dir) {
+public final class Git {
+
+	private final Path dir;
+
+	public Git(Path dir) {
+		this.dir = dir;
+	}
 
 	/** 러너와 사용자 커밋을 구분하려고 러너가 만드는 커밋에 쓰는 이름 */
 	private static final List<String> RUNNER_IDENTITY = List.of("-c", "user.name=spring-boot-migrator", "-c",
@@ -261,4 +267,5 @@ public record Git(Path dir) {
 	private boolean run(String... command) {
 		return Processes.run(this.dir, null, List.of(command));
 	}
+
 }

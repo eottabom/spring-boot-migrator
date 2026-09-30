@@ -11,7 +11,16 @@ import org.jspecify.annotations.Nullable;
  * 대상 Gradle 을 띄울 JDK. toolchain 이 있으면 그 버전, 없으면 Gradle 을 띄운 JVM 으로 컴파일되므로 선언된 Java 버전보다
  * 낮은 JAVA_HOME 은 쓰지 않는다. stage 가 Java 버전을 올리면 다시 고른다.
  */
-record JdkSelection(JdkLocator locator, RunnerConsole console) {
+final class JdkSelection {
+
+	private final JdkLocator locator;
+
+	private final RunnerConsole console;
+
+	JdkSelection(JdkLocator locator, RunnerConsole console) {
+		this.locator = locator;
+		this.console = console;
+	}
 
 	@Nullable String javaHome(ProjectState project, boolean keepJavaHome) {
 		String current = System.getenv("JAVA_HOME");

@@ -25,7 +25,19 @@ import com.eottabom.migration.workspace.StageFiles;
  * 컴파일 경고의 deprecated API 와 제거 예정 API 를 guides/ 의 대체 레시피로 바로 바꾼다. 대체 레시피가 없는 API 는 결과에 위치만
  * 남긴다.
  */
-public record DeprecationStep(Guides guides, RecipeRun recipeRun, RunnerConsole console) {
+public final class DeprecationStep {
+
+	private final Guides guides;
+
+	private final RecipeRun recipeRun;
+
+	private final RunnerConsole console;
+
+	public DeprecationStep(Guides guides, RecipeRun recipeRun, RunnerConsole console) {
+		this.guides = guides;
+		this.recipeRun = recipeRun;
+		this.console = console;
+	}
 
 	/**
 	 * 컴파일이 통과한 뒤 부른다. 바꾼 게 있으면 호출하는 쪽이 다시 컴파일한다.

@@ -16,7 +16,13 @@ import com.eottabom.migration.workspace.RunFiles;
 /**
  * migrationVerify. 현재 소스의 컴파일(+제거 예정 API 경고)과 build(전체 테스트 + 패키징). 소스는 바꾸지 않는다.
  */
-record VerifyCommand(RunnerConsole console) {
+final class VerifyCommand {
+
+	private final RunnerConsole console;
+
+	VerifyCommand(RunnerConsole console) {
+		this.console = console;
+	}
 
 	void verify(ProjectState project, ProjectGradle gradle, GateLevel gate) {
 		if (!gate.compiles()) {

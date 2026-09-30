@@ -25,7 +25,13 @@ import org.jspecify.annotations.Nullable;
  * Gradle 이 부족하면 Java stage 앞에 Gradle stage 를 넣는다. Gradle 은 목표 Boot 가 지원하면 그대로 두고 필요할 때만
  * 올린다. stage 레시피가 함께 올리는 Gradle, Java(가이드의 raises) 는 다음 판단에 반영한다.
  */
-public record MigrationPlanner(Guides guides) {
+public final class MigrationPlanner {
+
+	private final Guides guides;
+
+	public MigrationPlanner(Guides guides) {
+		this.guides = guides;
+	}
 
 	/** 이보다 낮은 Boot 는 3.0 stage 의 upstream 체인이 다루지 않는다 */
 	static final String MINIMUM_BOOT = "2.5";

@@ -22,7 +22,13 @@ import org.jspecify.annotations.Nullable;
 /**
  * 러너의 콘솔 출력. stage 제목은 {@code >>}, 오류는 {@code !!} 로 시작한다.
  */
-public record RunnerConsole(Logger logger) {
+public final class RunnerConsole {
+
+	private final Logger logger;
+
+	public RunnerConsole(Logger logger) {
+		this.logger = logger;
+	}
 
 	/**
 	 * @param workingTree git 작업 트리 상태를 풀어 쓴 말

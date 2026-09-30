@@ -10,7 +10,16 @@ import com.eottabom.migration.recipe.ProjectRecipes;
 /**
  * migrationPlan. 실행할 stage 와 걸릴 수 있는 체크리스트를 보여준다. 대상 프로젝트의 Gradle 을 띄우지 않는다.
  */
-record PlanPrinter(RunnerConsole console, Guides guides) {
+final class PlanPrinter {
+
+	private final RunnerConsole console;
+
+	private final Guides guides;
+
+	PlanPrinter(RunnerConsole console, Guides guides) {
+		this.console = console;
+		this.guides = guides;
+	}
 
 	void print(ProjectState project, MigrationPlan plan, ProjectRecipes projectRecipes) {
 		this.console.heading("프로젝트 : " + project.dir());

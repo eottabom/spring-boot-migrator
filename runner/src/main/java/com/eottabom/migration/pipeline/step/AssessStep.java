@@ -18,10 +18,26 @@ import com.eottabom.migration.workspace.StageFiles;
 /**
  * 게이트 결과와 로그로 stage 결과를 모은다. 체크리스트는 stage 전후 resolve 된 버전으로 고르고, 실패 힌트는 stage 가이드와 공통
  * 가이드에서 가져온다. 결과는 이 모델을 그리기만 한다.
- *
- * @param start 시작할 때 모은 파일 (detect 결과)
  */
-public record AssessStep(Guides guides, Path projectDir, RunFiles start, ProjectRecipes projectRecipes) {
+public final class AssessStep {
+
+	private final Guides guides;
+
+	private final Path projectDir;
+
+	private final RunFiles start;
+
+	private final ProjectRecipes projectRecipes;
+
+	/**
+	 * @param start 시작할 때 모은 파일 (detect 결과)
+	 */
+	public AssessStep(Guides guides, Path projectDir, RunFiles start, ProjectRecipes projectRecipes) {
+		this.guides = guides;
+		this.projectDir = projectDir;
+		this.start = start;
+		this.projectRecipes = projectRecipes;
+	}
 
 	/**
 	 * @param versionsBefore stage 전 resolve 된 버전

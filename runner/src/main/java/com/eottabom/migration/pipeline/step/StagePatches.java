@@ -13,7 +13,16 @@ import org.jspecify.annotations.Nullable;
  * stage 의 patch. 이 stage 에서만 바뀐 diff(stage.patch, result.html 의 변경 보기)와 시작 시점 대비 누적
  * patch(cumulative.patch, 재개와 되돌리기의 기준). stage 를 처음 돌 때와 재개해서 통과할 때 같은 방법으로 만든다.
  */
-public record StagePatches(RunnerConsole console, Git git) {
+public final class StagePatches {
+
+	private final RunnerConsole console;
+
+	private final Git git;
+
+	public StagePatches(RunnerConsole console, Git git) {
+		this.console = console;
+		this.git = git;
+	}
 
 	/**
 	 * @param createdFiles 레시피가 만든 파일 (추적 안 된 파일 중 patch 에 넣을 것)

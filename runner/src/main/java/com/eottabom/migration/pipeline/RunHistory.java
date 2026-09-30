@@ -14,7 +14,16 @@ import org.jspecify.annotations.Nullable;
 /**
  * history.md. 실행마다 헤더, stage 별 한 줄, 멈춤이나 완료를 남긴다.
  */
-record RunHistory(MigrationWorkspace ws, String projectName) {
+final class RunHistory {
+
+	private final MigrationWorkspace ws;
+
+	private final String projectName;
+
+	RunHistory(MigrationWorkspace ws, String projectName) {
+		this.ws = ws;
+		this.projectName = projectName;
+	}
 
 	void header(ProjectState project, MigrationPlan plan, String summary, @Nullable String resumeNote) {
 		StringBuilder header = new StringBuilder().append("## ")

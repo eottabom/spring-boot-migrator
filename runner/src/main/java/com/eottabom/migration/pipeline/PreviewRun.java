@@ -28,7 +28,19 @@ import org.jspecify.annotations.Nullable;
  * 에 차례로 적용하고 stage 별 patch 만 남긴다. 대상 프로젝트의 작업 트리는 바뀌지 않는다. git 저장소가 아니면 첫 stage 만
  * rewriteDryRun 으로 본다.
  */
-record PreviewRun(ProjectGradle.Factory gradleFactory, ProjectInspector inspector, RunnerConsole console) {
+final class PreviewRun {
+
+	private final ProjectGradle.Factory gradleFactory;
+
+	private final ProjectInspector inspector;
+
+	private final RunnerConsole console;
+
+	PreviewRun(ProjectGradle.Factory gradleFactory, ProjectInspector inspector, RunnerConsole console) {
+		this.gradleFactory = gradleFactory;
+		this.inspector = inspector;
+		this.console = console;
+	}
 
 	/**
 	 * @param lastCompletedOrder 지난 기록의 마지막 stage 번호 (그 뒤에 이어서 붙인다)

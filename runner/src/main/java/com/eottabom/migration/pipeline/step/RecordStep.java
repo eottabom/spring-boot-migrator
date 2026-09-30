@@ -13,7 +13,13 @@ import org.jspecify.annotations.Nullable;
 /**
  * stage 결과(result.md, result.json)와 전 stage 를 모은 result.html 을 쓴다.
  */
-public record RecordStep(RunnerConsole console) {
+public final class RecordStep {
+
+	private final RunnerConsole console;
+
+	public RecordStep(RunnerConsole console) {
+		this.console = console;
+	}
 
 	public StageSummary write(StageResult result, StageFiles files) {
 		result.write(files.resultMarkdown(), files.resultJson());

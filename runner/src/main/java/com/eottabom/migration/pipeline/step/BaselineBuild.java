@@ -17,7 +17,19 @@ import com.eottabom.migration.workspace.RunState.Baseline;
  * 원본 빌드를 한 번 돌려 원래부터 실패하던 태스크와 테스트를 모은다. stage 에서는 여기 없는 실패만 막는다. 원본 컴파일이 깨지면 레시피를 돌릴 수
  * 없어 멈춘다.
  */
-public record BaselineBuild(ProjectGradle gradle, RunnerConsole console, Path projectDir) {
+public final class BaselineBuild {
+
+	private final ProjectGradle gradle;
+
+	private final RunnerConsole console;
+
+	private final Path projectDir;
+
+	public BaselineBuild(ProjectGradle gradle, RunnerConsole console, Path projectDir) {
+		this.gradle = gradle;
+		this.console = console;
+		this.projectDir = projectDir;
+	}
 
 	/**
 	 * @param skipTests 테스트를 건너뛴다. 원본 테스트 실패를 모으지 않아 stage 의 테스트 실패는 모두 새 실패가 된다

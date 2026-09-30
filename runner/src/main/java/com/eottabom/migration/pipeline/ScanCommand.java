@@ -11,7 +11,16 @@ import com.eottabom.migration.workspace.RunFiles;
 /**
  * migrationScan. 현재 상태, resolve 된 의존성, detect 레시피가 찾은 위치를 보여준다. 소스는 바꾸지 않는다.
  */
-record ScanCommand(ProjectScanner scanner, RunnerConsole console) {
+final class ScanCommand {
+
+	private final ProjectScanner scanner;
+
+	private final RunnerConsole console;
+
+	ScanCommand(ProjectScanner scanner, RunnerConsole console) {
+		this.scanner = scanner;
+		this.console = console;
+	}
 
 	void scan(ProjectState project, ProjectGradle gradle) {
 		RunFiles files = MigrationWorkspace.in(project.dir()).scan();

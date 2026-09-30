@@ -14,7 +14,16 @@ import com.eottabom.migration.result.TestResults.Snapshot;
  * 테스트가 도는 빌드 한 번. verify.init.gradle 을 붙여 실행하고 이 실행이 새로 쓴 결과 XML 만 모은다. 원본 빌드, stage 게이트,
  * 재시도, migrationVerify 가 같은 방법으로 결과를 센다.
  */
-public record TestRun(ProjectGradle gradle, Path projectDir) {
+public final class TestRun {
+
+	private final ProjectGradle gradle;
+
+	private final Path projectDir;
+
+	public TestRun(ProjectGradle gradle, Path projectDir) {
+		this.gradle = gradle;
+		this.projectDir = projectDir;
+	}
 
 	/**
 	 * @param reportDirs 테스트 태스크가 결과 XML 을 쓴 디렉토리를 남길 파일 (-PmigrationTestResultsOut)
