@@ -57,7 +57,6 @@ final class MigrationPipeline {
 		ProjectState project = this.session.runner()
 			.withResolvedBootVersion(this.session.components().inspector().inspect(this.session.projectDir()),
 					this.session.gradle(), this.session.ws().start());
-		this.session.isGit(project.gitRoot());
 		MigrationPlan plan = this.session.runner().planOrFail(project, config);
 		String summary = config.summary(plan.targetJava());
 		console.heading("프로젝트 : " + this.session.projectDir());
@@ -73,7 +72,13 @@ final class MigrationPipeline {
 		}
 		checkWorkingTree(project, resumed.active());
 		if (plan.isEmpty()) {
-			console.heading("이미 Boot " + project.bootVersion() + " (목표 " + plan.targetBoot() + " 이상)예요.");
+			if (resumed.continued()) {
+				// 멈췄던 마지막 stage 가 재개로 통과했다. 남은 stage 가 없어도 실행을 마무리한다
+				finish(1);
+			}
+			else {
+				console.heading("이미 Boot " + project.bootVersion() + " (목표 " + plan.targetBoot() + " 이상)예요.");
+			}
 			return;
 		}
 		if (!resumed.active() && !config.preview()) {
@@ -90,7 +95,7 @@ final class MigrationPipeline {
 
 		// stage 번호는 지난 기록 뒤에 이어서 붙인다 (재개 시에는 다시 시도하는 stage 번호부터)
 		int lastCompletedOrder = (resumed.lastCompletedOrder() != null) ? resumed.lastCompletedOrder()
-				: this.session.ws().stageTags().size();
+				: this.session.ws().lastStageOrder();
 		if (config.preview()) {
 			preview(plan, lastCompletedOrder);
 			return;
@@ -100,7 +105,7 @@ final class MigrationPipeline {
 			order++;
 			this.stages.run(stage, stage.tag(order));
 		}
-		finish(project, plan);
+		finish(plan.stages().size() + (resumed.continued() ? 1 : 0));
 	}
 
 	/** 새로 시작할 때는 자동 변경이 기존 변경과 섞이지 않도록 깨끗한 작업 트리를 요구한다 */
@@ -146,9 +151,8 @@ final class MigrationPipeline {
 		ProjectScanner scanner = this.session.components().scanner();
 		MigrationWorkspace ws = this.session.ws();
 		console.heading("[시작] 의존성 버전 / detect / 원본 빌드");
-		if (!resumed
-				&& scanner.resolvedVersions(this.session.gradle(), ws.start().versionsLog(), ws.start().versions())) {
-			console.line("   의존성 {}개 → {}", TextFiles.countMatches(ws.start().versions(), "."), ws.start().versions());
+		if (!resumed) {
+			resolveStartVersions(scanner, ws);
 		}
 		if (config.gate().level().builds() && !config.preview() && !resumed) {
 			BaselineBuild.Result baseline = new BaselineBuild(this.session.gradle(), this.session.verifyInitScript(),
@@ -171,6 +175,17 @@ final class MigrationPipeline {
 		}
 	}
 
+	/** 실패해도 마이그레이션은 계속한다. 버전을 모르면 의존성 조건이 붙은 체크리스트와 첫 stage 의 의존성 변경이 빠진다 */
+	private void resolveStartVersions(ProjectScanner scanner, MigrationWorkspace ws) {
+		RunnerConsole console = this.session.console();
+		if (scanner.resolvedVersions(this.session.gradle(), ws.start().versionsLog(), ws.start().versions())) {
+			console.line("   의존성 {}개 → {}", TextFiles.countMatches(ws.start().versions(), "."), ws.start().versions());
+			return;
+		}
+		console.error("의존성 버전 수집 실패 (의존성 조건이 붙은 체크리스트와 첫 stage 의 의존성 변경이 빠지고 계속 진행해요) → " + ws.start().versionsLog());
+		this.session.history().note("시작할 때 의존성 버전을 모으지 못해 의존성 조건이 붙은 체크리스트가 빠져요 (start/versions.log)");
+	}
+
 	private void preview(MigrationPlan plan, int lastCompletedOrder) {
 		PreviewRun preview = new PreviewRun(this.session.runner().paths(), this.session.runner().gradleFactory(),
 				this.session.components().inspector(), this.session.console());
@@ -184,14 +199,18 @@ final class MigrationPipeline {
 				this.session.projectRecipes(), this.session.gradle());
 	}
 
-	private void finish(ProjectState project, MigrationPlan plan) {
+	/**
+	 * @param completedStages 이번 실행에서 통과한 stage 수 (재개로 통과한 stage 포함)
+	 */
+	private void finish(int completedStages) {
 		RunnerConsole console = this.session.console();
 		MigrationWorkspace ws = this.session.ws();
-		String startBoot = project.bootVersion();
+		// 재개한 실행도 처음 시작할 때의 버전부터 센다
+		String startBoot = this.session.state().startBoot();
 		String finalBoot = this.session.components().inspector().bootVersion(this.session.projectDir());
 		this.session.history().finished(startBoot, finalBoot);
 		this.session.store().delete();
-		if (project.gitRoot()) {
+		if (this.session.isGit()) {
 			this.session.git().deleteRef(START_REF);
 		}
 		console.heading("완료: Boot " + startBoot + " → " + finalBoot);
@@ -203,7 +222,7 @@ final class MigrationPipeline {
 		console.line("     2) 개발/스테이징 배포 후 기동 로그에서 \"The use of configuration keys that\" 검색 (외부 설정 저장소 확인)");
 		console.line("     3) 정리가 끝나면 spring-boot-properties-migrator 의존성 제거");
 		if (this.session.config().commit()) {
-			console.line("   커밋       : {}", this.session.git().recentCommits(plan.stages().size()));
+			console.line("   커밋       : {}", this.session.git().recentCommits(completedStages));
 		}
 	}
 

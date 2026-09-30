@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter;
 import com.eottabom.migration.console.RunnerConsole;
 import com.eottabom.migration.plan.MigrationPlan;
 import com.eottabom.migration.project.ProjectState;
+import com.eottabom.migration.stage.StageId;
 import com.eottabom.migration.stage.StageTag;
 import com.eottabom.migration.workspace.MigrationWorkspace;
 import org.jspecify.annotations.Nullable;
@@ -41,6 +42,12 @@ record RunHistory(MigrationWorkspace ws, String projectName) {
 
 	void stageTable() {
 		append("\n| stage | 컴파일 | 테스트 | 빌드 | 변경 파일 | 검색 결과 | 체크리스트 | 결과 |\n|---|---|---|---|---|---|---|---|\n");
+	}
+
+	/** 멈춘 기록 뒤에 재개한 stage 의 한 줄이 표로 이어지도록 표 머리를 다시 쓴다 */
+	void resuming(StageId stage) {
+		append("재개: " + stage + " stage 의 게이트를 다시 확인\n");
+		stageTable();
 	}
 
 	void note(String note) {

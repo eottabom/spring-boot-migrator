@@ -101,6 +101,11 @@ public record MigrationWorkspace(Path dir) {
 		}
 	}
 
+	/** 지난 실행까지 포함한 마지막 stage 번호. 없으면 0. 폴더를 지워 번호가 비어도 남은 번호와 겹치지 않는다 */
+	public int lastStageOrder() {
+		return stageTags().stream().mapToInt(StageTag::order).max().orElse(0);
+	}
+
 	/** 같은 태그로 다시 시도할 때 지난 시도의 결과가 섞이지 않게 stage 폴더를 비운다 */
 	public void clearStage(StageTag tag) {
 		deleteTree(this.dir.resolve(tag.dirName()));

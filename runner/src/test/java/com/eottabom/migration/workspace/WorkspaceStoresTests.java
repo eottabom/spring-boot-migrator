@@ -89,11 +89,14 @@ class WorkspaceStoresTests {
 	@Test
 	void ordersStageFoldersByNumberAndFallsBackToStartVersions() throws IOException {
 		MigrationWorkspace ws = MigrationWorkspace.in(this.root);
+		assertThat(ws.lastStageOrder()).isZero();
 		ws.stage(StageTag.parse("10-java21"));
 		ws.stage(StageTag.parse("09-boot-4.1"));
 		Files.writeString(ws.stage(StageTag.parse("09-boot-4.1")).versions(), "a:b=1\n");
 
 		assertThat(ws.stageTags()).containsExactly(StageTag.parse("09-boot-4.1"), StageTag.parse("10-java21"));
+		// 폴더 개수(2)가 아니라 가장 큰 번호다
+		assertThat(ws.lastStageOrder()).isEqualTo(10);
 		assertThat(ws.versionsAfter(StageTag.parse("09-boot-4.1")))
 			.isEqualTo(ws.stage(StageTag.parse("09-boot-4.1")).versions());
 		assertThat(ws.versionsAfter(StageTag.parse("10-java21"))).isEqualTo(ws.start().versions());

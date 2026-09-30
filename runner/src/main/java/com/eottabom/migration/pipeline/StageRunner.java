@@ -1,6 +1,7 @@
 package com.eottabom.migration.pipeline;
 
 import java.util.List;
+import java.util.Set;
 
 import com.eottabom.migration.console.RunnerConsole;
 import com.eottabom.migration.pipeline.step.AssessStep;
@@ -108,16 +109,16 @@ record StageRunner(RunSession session) {
 	/** 깨진 상태로 다음 stage 로 가거나 커밋하지 않는다. 같은 명령을 다시 실행하면 이 stage 부터 이어서 한다 */
 	private void stop(Stage stage, StageTag tag, StageFiles files, GateOutcome gate, @Nullable String treeBefore) {
 		session().history().stopped(tag, gate.describe());
-		if (session().isGit()) {
-			Reason reason = gate.compileFailed() ? Reason.COMPILE : Reason.BUILD;
-			session().state(session().state()
-				.stoppedAt(new Stopped(stage.id(), tag, stage.covers(), session().lastTag(), reason, treeBefore),
-						session().git().untracked()));
-		}
+		Reason reason = gate.compileFailed() ? Reason.COMPILE : Reason.BUILD;
+		session().state(session().state()
+			.stoppedAt(new Stopped(stage.id(), tag, stage.covers(), session().lastTag(), reason, treeBefore),
+					session().isGit() ? session().git().untracked() : Set.of()));
 		if (gate.compileFailed()) {
 			throw new GradleException("[" + stage.name() + "] 컴파일 실패. 에러는 " + files.compileLog() + "\n"
-					+ "   같은 명령을 다시 실행하면, 에러를 고쳤을 땐 이 stage 의 테스트/빌드 검증을 이어서 하고\n" + "   그대로면 " + stage.name()
-					+ " stage 전 상태로 되돌려 " + stage.name() + " stage 를 다시 시도해요.");
+					+ "   같은 명령을 다시 실행하면, 에러를 고쳤을 땐 이 stage 의 테스트/빌드 검증을 이어서 하고\n"
+					+ (session().isGit()
+							? "   그대로면 " + stage.name() + " stage 전 상태로 되돌려 " + stage.name() + " stage 를 다시 시도해요."
+							: "   그대로면 멈춰요 (git 저장소가 아니라 stage 전 상태로 되돌릴 수 없어요)."));
 		}
 		throw new GradleException("[" + stage.name() + "] " + gate.describe() + ". 결과는 "
 				+ session().ws().resultHtml().toUri() + "\n" + "   고치고 같은 명령을 다시 실행하면 이 stage 검증부터 다시 하고, 통과하면 "

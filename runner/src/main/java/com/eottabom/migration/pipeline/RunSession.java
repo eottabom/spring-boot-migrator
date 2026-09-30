@@ -19,7 +19,7 @@ import com.eottabom.migration.workspace.RunStateStore;
 import org.jspecify.annotations.Nullable;
 
 /**
- * 한 번의 migrationRun 이 stage 사이에 이어 쓰는 값. 재개 기록(run-state.json)은 git 저장소일 때만 파일로 남긴다.
+ * 한 번의 migrationRun 이 stage 사이에 이어 쓰는 값. 재개 기록(run-state.json)은 바뀔 때마다 파일로 남긴다.
  */
 final class RunSession {
 
@@ -40,7 +40,7 @@ final class RunSession {
 	/** stage 가 Java 버전을 올리면 다시 고른 JDK 로 바꾼다 */
 	private ProjectGradle gradle;
 
-	private boolean isGit;
+	private final boolean isGit;
 
 	private RunState state = RunState.start("", "", "", null);
 
@@ -58,7 +58,9 @@ final class RunSession {
 		this.store = RunStateStore.of(ws, runner.paths().schemaDir());
 		this.projectRecipes = MigrationRunner.projectRecipes(config);
 		this.history = new RunHistory(ws, projectName());
-		this.gradle = runner.gradle(components().inspector().inspect(config.projectDir()), config);
+		ProjectState project = components().inspector().inspect(config.projectDir());
+		this.isGit = project.gitRoot();
+		this.gradle = runner.gradle(project, config);
 		this.previousVersions = ws.start().versions();
 	}
 
@@ -114,18 +116,14 @@ final class RunSession {
 		return this.isGit;
 	}
 
-	void isGit(boolean isGit) {
-		this.isGit = isGit;
-	}
-
 	RunState state() {
 		return this.state;
 	}
 
-	/** 바뀐 기록을 git 저장소면 파일로 남긴다 (preview 는 남기지 않는다) */
+	/** 바뀐 기록을 파일로 남긴다 (preview 는 남기지 않는다) */
 	void state(RunState state) {
 		this.state = state;
-		if (this.isGit && !this.config.preview()) {
+		if (!this.config.preview()) {
 			this.store.write(state);
 		}
 	}

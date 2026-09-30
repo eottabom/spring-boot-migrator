@@ -30,17 +30,17 @@ record Resumption(RunSession session, StageRunner stages) {
 		if (saved.isEmpty() || saved.get().stopped() == null) {
 			return Resumed.NONE;
 		}
-		// 멈춘 기록은 git 저장소에서만 남는다
-		session().isGit(true);
 		session().state(saved.get());
 		Stopped stopped = Objects.requireNonNull(saved.get().stopped());
-		checkResumable(stopped);
+		if (session().isGit()) {
+			checkResumable(stopped);
+		}
 		session().continueAfter(stopped.previousTag());
 		if (stopped.reason() == Reason.COMPILE) {
 			session().console().heading("[재개] 지난 실행이 " + stopped.stage() + " stage 에서 컴파일이 실패해 멈췄어요");
 			if (!session().gradle()
 				.run(session().ws().start().resumeCompileLog(), List.of("clean", "compileJava", "compileTestJava"))) {
-				return rollback(stopped);
+				return session().isGit() ? rollback(stopped) : stillBroken(stopped);
 			}
 			session().console()
 				.line("   이제 컴파일돼요. 이 stage 의 게이트({})를 이어서 확인할게요", session().config().gate().level().option());
@@ -50,9 +50,12 @@ record Resumption(RunSession session, StageRunner stages) {
 				.heading("[재개] 지난 실행이 " + stopped.stage() + " stage 에서 테스트나 빌드가 실패해 멈췄어요. 이 stage 검증부터 다시 할게요");
 		}
 		// 고치며 새로 만든 파일도 이 stage 의 변경으로 담는다 (멈출 때 이미 있던 파일은 뺀다)
-		Set<String> fixedFiles = session().git().untracked();
-		fixedFiles.removeAll(session().state().untrackedAtStop());
-		session().state(session().state().withCreatedFiles(fixedFiles));
+		if (session().isGit()) {
+			Set<String> fixedFiles = session().git().untracked();
+			fixedFiles.removeAll(session().state().untrackedAtStop());
+			session().state(session().state().withCreatedFiles(fixedFiles));
+		}
+		session().history().resuming(stopped.stage());
 		stages().resume(stopped);
 		session().console().line("   통과했어요. 다음 stage 부터 이어서 진행할게요");
 		session().state(session().state().resumed());
@@ -88,6 +91,13 @@ record Resumption(RunSession session, StageRunner stages) {
 		return new Resumed(true, stopped.tag().order() - 1, "- 재개해서 " + stopped.stage() + " stage 전 상태로 되돌리고 다시 시도했어요");
 	}
 
+	/** git 저장소가 아니면 stage 전 상태로 되돌릴 수 없어, 고칠 때까지 같은 stage 에서 멈춘다 */
+	private Resumed stillBroken(Stopped stopped) {
+		throw new GradleException(
+				"[" + stopped.stage() + "] 컴파일 에러가 남아 있어요. 에러는 " + session().ws().start().resumeCompileLog() + "\n"
+						+ "   git 저장소가 아니라 stage 전 상태로 되돌릴 수 없어요. 고치고 같은 명령을 다시 실행해 주세요");
+	}
+
 	/**
 	 * 재개 결과.
 	 *
@@ -97,6 +107,11 @@ record Resumption(RunSession session, StageRunner stages) {
 	record Resumed(boolean active, @Nullable Integer lastCompletedOrder, @Nullable String note) {
 
 		static final Resumed NONE = new Resumed(false, null, null);
+
+		/** 멈췄던 stage 가 게이트를 통과해 다음 stage 로 이어 간다 (되돌려 다시 시도하는 경우가 아니다) */
+		boolean continued() {
+			return this.active && this.lastCompletedOrder == null;
+		}
 
 	}
 

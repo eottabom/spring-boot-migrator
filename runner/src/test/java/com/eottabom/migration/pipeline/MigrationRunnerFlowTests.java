@@ -6,7 +6,9 @@ import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
 
 import com.eottabom.migration.GitFixture;
 import com.eottabom.migration.config.GateLevel;
@@ -106,6 +108,7 @@ class MigrationRunnerFlowTests {
 		this.runner.run(request("3.5", true));
 
 		assertThat(migrationCommits()).hasSize(2);
+		assertThat(migrationCommits().get(1)).startsWith("chore: Spring Boot 3.4 마이그레이션");
 		assertThat(git("show", "--name-only", "--format=", "HEAD~1")).contains("build.gradle", "lombok.config");
 		// 빌드가 만든 추적 안 되는 파일은 커밋에 들어가지 않는다
 		assertThat(git("log", "--name-only", "--format=")).doesNotContain("test-output.log");
@@ -156,6 +159,78 @@ class MigrationRunnerFlowTests {
 		this.runner.run(request("3.5", false));
 
 		assertThat(read("build.gradle")).contains("3.5.0");
+		assertThat(this.project.resolve(".spring-boot-migrator/run-state.json")).doesNotExist();
+	}
+
+	@Test
+	void finishesRunWhenResumedLastStagePasses() throws IOException {
+		this.fake.builds.add(new BuildOutcome(true, 2, List.of()));
+		assertThatThrownBy(() -> this.runner.run(request("3.4", true))).hasMessageContaining("테스트 2개 실패");
+
+		this.runner.run(request("3.4", true));
+
+		// 남은 stage 가 없어도 실행을 마무리한다 (재개 기록과 시작 ref 정리, 완료 기록, 커밋)
+		assertThat(this.project.resolve(".spring-boot-migrator/run-state.json")).doesNotExist();
+		assertThat(git("for-each-ref", "refs/spring-boot-migrator")).isBlank();
+		assertThat(migrationCommits()).hasSize(1);
+		String history = read(".spring-boot-migrator/history.md");
+		assertThat(history).contains("Boot 3.3.5 → 3.4.0 완료");
+		// 재개한 stage 의 한 줄이 표 머리 아래에 온다
+		assertThat(history)
+			.containsPattern("재개: 3\\.4 stage 의 게이트를 다시 확인\\n\\n\\| stage \\|[^\\n]*\\n\\|---[^\\n]*\\n\\| 3\\.4 \\|");
+	}
+
+	@Test
+	void numbersStagesAfterHighestExistingFolder() throws IOException {
+		// 지난 실행의 폴더가 중간이 비어 있어도 남은 번호와 겹치지 않는다
+		write(".spring-boot-migrator/03-boot-3.2/result.md", "old");
+
+		this.runner.run(request("3.4", false));
+
+		assertThat(read(".spring-boot-migrator/03-boot-3.2/result.md")).isEqualTo("old");
+		assertThat(this.project.resolve(".spring-boot-migrator/04-boot-3.4/result.md")).exists();
+	}
+
+	@Test
+	void continuesWithoutStartVersionsAndSaysSo() throws IOException {
+		this.fake.resolvesStartVersions = false;
+
+		this.runner.run(request("3.4", false));
+
+		assertThat(read("build.gradle")).contains("3.4.0");
+		assertThat(read(".spring-boot-migrator/history.md")).contains("시작할 때 의존성 버전을 모으지 못해");
+	}
+
+	@Test
+	void projectWithoutGitVerifiesStoppedStageAgainInsteadOfSkippingIt() throws IOException {
+		removeGit();
+		this.fake.builds.add(new BuildOutcome(true, 2, List.of()));
+		assertThatThrownBy(() -> this.runner.run(request("3.5", false))).hasMessageContaining("테스트 2개 실패");
+		assertThat(read(".spring-boot-migrator/run-state.json")).contains("\"reason\" : \"build\"");
+
+		// 고치지 않고 다시 실행하면 같은 stage 의 게이트에서 다시 멈춘다 (다음 stage 로 넘어가지 않는다)
+		this.fake.builds.add(new BuildOutcome(true, 1, List.of()));
+		assertThatThrownBy(() -> this.runner.run(request("3.5", false))).hasMessageContaining("테스트 1개 실패");
+		assertThat(read("build.gradle")).contains("3.4.0");
+
+		this.runner.run(request("3.5", false));
+
+		assertThat(read("build.gradle")).contains("3.5.0");
+		assertThat(this.project.resolve(".spring-boot-migrator/run-state.json")).doesNotExist();
+	}
+
+	@Test
+	void projectWithoutGitStopsAgainWhileCompileIsStillBroken() throws IOException {
+		removeGit();
+		this.fake.compiles.add(false);
+		assertThatThrownBy(() -> this.runner.run(request("3.4", false))).hasMessageContaining("컴파일 실패")
+			.hasMessageContaining("되돌릴 수 없어요");
+
+		this.fake.compiles.add(false);
+		assertThatThrownBy(() -> this.runner.run(request("3.4", false))).hasMessageContaining("컴파일 에러가 남아 있어요");
+
+		// 고치면 이 stage 의 게이트를 이어서 확인하고 끝낸다
+		this.runner.run(request("3.4", false));
 		assertThat(this.project.resolve(".spring-boot-migrator/run-state.json")).doesNotExist();
 	}
 
@@ -439,6 +514,14 @@ class MigrationRunnerFlowTests {
 		this.runner.run(request("3.4", false));
 
 		assertThat(read("build.gradle")).contains("3.4.0");
+	}
+
+	private void removeGit() throws IOException {
+		try (Stream<Path> files = Files.walk(this.project.resolve(".git"))) {
+			for (Path file : files.sorted(Comparator.reverseOrder()).toList()) {
+				Files.delete(file);
+			}
+		}
 	}
 
 	private MigrationConfig dirty(String target) {

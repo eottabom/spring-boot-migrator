@@ -36,6 +36,9 @@ public final class FakeProjectGradle implements ProjectGradle {
 
 	public BuildOutcome baseline = BuildOutcome.pass();
 
+	/** false 면 시작할 때의 의존성 버전 수집(migrationResolvedVersions 만 도는 실행)이 실패한다 */
+	public boolean resolvesStartVersions = true;
+
 	public final List<String> calls;
 
 	public FakeProjectGradle(Path projectDir) {
@@ -59,6 +62,7 @@ public final class FakeProjectGradle implements ProjectGradle {
 		FakeProjectGradle other = new FakeProjectGradle(dir, this.rewrites, this.compiles, this.builds, this.calls);
 		other.retries.addAll(this.retries);
 		other.baseline = this.baseline;
+		other.resolvesStartVersions = this.resolvesStartVersions;
 		return other;
 	}
 
@@ -87,6 +91,11 @@ public final class FakeProjectGradle implements ProjectGradle {
 	public boolean run(@Nullable Path log, List<String> args) {
 		String cmd = String.join(" ", args);
 		this.calls.add(cmd.replaceAll("--init-script \\S+ ", ""));
+		if (!this.resolvesStartVersions && args.contains("migrationResolvedVersions")
+				&& !args.contains("compileJava")) {
+			write(log, "BUILD FAILED");
+			return false;
+		}
 		args.stream()
 			.filter((arg) -> arg.startsWith("-PmigrationVersionsOut="))
 			.findFirst()

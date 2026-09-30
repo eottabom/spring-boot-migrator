@@ -1,7 +1,7 @@
 # spring-boot-migrator
 
 <!-- badges:start -->
-![runner coverage](https://img.shields.io/badge/runner%20coverage-82.6%25-green) ![recipes coverage](https://img.shields.io/badge/recipes%20coverage-97.4%25-brightgreen)
+![runner coverage](https://img.shields.io/badge/runner%20coverage-82.8%25-green) ![recipes coverage](https://img.shields.io/badge/recipes%20coverage-97.4%25-brightgreen)
 <!-- badges:end -->
 
 Spring Boot 프로젝트를 명령 하나로 목표 버전(기본 Boot 4.1)까지 stage 별로 올리는 OpenRewrite 레시피와 Gradle 러너.
@@ -60,7 +60,7 @@ cd spring-boot-migrator
 <!-- coverage:start -->
 | Module | Line | Branch | Method |
 |---|---|---|---|
-| runner | 82.6% | 73.1% | 89.7% |
+| runner | 82.8% | 74.1% | 89.7% |
 | recipes | 97.4% | 86.7% | 98.6% |
 <!-- coverage:end -->
 
