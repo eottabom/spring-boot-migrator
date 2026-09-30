@@ -11,7 +11,7 @@ import org.openrewrite.test.SourceSpecs;
 
 import static org.openrewrite.java.Assertions.java;
 
-class RuntimeMigrationRiskTests implements RewriteTest {
+class ManualMigrationItemsTests implements RewriteTest {
 
 	@ParameterizedTest(name = "[{index}] {0}")
 	@MethodSource("scenarios")
@@ -120,7 +120,7 @@ class RuntimeMigrationRiskTests implements RewriteTest {
 			),
 			scenario(
 				"RestTemplate 과 요청 팩토리 생성 위치 표시",
-				"com.eottabom.rewrite.detect.httpclient.FindRequestBodyBufferingCompatibilityRisk",
+				"com.eottabom.rewrite.detect.httpclient.FindRequestBodyBufferingChange",
 				stubs("package org.springframework.web.client; public class RestTemplate { public RestTemplate() {} }",
 					"package org.springframework.http.client; public class SimpleClientHttpRequestFactory {}"),
 				java("""

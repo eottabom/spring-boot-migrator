@@ -185,9 +185,10 @@ stage 결과(`NN-stage/result.md`)의 섹션과 출처다.
 | Boot 4.1 과 Spring Cloud | 2025.1.2 이상이 필요하다 (레시피가 2025.1.x 최신으로 올린다) |
 | 대체 레시피가 없는 deprecated API | 결과에 위치만 남긴다. 대체 레시피가 생기면 `guides/` 의 `deprecations` 에 추가한다 |
 
-## Runtime Risk Review
+## Manual Review Items
 
-`detect/runtime-risks.yml` 의 검색 레시피와 `FindSpyStubbingThroughCachingProxy` 를 `detect.ManualMigrationItems` 에 연결했다.
+`detect/manual-items.yml` 의 `detect.ManualMigrationItems` 가 검색을 모두 묶는다. 컴파일과 테스트가 통과해도 동작이 바뀔 수 있는 곳은
+같은 파일에 이름 있는 검색 레시피로 두고(`FindSpyStubbingThroughCachingProxy` 는 Java 레시피), 아래 표처럼 가이드 체크리스트 항목과 짝을 짓는다.
 scan 과 preview 에서 후보 위치를 표시하고, stage 별 영향과 공식 출처는 가이드 체크리스트 항목(`fix: manual`, `detect`)으로 제공한다.
 이 검색 레시피들은 소스를 자동 수정하지 않는다. 변환 결과가 분명한 두 가지(3.4 조건부 빈의 반환 타입, 4.0 `@Bean ObjectMapper` 반환 타입)는
 stage 레시피가 고친다.

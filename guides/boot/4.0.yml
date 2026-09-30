@@ -12,7 +12,7 @@ checklist:
   - id: redis-json-compatibility
     title: Redis JSON 캐시의 타입 정보와 기존 데이터 호환성
     detail: GenericJacksonJsonRedisSerializer 는 이전 serializer 와 달리 default typing 을 자동 활성화하지 않는다. RedisSerializer.json() 도 Jackson 3 으로 바뀐다. 기존 캐시를 새 serializer 로 읽는 회귀 테스트와 타입 허용 정책, null 캐시를 확인한다. 일괄 타입 허용이나 캐시 삭제를 자동 적용하지 않는다.
-    detect: com.eottabom.rewrite.detect.redis.FindRedisJsonSerializationCompatibilityRisk
+    detect: com.eottabom.rewrite.detect.redis.FindRedisJsonSerializationChange
     source: https://docs.spring.io/spring-data/redis/reference/upgrading.html
     when: { dependencies: [org.springframework.data:spring-data-redis] }
   - id: http-message-converter-beans

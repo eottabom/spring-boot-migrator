@@ -12,7 +12,7 @@ checklist:
   - id: request-body-buffering
     title: 요청 본문을 버퍼링하지 않아 Content-Length 가 빠질 수 있음
     detail: Framework 6.1 부터 대부분의 `ClientHttpRequestFactory` 가 요청 본문을 버퍼링하지 않는다. JSON 같은 요청은 크기를 미리 알 수 없어 `Content-Length` 헤더가 설정되지 않는다. 이 헤더를 요구하는 서버와 연동하는 클라이언트는 `BufferingClientHttpRequestFactory` 로 감싼다. 버퍼링은 메모리를 더 쓰므로 필요한 클라이언트에만 적용한다.
-    detect: com.eottabom.rewrite.detect.httpclient.FindRequestBodyBufferingCompatibilityRisk
+    detect: com.eottabom.rewrite.detect.httpclient.FindRequestBodyBufferingChange
     source: https://github.com/spring-projects/spring-framework/wiki/Spring-Framework-6.1-Release-Notes
     when: { dependencies: [org.springframework:spring-web] }
   - id: catch-all-404

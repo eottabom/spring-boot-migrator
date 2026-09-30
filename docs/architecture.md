@@ -89,7 +89,7 @@ recipes/                              OpenRewrite 레시피 jar (대상 프로�
     stage/                            stage 레시피 (boot.yml, java.yml, gradle.yml)
     upstream/                         boot-stages.yml, catalog.yml (생성 파일, ./gradlew :recipes:syncUpstreamStages), boot.yml (3.0 입구, 4.1 대체)
     custom/                           도메인별 보정 (aws, elasticsearch, gradle, hibernate, kafka, logging, misc, querydsl, search, spring) 과 common.yml
-    detect/                           manual-items.yml (수동 검토 대상), runtime-risks.yml (동작이 바뀔 수 있는 곳)
+    detect/                           manual-items.yml (수동 검토 대상과 동작이 바뀔 수 있는 곳)
   src/main/java/                      yml(upstream 조합)로는 불가능한 보정과 검색 (custom/, detect/)
   src/test/java/                      레시피 이름/옵션 검증 + Java 레시피 단위 테스트
 runner/                               러너 Gradle 플러그인 (루트 빌드가 쓰는 플러그인이라 included build). 패키지는 아래 Runner 참고
@@ -151,8 +151,7 @@ stage 가 끝나면 러너(`AssessStep`)가 남은 파일을 읽어 결과 모�
 | `upstream/catalog.yml` | `upstream.catalog.Boot_3_0` ~ `4_1`, `Java_21`, `Java_25`, `Gradle_8_14`, `Gradle_9_1`. stage 레시피의 버전 변경을 catalog 규칙으로 옮긴 것. 생성 파일 | 예 |
 | `upstream/boot.yml` | `upstream.Boot_3_0` (upstream 체인 전체), `upstream.Boot_4_1` (upstream 에 아직 없는 4.1 의 대체) | 예 |
 | `custom/*.yml` | 도메인별 보정과 `custom.CommonFixes` | 예 |
-| `detect/manual-items.yml` | `detect.ManualMigrationItems`. 자동으로 바꾸면 위험한 곳(mariadb-java-client 2.x, redisson, Jackson 3 전환 대상, `@EntityGraph` 등) | 아니오 |
-| `detect/runtime-risks.yml` | 컴파일과 테스트가 통과해도 동작이 바뀔 수 있는 곳. 설명은 가이드 체크리스트 항목의 `detect` 에 연결한다 | 아니오 |
+| `detect/manual-items.yml` | `detect.ManualMigrationItems`. 자동으로 바꾸면 위험한 곳(mariadb-java-client 2.x, redisson, Jackson 3 전환 대상, `@EntityGraph` 등)과, 컴파일과 테스트가 통과해도 동작이 바뀔 수 있는 곳을 찾는 이름 있는 검색 레시피. 뒤의 것은 가이드 체크리스트 항목의 `detect` 에 연결한다 | 아니오 |
 
 레시피 yml 은 첫 줄에 `schema/rewrite-recipe.schema.json` 을 적는다 (IDE 가 키 오타와 들여쓰기 실수를 바로 표시한다).
 이 스키마는 문서의 구조만 본다. OpenRewrite 는 모르는 키를 조용히 무시해서 `preconditions` 를 잘못 쓴 레시피도 유효하다고 보고 조건 없이
