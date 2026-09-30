@@ -27,7 +27,7 @@ import org.openrewrite.java.tree.J;
 
 /**
  * 레시피가 빌드 스크립트에 문자열로 추가한 의존성을 version catalog 항목으로 옮긴다. 사용자가 원래 문자열로 쓴 의존성은 두고, catalog 를
- * 이미 쓰는 빌드 스크립트에만 적용한다. 다른 레시피가 추가한 뒤에 돌아야 해서 단계 마지막에 둔다.
+ * 이미 쓰는 빌드 스크립트에만 적용한다. 다른 레시피가 추가한 뒤에 돌아야 해서 stage 마지막에 둔다.
  */
 public class DeclareAddedDependenciesInVersionCatalog extends Recipe {
 

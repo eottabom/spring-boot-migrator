@@ -1,10 +1,10 @@
-# 생성 파일: ./gradlew syncUpstreamSteps (UpstreamStepsGenerator). 직접 고치지 않는다.
+# 생성 파일: ./gradlew syncUpstreamStages (UpstreamStagesGenerator). 직접 고치지 않는다.
 # 출처: rewrite-spring-6.37.0.jar
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.Boot_3_1
-displayName: upstream Spring Boot 3.1 단계 (직전 단계 체인 제외)
-description: org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_1 에서 첫 항목인 직전 단계(org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_0)를 뺀 것.
+displayName: upstream Spring Boot 3.1 stage (직전 stage 체인 제외)
+description: org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_1 에서 첫 항목인 직전 stage(org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_0)를 뺀 것.
 preconditions:
 - org.openrewrite.Singleton
 recipeList:
@@ -42,8 +42,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.boot3_1.MigrateToHibernate62
-displayName: MigrateToHibernate62 (3_1 단계, 지난 단계 체인 제외)
-description: 'org.openrewrite.hibernate.MigrateToHibernate62 에서 지난 단계 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 단계에서 이미 돌아 뺀 레시피: org.openrewrite.hibernate.MigrateToHibernate61.'
+displayName: MigrateToHibernate62 (3_1 stage, 지난 stage 체인 제외)
+description: 'org.openrewrite.hibernate.MigrateToHibernate62 에서 지난 stage 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 stage에서 이미 돌아 뺀 레시피: org.openrewrite.hibernate.MigrateToHibernate61.'
 preconditions:
 - org.openrewrite.Singleton
 recipeList:
@@ -57,8 +57,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.boot3_1.Mockito4to5Only
-displayName: Mockito4to5Only (3_1 단계, 지난 단계 체인 제외)
-description: 'org.openrewrite.java.testing.mockito.Mockito4to5Only 에서 지난 단계 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 단계에서 이미 돌아 뺀 레시피: org.openrewrite.java.testing.mockito.Mockito1to4Migration,
+displayName: Mockito4to5Only (3_1 stage, 지난 stage 체인 제외)
+description: 'org.openrewrite.java.testing.mockito.Mockito4to5Only 에서 지난 stage 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 stage에서 이미 돌아 뺀 레시피: org.openrewrite.java.testing.mockito.Mockito1to4Migration,
   org.openrewrite.maven.RemoveDuplicateDependencies.'
 preconditions:
 - org.openrewrite.Singleton
@@ -78,8 +78,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.boot3_1.UpgradeSpringDoc_2_2
-displayName: UpgradeSpringDoc_2_2 (3_1 단계, 지난 단계 체인 제외)
-description: 'org.openrewrite.java.springdoc.UpgradeSpringDoc_2_2 에서 지난 단계 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 단계에서 이미 돌아 뺀 레시피: org.openrewrite.java.springdoc.UpgradeSpringDoc_2.'
+displayName: UpgradeSpringDoc_2_2 (3_1 stage, 지난 stage 체인 제외)
+description: 'org.openrewrite.java.springdoc.UpgradeSpringDoc_2_2 에서 지난 stage 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 stage에서 이미 돌아 뺀 레시피: org.openrewrite.java.springdoc.UpgradeSpringDoc_2.'
 preconditions:
 - org.openrewrite.Singleton
 recipeList:
@@ -90,8 +90,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.Boot_3_2
-displayName: upstream Spring Boot 3.2 단계 (직전 단계 체인 제외)
-description: org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_2 에서 첫 항목인 직전 단계(org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_1)를 뺀 것.
+displayName: upstream Spring Boot 3.2 stage (직전 stage 체인 제외)
+description: org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_2 에서 첫 항목인 직전 stage(org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_1)를 뺀 것.
 preconditions:
 - org.openrewrite.Singleton
 recipeList:
@@ -159,8 +159,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.boot3_2.UpgradeSpringFramework_6_1
-displayName: UpgradeSpringFramework_6_1 (3_2 단계, 지난 단계 체인 제외)
-description: 'org.openrewrite.java.spring.framework.UpgradeSpringFramework_6_1 에서 지난 단계 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 단계에서 이미 돌아 뺀 레시피: org.openrewrite.java.spring.framework.UpgradeSpringFramework_6_0.'
+displayName: UpgradeSpringFramework_6_1 (3_2 stage, 지난 stage 체인 제외)
+description: 'org.openrewrite.java.spring.framework.UpgradeSpringFramework_6_1 에서 지난 stage 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 stage에서 이미 돌아 뺀 레시피: org.openrewrite.java.spring.framework.UpgradeSpringFramework_6_0.'
 preconditions:
 - org.openrewrite.Singleton
 recipeList:
@@ -175,8 +175,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.boot3_2.MigrateToHibernate64
-displayName: MigrateToHibernate64 (3_2 단계, 지난 단계 체인 제외)
-description: org.openrewrite.hibernate.MigrateToHibernate64 에서 지난 단계 체인에 이미 들어 있던 레시피를 뺀 사본이다.
+displayName: MigrateToHibernate64 (3_2 stage, 지난 stage 체인 제외)
+description: org.openrewrite.hibernate.MigrateToHibernate64 에서 지난 stage 체인에 이미 들어 있던 레시피를 뺀 사본이다.
 preconditions:
 - org.openrewrite.Singleton
 recipeList:
@@ -189,8 +189,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.boot3_2.MigrateToHibernate63
-displayName: MigrateToHibernate63 (3_2 단계, 지난 단계 체인 제외)
-description: 'org.openrewrite.hibernate.MigrateToHibernate63 에서 지난 단계 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 단계에서 이미 돌아 뺀 레시피: org.openrewrite.hibernate.MigrateToHibernate62.'
+displayName: MigrateToHibernate63 (3_2 stage, 지난 stage 체인 제외)
+description: 'org.openrewrite.hibernate.MigrateToHibernate63 에서 지난 stage 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 stage에서 이미 돌아 뺀 레시피: org.openrewrite.hibernate.MigrateToHibernate62.'
 preconditions:
 - org.openrewrite.Singleton
 recipeList:
@@ -202,8 +202,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.boot3_2.UpgradeMyBatisToSpringBoot_3_2
-displayName: UpgradeMyBatisToSpringBoot_3_2 (3_2 단계, 지난 단계 체인 제외)
-description: 'org.openrewrite.java.spring.boot3.UpgradeMyBatisToSpringBoot_3_2 에서 지난 단계 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 단계에서 이미 돌아 뺀 레시피: org.openrewrite.java.spring.boot3.UpgradeMyBatisToSpringBoot_3_0.'
+displayName: UpgradeMyBatisToSpringBoot_3_2 (3_2 stage, 지난 stage 체인 제외)
+description: 'org.openrewrite.java.spring.boot3.UpgradeMyBatisToSpringBoot_3_2 에서 지난 stage 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 stage에서 이미 돌아 뺀 레시피: org.openrewrite.java.spring.boot3.UpgradeMyBatisToSpringBoot_3_0.'
 preconditions:
 - org.openrewrite.Singleton
 recipeList:
@@ -215,8 +215,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.boot3_2.UpgradeSpringDoc_2_5
-displayName: UpgradeSpringDoc_2_5 (3_2 단계, 지난 단계 체인 제외)
-description: 'org.openrewrite.java.springdoc.UpgradeSpringDoc_2_5 에서 지난 단계 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 단계에서 이미 돌아 뺀 레시피: org.openrewrite.java.springdoc.UpgradeSpringDoc_2_2.'
+displayName: UpgradeSpringDoc_2_5 (3_2 stage, 지난 stage 체인 제외)
+description: 'org.openrewrite.java.springdoc.UpgradeSpringDoc_2_5 에서 지난 stage 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 stage에서 이미 돌아 뺀 레시피: org.openrewrite.java.springdoc.UpgradeSpringDoc_2_2.'
 preconditions:
 - org.openrewrite.Singleton
 recipeList:
@@ -227,8 +227,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.Boot_3_3
-displayName: upstream Spring Boot 3.3 단계 (직전 단계 체인 제외)
-description: org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_3 에서 첫 항목인 직전 단계(org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_2)를 뺀 것.
+displayName: upstream Spring Boot 3.3 stage (직전 stage 체인 제외)
+description: org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_3 에서 첫 항목인 직전 stage(org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_2)를 뺀 것.
 preconditions:
 - org.openrewrite.Singleton
 recipeList:
@@ -274,8 +274,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.boot3_3.MigrateToHibernate65
-displayName: MigrateToHibernate65 (3_3 단계, 지난 단계 체인 제외)
-description: 'org.openrewrite.hibernate.MigrateToHibernate65 에서 지난 단계 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 단계에서 이미 돌아 뺀 레시피: org.openrewrite.hibernate.MigrateToHibernate64.'
+displayName: MigrateToHibernate65 (3_3 stage, 지난 stage 체인 제외)
+description: 'org.openrewrite.hibernate.MigrateToHibernate65 에서 지난 stage 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 stage에서 이미 돌아 뺀 레시피: org.openrewrite.hibernate.MigrateToHibernate64.'
 preconditions:
 - org.openrewrite.Singleton
 recipeList:
@@ -287,8 +287,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.boot3_3.UpgradeSpringDoc_2_6
-displayName: UpgradeSpringDoc_2_6 (3_3 단계, 지난 단계 체인 제외)
-description: 'org.openrewrite.java.springdoc.UpgradeSpringDoc_2_6 에서 지난 단계 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 단계에서 이미 돌아 뺀 레시피: org.openrewrite.java.springdoc.UpgradeSpringDoc_2_5.'
+displayName: UpgradeSpringDoc_2_6 (3_3 stage, 지난 stage 체인 제외)
+description: 'org.openrewrite.java.springdoc.UpgradeSpringDoc_2_6 에서 지난 stage 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 stage에서 이미 돌아 뺀 레시피: org.openrewrite.java.springdoc.UpgradeSpringDoc_2_5.'
 preconditions:
 - org.openrewrite.Singleton
 recipeList:
@@ -299,8 +299,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.Boot_3_4
-displayName: upstream Spring Boot 3.4 단계 (직전 단계 체인 제외)
-description: org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_4 에서 첫 항목인 직전 단계(org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_3)를 뺀 것.
+displayName: upstream Spring Boot 3.4 stage (직전 stage 체인 제외)
+description: org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_4 에서 첫 항목인 직전 stage(org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_3)를 뺀 것.
 preconditions:
 - org.openrewrite.Singleton
 recipeList:
@@ -350,8 +350,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.boot3_4.UpgradeSpringFramework_6_2
-displayName: UpgradeSpringFramework_6_2 (3_4 단계, 지난 단계 체인 제외)
-description: 'org.openrewrite.java.spring.framework.UpgradeSpringFramework_6_2 에서 지난 단계 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 단계에서 이미 돌아 뺀 레시피: org.openrewrite.java.spring.framework.UpgradeSpringFramework_6_1.'
+displayName: UpgradeSpringFramework_6_2 (3_4 stage, 지난 stage 체인 제외)
+description: 'org.openrewrite.java.spring.framework.UpgradeSpringFramework_6_2 에서 지난 stage 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 stage에서 이미 돌아 뺀 레시피: org.openrewrite.java.spring.framework.UpgradeSpringFramework_6_1.'
 preconditions:
 - org.openrewrite.Singleton
 recipeList:
@@ -388,8 +388,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.boot3_4.UpgradeSpringData_3_4
-displayName: UpgradeSpringData_3_4 (3_4 단계, 지난 단계 체인 제외)
-description: 'org.openrewrite.java.spring.data.UpgradeSpringData_3_4 에서 지난 단계 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 단계에서 이미 돌아 뺀 레시피: org.openrewrite.java.spring.data.UpgradeSpringData_3_0.'
+displayName: UpgradeSpringData_3_4 (3_4 stage, 지난 stage 체인 제외)
+description: 'org.openrewrite.java.spring.data.UpgradeSpringData_3_4 에서 지난 stage 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 stage에서 이미 돌아 뺀 레시피: org.openrewrite.java.spring.data.UpgradeSpringData_3_0.'
 preconditions:
 - org.openrewrite.Singleton
 recipeList:
@@ -397,8 +397,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.boot3_4.UpgradeSpringDoc_2_8
-displayName: UpgradeSpringDoc_2_8 (3_4 단계, 지난 단계 체인 제외)
-description: 'org.openrewrite.java.springdoc.UpgradeSpringDoc_2_8 에서 지난 단계 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 단계에서 이미 돌아 뺀 레시피: org.openrewrite.java.springdoc.UpgradeSpringDoc_2_6.'
+displayName: UpgradeSpringDoc_2_8 (3_4 stage, 지난 stage 체인 제외)
+description: 'org.openrewrite.java.springdoc.UpgradeSpringDoc_2_8 에서 지난 stage 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 stage에서 이미 돌아 뺀 레시피: org.openrewrite.java.springdoc.UpgradeSpringDoc_2_6.'
 preconditions:
 - org.openrewrite.Singleton
 recipeList:
@@ -409,8 +409,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.Boot_3_5
-displayName: upstream Spring Boot 3.5 단계 (직전 단계 체인 제외)
-description: org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_5 에서 첫 항목인 직전 단계(org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_4)를 뺀 것.
+displayName: upstream Spring Boot 3.5 stage (직전 stage 체인 제외)
+description: org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_5 에서 첫 항목인 직전 stage(org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_4)를 뺀 것.
 preconditions:
 - org.openrewrite.Singleton
 recipeList:
@@ -442,8 +442,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.Boot_4_0
-displayName: upstream Spring Boot 4.0 단계 (직전 단계 체인 제외)
-description: org.openrewrite.java.spring.boot4.UpgradeSpringBoot_4_0 에서 첫 항목인 직전 단계(org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_5)를 뺀 것.
+displayName: upstream Spring Boot 4.0 stage (직전 stage 체인 제외)
+description: org.openrewrite.java.spring.boot4.UpgradeSpringBoot_4_0 에서 첫 항목인 직전 stage(org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_5)를 뺀 것.
 preconditions:
 - org.openrewrite.Singleton
 recipeList:
@@ -563,8 +563,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.boot4_0.UpgradeSpringFramework_7_0
-displayName: UpgradeSpringFramework_7_0 (4_0 단계, 지난 단계 체인 제외)
-description: 'org.openrewrite.java.spring.framework.UpgradeSpringFramework_7_0 에서 지난 단계 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 단계에서 이미 돌아 뺀 레시피: org.openrewrite.java.spring.framework.UpgradeSpringFramework_6_2.'
+displayName: UpgradeSpringFramework_7_0 (4_0 stage, 지난 stage 체인 제외)
+description: 'org.openrewrite.java.spring.framework.UpgradeSpringFramework_7_0 에서 지난 stage 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 stage에서 이미 돌아 뺀 레시피: org.openrewrite.java.spring.framework.UpgradeSpringFramework_6_2.'
 preconditions:
 - org.openrewrite.Singleton
 recipeList:
@@ -579,8 +579,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.boot4_0.SpringBatch5To6Migration
-displayName: SpringBatch5To6Migration (4_0 단계, 지난 단계 체인 제외)
-description: 'org.openrewrite.java.spring.batch.SpringBatch5To6Migration 에서 지난 단계 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 단계에서 이미 돌아 뺀 레시피: org.openrewrite.java.spring.batch.SpringBatch4To5Migration.'
+displayName: SpringBatch5To6Migration (4_0 stage, 지난 stage 체인 제외)
+description: 'org.openrewrite.java.spring.batch.SpringBatch5To6Migration 에서 지난 stage 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 stage에서 이미 돌아 뺀 레시피: org.openrewrite.java.spring.batch.SpringBatch4To5Migration.'
 preconditions:
 - org.openrewrite.Singleton
 recipeList:
@@ -778,8 +778,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.boot4_0.MigrateToHibernate71
-displayName: MigrateToHibernate71 (4_0 단계, 지난 단계 체인 제외)
-description: org.openrewrite.hibernate.MigrateToHibernate71 에서 지난 단계 체인에 이미 들어 있던 레시피를 뺀 사본이다.
+displayName: MigrateToHibernate71 (4_0 stage, 지난 stage 체인 제외)
+description: org.openrewrite.hibernate.MigrateToHibernate71 에서 지난 stage 체인에 이미 들어 있던 레시피를 뺀 사본이다.
 preconditions:
 - org.openrewrite.Singleton
 recipeList:
@@ -792,8 +792,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.boot4_0.MigrateToHibernate70
-displayName: MigrateToHibernate70 (4_0 단계, 지난 단계 체인 제외)
-description: org.openrewrite.hibernate.MigrateToHibernate70 에서 지난 단계 체인에 이미 들어 있던 레시피를 뺀 사본이다.
+displayName: MigrateToHibernate70 (4_0 stage, 지난 stage 체인 제외)
+description: org.openrewrite.hibernate.MigrateToHibernate70 에서 지난 stage 체인에 이미 들어 있던 레시피를 뺀 사본이다.
 preconditions:
 - org.openrewrite.Singleton
 recipeList:
@@ -846,8 +846,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.boot4_0.MigrateToHibernate66
-displayName: MigrateToHibernate66 (4_0 단계, 지난 단계 체인 제외)
-description: 'org.openrewrite.hibernate.MigrateToHibernate66 에서 지난 단계 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 단계에서 이미 돌아 뺀 레시피: org.openrewrite.hibernate.MigrateToHibernate65.'
+displayName: MigrateToHibernate66 (4_0 stage, 지난 stage 체인 제외)
+description: 'org.openrewrite.hibernate.MigrateToHibernate66 에서 지난 stage 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 stage에서 이미 돌아 뺀 레시피: org.openrewrite.hibernate.MigrateToHibernate65.'
 preconditions:
 - org.openrewrite.Singleton
 recipeList:
@@ -858,8 +858,8 @@ recipeList:
 ---
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.upstream.boot4_0.UpgradeSpringDoc_3_0
-displayName: UpgradeSpringDoc_3_0 (4_0 단계, 지난 단계 체인 제외)
-description: 'org.openrewrite.java.springdoc.UpgradeSpringDoc_3_0 에서 지난 단계 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 단계에서 이미 돌아 뺀 레시피: org.openrewrite.java.springdoc.UpgradeSpringDoc_2_8.'
+displayName: UpgradeSpringDoc_3_0 (4_0 stage, 지난 stage 체인 제외)
+description: 'org.openrewrite.java.springdoc.UpgradeSpringDoc_3_0 에서 지난 stage 체인에 이미 들어 있던 레시피를 뺀 사본이다. 지난 stage에서 이미 돌아 뺀 레시피: org.openrewrite.java.springdoc.UpgradeSpringDoc_2_8.'
 preconditions:
 - org.openrewrite.Singleton
 recipeList:

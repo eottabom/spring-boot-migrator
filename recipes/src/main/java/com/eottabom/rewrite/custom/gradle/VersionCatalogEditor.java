@@ -367,8 +367,8 @@ final class VersionCatalogEditor {
 	}
 
 	/**
-	 * upstream 버전 변경 레시피 하나를 catalog 에 옮긴 규칙. 형식은 version-catalog-steps.yml 참고. 좌표는 glob
-	 * 을 쓸 수 있고, 끝의 when-plugin, when-dependency, unless-dependency 는 적용 조건이다.
+	 * upstream 버전 변경 레시피 하나를 catalog 에 옮긴 규칙. 형식은 upstream/catalog.yml 참고. 좌표는 glob 을 쓸 수
+	 * 있고, 끝의 when-plugin, when-dependency, unless-dependency 는 적용 조건이다.
 	 */
 	record Rule(Kind kind, String group, @Nullable String artifact, @Nullable String newGroup,
 			@Nullable String newArtifact, @Nullable String newVersion, @Nullable String versionPattern,

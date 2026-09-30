@@ -21,16 +21,16 @@ import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 /**
- * 단계 레시피 트리의 의존성, 플러그인 버전 변경을 UpgradeVersionCatalog 규칙으로 옮긴 upstream/catalog.yml 을 만든다.
- * upstream 단계는 rewrite-spring 원본에서 읽어서 syncUpstreamSteps 한 번으로 두 파일이 함께 맞춰진다.
+ * stage 레시피 트리의 의존성, 플러그인 버전 변경을 UpgradeVersionCatalog 규칙으로 옮긴 upstream/catalog.yml 을
+ * 만든다. upstream stage는 rewrite-spring 원본에서 읽어서 syncUpstreamStages 한 번으로 두 파일이 함께 맞춰진다.
  */
-public final class VersionCatalogStepsGenerator {
+public final class VersionCatalogRulesGenerator {
 
 	public static final Path OUTPUT = Path.of("src/main/resources/META-INF/rewrite/upstream/catalog.yml");
 
 	static final String PREFIX = "com.eottabom.rewrite.upstream.catalog.";
 
-	/** 단계 → 러너가 실행하는 레시피 */
+	/** stage → 러너가 실행하는 레시피 */
 	private static final Map<String, String> STAGES = new LinkedHashMap<>();
 
 	static {
@@ -43,7 +43,7 @@ public final class VersionCatalogStepsGenerator {
 		STAGES.put("Gradle_9_1", "com.eottabom.rewrite.stage.Gradle_9_1");
 	}
 
-	private VersionCatalogStepsGenerator() {
+	private VersionCatalogRulesGenerator() {
 	}
 
 	public static void main(String[] args) throws IOException {
@@ -75,7 +75,7 @@ public final class VersionCatalogStepsGenerator {
 		options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
 		options.setAllowUnicode(true);
 		options.setWidth(200);
-		return "# 생성 파일: ./gradlew syncUpstreamSteps (VersionCatalogStepsGenerator). 직접 고치지 않는다.\n" + "---\n"
+		return "# 생성 파일: ./gradlew syncUpstreamStages (VersionCatalogRulesGenerator). 직접 고치지 않는다.\n" + "---\n"
 				+ new Yaml(options).dumpAll(docs.iterator());
 	}
 
@@ -87,7 +87,7 @@ public final class VersionCatalogStepsGenerator {
 		if (conditional.isEmpty()) {
 			return "";
 		}
-		List<String> readable = conditional.stream().map(VersionCatalogStepsGenerator::readable).toList();
+		List<String> readable = conditional.stream().map(VersionCatalogRulesGenerator::readable).toList();
 		return " upstream 이 소스나 의존성 조건(precondition)을 걸고 바꾸는 규칙은 catalog 에서 그 조건을 판단할 수 없어 옮기지 않았다: "
 				+ String.join("; ", readable) + ". 조건에 해당하는 프로젝트는 catalog 의 이 항목을 직접 고친다.";
 	}
@@ -145,12 +145,12 @@ public final class VersionCatalogStepsGenerator {
 
 		private void walkChildren(Recipe parent) {
 			String name = parent.getName();
-			String version = name.startsWith(UpstreamStepsGenerator.STEP_PREFIX)
-					? name.substring(UpstreamStepsGenerator.STEP_PREFIX.length()).replace('_', '.') : "";
+			String version = name.startsWith(UpstreamStagesGenerator.STAGE_PREFIX)
+					? name.substring(UpstreamStagesGenerator.STAGE_PREFIX.length()).replace('_', '.') : "";
 			// 생성한 upstream stage 는 원본에서 읽는다 (3.0 입구와 4.1 대체 레시피는 손으로 쓴 것이라 그대로 걷는다)
-			String upstream = UpstreamStepsGenerator.upstreamOf(version);
+			String upstream = UpstreamStagesGenerator.upstreamOf(version);
 			if (upstream != null) {
-				String previous = UpstreamStepsGenerator.previousOf(version);
+				String previous = UpstreamStagesGenerator.previousOf(version);
 				for (Recipe child : this.env.activateRecipes(upstream).getRecipeList()) {
 					if (!unwrap(child).getName().equals(previous)) {
 						walk(child);

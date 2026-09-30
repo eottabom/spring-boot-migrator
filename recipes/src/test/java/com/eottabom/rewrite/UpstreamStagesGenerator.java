@@ -24,16 +24,16 @@ import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 /**
- * upstream UpgradeSpringBoot_X_Y 에서 직전 단계 체인을 뺀 단계 레시피를 upstream/boot-steps.yml 로 만든다.
- * 체인을 그대로 쓰면 이미 지난 단계의 레시피가 다시 돈다. 첫 항목(직전 Boot 단계)만 빼면 UpgradeSpringFramework_7_0 → 6_2
- * → 6_1 처럼 라이브러리 체인 안에 든 지난 단계 레시피가 남으므로, 직전 단계에서 돈 레시피(전이 폐포)와 겹치는 선언형 레시피는 펼쳐서 이미 돈 것을
- * 뺀다. 옵션이 있는 레시피는 이름이 같아도 옵션이 달라 빼지 않는다. 생성 파일이라 직접 고치지 않고 ./gradlew syncUpstreamSteps 로
- * 다시 만든다.
+ * upstream UpgradeSpringBoot_X_Y 에서 직전 stage 체인을 뺀 stage 레시피를 upstream/boot-stages.yml 로
+ * 만든다. 체인을 그대로 쓰면 이미 지난 stage의 레시피가 다시 돈다. 첫 항목(직전 Boot stage)만 빼면
+ * UpgradeSpringFramework_7_0 → 6_2 → 6_1 처럼 라이브러리 체인 안에 든 지난 stage 레시피가 남으므로, 직전 stage에서
+ * 돈 레시피(전이 폐포)와 겹치는 선언형 레시피는 펼쳐서 이미 돈 것을 뺀다. 옵션이 있는 레시피는 이름이 같아도 옵션이 달라 빼지 않는다. 생성 파일이라
+ * 직접 고치지 않고 ./gradlew syncUpstreamStages 로 다시 만든다.
  */
-public final class UpstreamStepsGenerator {
+public final class UpstreamStagesGenerator {
 
-	public static final Path OUTPUT = Path.of("src/main/resources/META-INF/rewrite/upstream/boot-steps.yml");
-	static final String STEP_PREFIX = "com.eottabom.rewrite.upstream.Boot_";
+	public static final Path OUTPUT = Path.of("src/main/resources/META-INF/rewrite/upstream/boot-stages.yml");
+	static final String STAGE_PREFIX = "com.eottabom.rewrite.upstream.Boot_";
 
 	/**
 	 * 펼친 라이브러리 체인의 이름. 예)
@@ -43,7 +43,7 @@ public final class UpstreamStepsGenerator {
 
 	private static final String FIRST_PREVIOUS = "org.openrewrite.java.spring.boot3.UpgradeSpringBoot_3_0";
 
-	/** 단계 → upstream 레시피. 3.0 은 2.x 에서 올라오는 입구라 체인을 그대로 쓰므로 만들지 않는다. */
+	/** stage → upstream 레시피. 3.0 은 2.x 에서 올라오는 입구라 체인을 그대로 쓰므로 만들지 않는다. */
 	private static final Map<String, String> UPSTREAM = new LinkedHashMap<>();
 
 	static {
@@ -55,13 +55,13 @@ public final class UpstreamStepsGenerator {
 		UPSTREAM.put("4.0", "org.openrewrite.java.spring.boot4.UpgradeSpringBoot_4_0");
 	}
 
-	private UpstreamStepsGenerator() {
+	private UpstreamStagesGenerator() {
 	}
 
 	public static void main(String[] args) throws IOException {
 		Files.writeString(OUTPUT, generate());
 		System.out.println("생성: " + OUTPUT);
-		VersionCatalogStepsGenerator.main(args);
+		VersionCatalogRulesGenerator.main(args);
 	}
 
 	static @Nullable String upstreamOf(String version) {
@@ -92,24 +92,25 @@ public final class UpstreamStepsGenerator {
 			List<Object> recipeList = new ArrayList<>((List<Object>) source.get("recipeList"));
 			if (recipeList.isEmpty() || !previous.equals(recipeList.get(0))) {
 				throw new IllegalStateException(
-						e.getValue() + " 의 첫 항목이 직전 단계(" + previous + ")가 아니다. upstream 구조가 바뀌었는지 확인한다");
+						e.getValue() + " 의 첫 항목이 직전 stage(" + previous + ")가 아니다. upstream 구조가 바뀌었는지 확인한다");
 			}
 			recipeList.remove(0);
 			String stage = e.getKey().replace('.', '_');
 			Set<String> ran = closure(previous, upstream);
 			List<Map<String, Object>> expanded = new ArrayList<>();
-			Map<String, Object> step = new LinkedHashMap<>();
-			step.put("type", "specs.openrewrite.org/v1beta/recipe");
-			step.put("name", STEP_PREFIX + stage);
-			step.put("displayName", "upstream Spring Boot " + e.getKey() + " 단계 (직전 단계 체인 제외)");
+			Map<String, Object> stageRecipe = new LinkedHashMap<>();
+			stageRecipe.put("type", "specs.openrewrite.org/v1beta/recipe");
+			stageRecipe.put("name", STAGE_PREFIX + stage);
+			stageRecipe.put("displayName", "upstream Spring Boot " + e.getKey() + " stage (직전 stage 체인 제외)");
 			if (source.containsKey("preconditions")) {
-				step.put("preconditions", source.get("preconditions"));
+				stageRecipe.put("preconditions", source.get("preconditions"));
 			}
 			List<String> removed = new ArrayList<>();
-			step.put("recipeList", withoutRan(recipeList, ran, upstream, stage, expanded, removed));
-			step.put("description", e.getValue() + " 에서 첫 항목인 직전 단계(" + previous + ")를 뺀 것." + removedNote(removed));
-			moveAfterDisplayName(step);
-			docs.add(step);
+			stageRecipe.put("recipeList", withoutRan(recipeList, ran, upstream, stage, expanded, removed));
+			stageRecipe.put("description",
+					e.getValue() + " 에서 첫 항목인 직전 stage(" + previous + ")를 뺀 것." + removedNote(removed));
+			moveAfterDisplayName(stageRecipe);
+			docs.add(stageRecipe);
 			docs.addAll(expanded);
 			previous = e.getValue();
 		}
@@ -117,7 +118,7 @@ public final class UpstreamStepsGenerator {
 		options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
 		options.setAllowUnicode(true);
 		options.setWidth(160);
-		return "# 생성 파일: ./gradlew syncUpstreamSteps (UpstreamStepsGenerator). 직접 고치지 않는다.\n" + "# 출처: "
+		return "# 생성 파일: ./gradlew syncUpstreamStages (UpstreamStagesGenerator). 직접 고치지 않는다.\n" + "# 출처: "
 				+ springJar().getFileName() + "\n" + "---\n" + new Yaml(options).dumpAll(docs.iterator());
 	}
 
@@ -150,7 +151,8 @@ public final class UpstreamStepsGenerator {
 				Map<String, Object> doc = new LinkedHashMap<>();
 				doc.put("type", "specs.openrewrite.org/v1beta/recipe");
 				doc.put("name", copy);
-				doc.put("displayName", name.substring(name.lastIndexOf('.') + 1) + " (" + stage + " 단계, 지난 단계 체인 제외)");
+				doc.put("displayName",
+						name.substring(name.lastIndexOf('.') + 1) + " (" + stage + " stage, 지난 stage 체인 제외)");
 				doc.put("description", "");
 				if (declarative.containsKey("preconditions")) {
 					doc.put("preconditions", declarative.get("preconditions"));
@@ -160,28 +162,28 @@ public final class UpstreamStepsGenerator {
 				List<String> removedInside = new ArrayList<>();
 				doc.put("recipeList", withoutRan(new ArrayList<>((List<Object>) declarative.get("recipeList")), ran,
 						upstream, stage, expanded, removedInside));
-				doc.put("description", name + " 에서 지난 단계 체인에 이미 들어 있던 레시피를 뺀 사본이다." + removedNote(removedInside));
+				doc.put("description", name + " 에서 지난 stage 체인에 이미 들어 있던 레시피를 뺀 사본이다." + removedNote(removedInside));
 			}
 			kept.add(copy);
 		}
 		return kept;
 	}
 
-	/** 뺀 레시피 목록. 지난 단계에서 같은 레시피가 이미 돌았다 */
+	/** 뺀 레시피 목록. 지난 stage에서 같은 레시피가 이미 돌았다 */
 	private static String removedNote(List<String> removed) {
-		return removed.isEmpty() ? "" : " 지난 단계에서 이미 돌아 뺀 레시피: " + String.join(", ", removed) + ".";
+		return removed.isEmpty() ? "" : " 지난 stage에서 이미 돌아 뺀 레시피: " + String.join(", ", removed) + ".";
 	}
 
 	/** description 을 displayName 바로 뒤에 둔다 (recipeList 를 만든 뒤에야 뺀 목록을 알 수 있다) */
-	private static void moveAfterDisplayName(Map<String, Object> step) {
+	private static void moveAfterDisplayName(Map<String, Object> stageRecipe) {
 		Map<String, Object> ordered = new LinkedHashMap<>();
 		for (String key : List.of("type", "name", "displayName", "description", "preconditions", "recipeList")) {
-			if (step.containsKey(key)) {
-				ordered.put(key, step.get(key));
+			if (stageRecipe.containsKey(key)) {
+				ordered.put(key, stageRecipe.get(key));
 			}
 		}
-		step.clear();
-		step.putAll(ordered);
+		stageRecipe.clear();
+		stageRecipe.putAll(ordered);
 	}
 
 	/** 레시피가 실행하는 옵션 없는 레시피 이름 전부 (자기 자신 포함) */

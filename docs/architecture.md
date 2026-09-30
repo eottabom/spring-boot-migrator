@@ -54,16 +54,16 @@ stage 레시피로 바꾼 뒤 2개 파일만 바뀌고 통과했다. 3.0 stage �
 첫 항목(직전 Boot stage)만 빼도 `UpgradeSpringFramework_7_0 → 6_2 → 6_1`, `MigrateToHibernate64 → 63 → 62` 처럼 라이브러리 체인 안에
 지난 stage 의 레시피가 남는다. 생성기는 직전 stage 가 실행하는 옵션 없는 레시피(전이 폐포)를 구하고, 그와 겹치는 선언형 레시피를
 `upstream.bootX_Y.<이름>` 사본으로 펼쳐 이미 돈 레시피를 뺀다. 뺀 레시피는 사본의 description 에 적는다. 옵션이 있는 레시피(버전 올리기 등)는
-이름이 같아도 옵션이 달라 빼지 않는다. `UpstreamStepsUpToDateTests` 가 stage 마다 직전 stage 체인과 겹치지 않는지 확인한다.
+이름이 같아도 옵션이 달라 빼지 않는다. `UpstreamStagesUpToDateTests` 가 stage 마다 직전 stage 체인과 겹치지 않는지 확인한다.
 
-upstream stage 레시피(`upstream/boot-steps.yml`)는 rewrite-spring jar 에서 생성한 파일이다.
-rewrite-recipe-bom 을 올리면 `UpstreamStepsUpToDateTests` 가 깨지고, `./gradlew :recipes:syncUpstreamSteps` 로 다시 만든다.
+upstream stage 레시피(`upstream/boot-stages.yml`)는 rewrite-spring jar 에서 생성한 파일이다.
+rewrite-recipe-bom 을 올리면 `UpstreamStagesUpToDateTests` 가 깨지고, `./gradlew :recipes:syncUpstreamStages` 로 다시 만든다.
 
 ### Version Catalog
 
 upstream 의 `UpgradeDependencyVersion`, `UpgradePluginVersion`, `ChangeDependency` 는 빌드 스크립트의 선언만 바꾸고
 `gradle/*.versions.toml` 은 건드리지 않는다. catalog 로 Boot 플러그인 버전을 관리하는 프로젝트는 레시피가 돌아도 Boot 버전이 그대로다.
-`VersionCatalogStepsGenerator` 가 stage 레시피 트리 전체에서 이 세 종류의 레시피를 모아 `upstream/catalog.yml` 의 규칙으로 옮기고,
+`VersionCatalogRulesGenerator` 가 stage 레시피 트리 전체에서 이 세 종류의 레시피를 모아 `upstream/catalog.yml` 의 규칙으로 옮기고,
 `UpgradeVersionCatalog` 가 같은 규칙을 catalog 에 적용한다. 버전은 upstream 과 같은 방식(`DependencyVersionSelector`)으로 대상 프로젝트의 저장소에서 고른다.
 upstream 조건(precondition) 안의 규칙은 조건을 함께 넘기고 catalog 레시피가 Gradle 모델로 판단한다.
 `ModuleHasPlugin` 은 `when-plugin <id>`, 버전과 scope 가 없는 `ModuleHasDependency` 는 `when-dependency <g:a>` (반전이면
@@ -76,7 +76,7 @@ commons-lang 2 를 쓰는 파일로 한정한 조건 안에 있어서이고, 코
 
 소스 조건 아래에 둔 의존성 레시피는 빌드 스크립트에서도 돌지 않는다 (빌드 스크립트에는 그 타입이 없다).
 `RecipeValidationTests` 가 이런 조합을 찾아 막고, 의존성 선언을 다른 곳에서 챙기는 레시피만 이유와 함께 허용한다.
-이 파일도 `syncUpstreamSteps` 가 함께 만들고 `UpstreamStepsUpToDateTests` 가 검사한다. stage 레시피를 고친 뒤에도 다시 만든다.
+이 파일도 `syncUpstreamStages` 가 함께 만들고 `UpstreamStagesUpToDateTests` 가 검사한다. stage 레시피를 고친 뒤에도 다시 만든다.
 
 ## Project Layout
 
@@ -87,7 +87,7 @@ recipes/                              OpenRewrite 레시피 jar (대상 프로�
                                       (레시피 jar 는 대상 프로젝트의 Gradle JVM 안에서 로딩되는데, JDK 17 로 Gradle 을 띄우는 프로젝트가 있다)
   src/main/resources/META-INF/rewrite/
     stage/                            stage 레시피 (boot.yml, java.yml, gradle.yml)
-    upstream/                         boot-steps.yml, catalog.yml (생성 파일, ./gradlew :recipes:syncUpstreamSteps), boot.yml (3.0 입구, 4.1 대체)
+    upstream/                         boot-stages.yml, catalog.yml (생성 파일, ./gradlew :recipes:syncUpstreamStages), boot.yml (3.0 입구, 4.1 대체)
     custom/                           도메인별 보정 (aws, elasticsearch, gradle, hibernate, kafka, logging, misc, querydsl, search, spring) 과 common.yml
     detect/                           manual-items.yml (수동 검토 대상), runtime-risks.yml (동작이 바뀔 수 있는 곳)
   src/main/java/                      yml(upstream 조합)로는 불가능한 보정과 검색 (custom/, detect/)
@@ -147,7 +147,7 @@ stage 가 끝나면 러너(`AssessStep`)가 남은 파일을 읽어 결과 모�
 |---|---|---|
 | `stage/boot.yml` | `stage.Boot_3_0` ~ `4_1`. stage 마다 upstream 과 custom 을 어떤 순서로 돌릴지 정의 | 예 |
 | `stage/java.yml`, `stage/gradle.yml` | `stage.Java_17/21/25`, `stage.Gradle_8_14/9_1` | 예 |
-| `upstream/boot-steps.yml` | upstream `UpgradeSpringBoot_3_1` ~ `4_0` 에서 직전 stage 체인을 뺀 것. 생성 파일 | 예 |
+| `upstream/boot-stages.yml` | upstream `UpgradeSpringBoot_3_1` ~ `4_0` 에서 직전 stage 체인을 뺀 것. 생성 파일 | 예 |
 | `upstream/catalog.yml` | `upstream.catalog.Boot_3_0` ~ `4_1`, `Java_21`, `Java_25`, `Gradle_8_14`, `Gradle_9_1`. stage 레시피의 버전 변경을 catalog 규칙으로 옮긴 것. 생성 파일 | 예 |
 | `upstream/boot.yml` | `upstream.Boot_3_0` (upstream 체인 전체), `upstream.Boot_4_1` (upstream 에 아직 없는 4.1 의 대체) | 예 |
 | `custom/*.yml` | 도메인별 보정과 `custom.CommonFixes` | 예 |
@@ -294,8 +294,8 @@ OpenRewrite 레시피는 소스를 LST(Lossless Semantic Tree, 타입 정보가 
 | deprecated API 자동 대체 | 대체 레시피가 있으면 `guides/common.yml` (또는 버전 가이드) 의 `deprecations` 에 javac 경고 pattern 과 recipe 추가 |
 | 지원 범위 변경 (Java/Gradle) | `guides/boot/X.Y.yml` 의 `requirements` |
 | 새 Java LTS, 새 Gradle stage | `guides/java/NN.yml` 또는 `guides/gradle/X.Y.yml` 과 `stage/java.yml` 또는 `stage/gradle.yml` 의 `stage.Java_NN`, `stage.Gradle_X_Y` |
-| rewrite-recipe-bom 버전 올리기 | 올린 뒤 `./gradlew :recipes:syncUpstreamSteps` 로 upstream stage 레시피와 catalog 규칙을 다시 만들고 `./gradlew test` |
-| 새 Boot stage | `guides/boot/X.Y.yml`, `stage/boot.yml` 의 `stage.Boot_X_Y`, `UpstreamStepsGenerator` 의 stage 목록 |
+| rewrite-recipe-bom 버전 올리기 | 올린 뒤 `./gradlew :recipes:syncUpstreamStages` 로 upstream stage 레시피와 catalog 규칙을 다시 만들고 `./gradlew test` |
+| 새 Boot stage | `guides/boot/X.Y.yml`, `stage/boot.yml` 의 `stage.Boot_X_Y`, `UpstreamStagesGenerator` 의 stage 목록 |
 
 `./gradlew test` 는 guides 가 스키마에 맞는지, `recipe` / `detect` 가 가리키는 레시피와 러너가 고르는 stage 레시피가 실제로 있는지까지 검증한다.
 한 프로젝트에서만 나온 문제도 공용 레시피로 만든다. 해당 타입이나 의존성이 있을 때만 바뀌도록 조건을 걸어(`UsesType`, 원래 타입의 메서드 확인 등) 다른 프로젝트에는 영향이 없게 한다.

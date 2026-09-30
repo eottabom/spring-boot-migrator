@@ -16,7 +16,7 @@ import org.yaml.snakeyaml.Yaml;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 러너(MigrationPlanner)가 고르는 단계 레시피가 이 저장소의 yml 에 선언돼 있는지. 이름은 러너 코드와 같은 규칙으로 만든다.
+ * 러너(MigrationPlanner)가 고르는 stage 레시피가 이 저장소의 yml 에 선언돼 있는지. 이름은 러너 코드와 같은 규칙으로 만든다.
  */
 class PlannedRecipesExistTests {
 

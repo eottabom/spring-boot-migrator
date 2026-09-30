@@ -27,8 +27,7 @@ import org.openrewrite.semver.Semver;
 
 /**
  * upstream 이 빌드 스크립트에만 적용하는 의존성, 플러그인 버전 변경을 {@code gradle/*.versions.toml} 에도 적용한다. 규칙은
- * version-catalog-steps.yml 에서 오고, 버전은 upstream 과 같은 {@link DependencyVersionSelector} 로
- * 고른다.
+ * upstream/catalog.yml 에서 오고, 버전은 upstream 과 같은 {@link DependencyVersionSelector} 로 고른다.
  */
 public final class UpgradeVersionCatalog extends ScanningRecipe<UpgradeVersionCatalog.Accumulator> {
 

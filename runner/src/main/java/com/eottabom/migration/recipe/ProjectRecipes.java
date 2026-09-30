@@ -157,7 +157,7 @@ public record ProjectRecipes(List<Path> files, List<Map<String, Object>> documen
 	}
 
 	/**
-	 * @param stages 붙일 stage 키. "*" 는 모든 단계
+	 * @param stages 붙일 stage 키. "*" 는 모든 stage
 	 */
 	public record ProjectRecipe(String name, Path file, Set<String> stages, Order order) {
 
