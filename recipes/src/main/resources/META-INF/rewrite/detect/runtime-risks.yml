@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../../../../../../../schema/rewrite-recipe.schema.json
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.detect.redis.FindRedisJsonSerializationCompatibilityRisk
 displayName: "Redis JSON 캐시의 타입 정보와 기존 데이터 호환성 검토 후보 탐지"

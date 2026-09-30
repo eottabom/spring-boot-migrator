@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../../../../../../../schema/rewrite-recipe.schema.json
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.custom.hibernate.KeepLegacyIdGeneratorNaming
 displayName: Hibernate 6 ID 시퀀스 이름을 Hibernate 5 방식으로 유지

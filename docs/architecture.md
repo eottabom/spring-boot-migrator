@@ -94,7 +94,7 @@ recipes/                              OpenRewrite 레시피 jar (대상 프로�
   src/test/java/                      레시피 이름/옵션 검증 + Java 레시피 단위 테스트
 runner/                               러너 Gradle 플러그인 (루트 빌드가 쓰는 플러그인이라 included build). 패키지는 아래 Runner 참고
 guides/                               버전별 가이드 (아래 Guides 참고)
-schema/                               guides, 설정 파일(spring-boot-migrator.yml), result.json, run-state.json 의 JSON Schema
+schema/                               guides, 설정 파일(spring-boot-migrator.yml), result.json, run-state.json, 레시피 yml 의 JSON Schema
 init/rewrite.init.gradle              대상 프로젝트에 OpenRewrite 플러그인과 레시피 jar 를 붙이는 Gradle init script
 init/verify.init.gradle               컴파일 경고 옵션, 테스트 fail-fast 해제와 결과 XML 강제, resolve 된 의존성 버전 수집
                                       init script 는 대상 프로젝트의 Gradle 안에서 돌아서 Groovy 로 둔다
@@ -153,6 +153,11 @@ stage 가 끝나면 러너(`AssessStep`)가 남은 파일을 읽어 결과 모�
 | `custom/*.yml` | 도메인별 보정과 `custom.CommonFixes` | 예 |
 | `detect/manual-items.yml` | `detect.ManualMigrationItems`. 자동으로 바꾸면 위험한 곳(mariadb-java-client 2.x, redisson, Jackson 3 전환 대상, `@EntityGraph` 등) | 아니오 |
 | `detect/runtime-risks.yml` | 컴파일과 테스트가 통과해도 동작이 바뀔 수 있는 곳. 설명은 가이드 체크리스트 항목의 `detect` 에 연결한다 | 아니오 |
+
+레시피 yml 은 첫 줄에 `schema/rewrite-recipe.schema.json` 을 적는다 (IDE 가 키 오타와 들여쓰기 실수를 바로 표시한다).
+이 스키마는 문서의 구조만 본다. OpenRewrite 는 모르는 키를 조용히 무시해서 `preconditions` 를 잘못 쓴 레시피도 유효하다고 보고 조건 없이
+돌리므로, 허용한 키만 받고 `recipeList` 항목이 "이름" 또는 "이름 아래 옵션" 형태인지 확인한다. `RecipeSchemaTests` 가 모든 파일을 검사한다.
+레시피 이름과 옵션이 실제로 있는지는 `RecipeValidationTests` 가 레시피를 로딩해서 확인한다.
 
 ## Guides
 

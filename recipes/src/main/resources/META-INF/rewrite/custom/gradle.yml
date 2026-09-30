@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../../../../../../../schema/rewrite-recipe.schema.json
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.custom.gradle.DeclareUsedTransitiveDependencies
 displayName: transitive 로만 들어오던 의존성 직접 선언

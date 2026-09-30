@@ -75,7 +75,8 @@ public final class VersionCatalogRulesGenerator {
 		options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
 		options.setAllowUnicode(true);
 		options.setWidth(200);
-		return "# 생성 파일: ./gradlew syncUpstreamStages (VersionCatalogRulesGenerator). 직접 고치지 않는다.\n" + "---\n"
+		return RecipeFiles.SCHEMA_COMMENT + "\n"
+				+ "# 생성 파일: ./gradlew syncUpstreamStages (VersionCatalogRulesGenerator). 직접 고치지 않는다.\n" + "---\n"
 				+ new Yaml(options).dumpAll(docs.iterator());
 	}
 

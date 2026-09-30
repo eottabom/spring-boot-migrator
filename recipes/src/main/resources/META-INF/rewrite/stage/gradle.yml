@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../../../../../../../schema/rewrite-recipe.schema.json
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.stage.Gradle_8_14
 displayName: Gradle 8.14 및 서드파티 플러그인 정렬

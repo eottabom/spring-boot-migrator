@@ -118,7 +118,8 @@ public final class UpstreamStagesGenerator {
 		options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
 		options.setAllowUnicode(true);
 		options.setWidth(160);
-		return "# 생성 파일: ./gradlew syncUpstreamStages (UpstreamStagesGenerator). 직접 고치지 않는다.\n" + "# 출처: "
+		return RecipeFiles.SCHEMA_COMMENT + "\n"
+				+ "# 생성 파일: ./gradlew syncUpstreamStages (UpstreamStagesGenerator). 직접 고치지 않는다.\n" + "# 출처: "
 				+ springJar().getFileName() + "\n" + "---\n" + new Yaml(options).dumpAll(docs.iterator());
 	}
 

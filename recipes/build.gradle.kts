@@ -52,6 +52,8 @@ dependencies {
     testImplementation("org.openrewrite:rewrite-test")
     // UpstreamStagesGenerator (upstream 레시피 yml 읽기/쓰기)
     testImplementation("org.yaml:snakeyaml:2.6")
+    // RecipeSchemaTests (레시피 yml 을 schema/rewrite-recipe.schema.json 으로 검증)
+    testImplementation("com.networknt:json-schema-validator:1.5.9")
     testImplementation("org.openrewrite:rewrite-gradle")
     testImplementation("org.openrewrite.gradle.tooling:model")
     testImplementation("org.gradle:gradle-tooling-api:8.14.3")

@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../../../../../../../schema/rewrite-recipe.schema.json
 type: specs.openrewrite.org/v1beta/recipe
 name: com.eottabom.rewrite.custom.spring.Boot4JpaRelocations
 displayName: Boot 4 JPA 관련 클래스 패키지 이동 보정
