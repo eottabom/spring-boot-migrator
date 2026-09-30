@@ -5,7 +5,7 @@ import java.util.List;
 
 import com.eottabom.migration.gradle.ProjectGradle;
 import com.eottabom.migration.gradle.ProjectGradle.RewriteTask;
-import com.eottabom.migration.result.DependencyChanges;
+import com.eottabom.migration.version.ResolvedVersions;
 import com.eottabom.migration.workspace.MigrationWorkspace;
 import com.eottabom.migration.workspace.RunFiles;
 import org.jspecify.annotations.Nullable;
@@ -24,7 +24,7 @@ final class ProjectScanner {
 		if (!resolvedVersions(gradle, files.inspectVersionsLog(), files.inspectVersions())) {
 			return null;
 		}
-		return DependencyChanges.readVersions(files.inspectVersions()).get("org.springframework.boot:spring-boot");
+		return ResolvedVersions.read(files.inspectVersions()).of("org.springframework.boot:spring-boot");
 	}
 
 	/** detect 레시피를 rewriteDryRun 으로 돌린다. 실패하면 빈 patch 를 남긴다 */

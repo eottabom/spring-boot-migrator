@@ -7,11 +7,11 @@ import java.util.Set;
 import com.eottabom.migration.guide.Guides;
 import com.eottabom.migration.recipe.ProjectRecipes;
 import com.eottabom.migration.recipe.ProjectRecipes.ProjectRecipe;
-import com.eottabom.migration.result.DependencyChanges;
 import com.eottabom.migration.result.Outcome;
 import com.eottabom.migration.result.ReportedChecklistItem;
 import com.eottabom.migration.result.StageResult;
 import com.eottabom.migration.stage.StageId;
+import com.eottabom.migration.version.ResolvedVersions;
 import com.eottabom.migration.workspace.RunFiles;
 import com.eottabom.migration.workspace.StageFiles;
 
@@ -23,31 +23,26 @@ public record AssessStep(Guides guides) {
 
 	/**
 	 * @param covers stage 가 다룬 stage
-	 * @param previousVersions stage 전 resolve 된 버전
+	 * @param versionsBefore stage 전 resolve 된 버전
+	 * @param versionsAfter stage 후 resolve 된 버전
 	 * @param baselineFailedTests 원본에서도 실패하던 테스트 (결과에 기존 실패로 표시)
 	 */
 	public StageResult assess(StageId stage, List<StageId> covers, Path projectDir, StageFiles files, RunFiles start,
-			Path previousVersions, GateOutcome gate, List<String> deprecationFixes, ProjectRecipes projectRecipes,
-			Set<String> baselineFailedTests) {
+			ResolvedVersions versionsBefore, ResolvedVersions versionsAfter, GateOutcome gate,
+			List<String> deprecationFixes, ProjectRecipes projectRecipes, Set<String> baselineFailedTests) {
 		// 원본에서도 실패하던 태스크만 실패했으면 기존 문제로 표시한다
 		boolean buildFailureExisting = gate.build() == Outcome.FAILED && !gate.hasNewBuildFailure();
 		Set<String> projectRecipeNames = Set
 			.copyOf(projectRecipes.recipes().stream().map(ProjectRecipe::name).toList());
-		return StageResult.assess(new StageResult.Input(stage, covers, projectDir, files.compileLog(),
-				files.rewriteLog(), start.detectPatch(), previousVersions, files.versions(), gate.compile(),
-				gate.build(), buildFailureExisting, checklist(covers, previousVersions, files.versions()),
-				this.guides.stage(stage).source(), this.guides.failureHints(covers), projectRecipeNames,
-				baselineFailedTests, gate.flakyTests(), gate.testResultFiles(), gate.unreadableResults(),
-				deprecationFixes));
-	}
-
-	private List<ReportedChecklistItem> checklist(List<StageId> covers, Path beforeVersions, Path afterVersions) {
-		return this.guides
-			.checklist(covers, DependencyChanges.readVersions(beforeVersions),
-					DependencyChanges.readVersions(afterVersions))
+		List<ReportedChecklistItem> checklist = this.guides.checklist(covers, versionsBefore, versionsAfter)
 			.stream()
 			.map(ReportedChecklistItem::of)
 			.toList();
+		return StageResult.assess(new StageResult.Input(stage, covers, projectDir, files.compileLog(),
+				files.rewriteLog(), start.detectPatch(), versionsBefore, versionsAfter, gate.compile(), gate.build(),
+				buildFailureExisting, checklist, this.guides.stage(stage).source(), this.guides.failureHints(covers),
+				projectRecipeNames, baselineFailedTests, gate.flakyTests(), gate.testResultFiles(),
+				gate.unreadableResults(), deprecationFixes));
 	}
 
 }

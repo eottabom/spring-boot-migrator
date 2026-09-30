@@ -9,6 +9,7 @@ import java.util.stream.Stream;
 
 import com.eottabom.migration.guide.ChecklistItem.Fix;
 import com.eottabom.migration.stage.StageId;
+import com.eottabom.migration.version.ResolvedVersions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -51,7 +52,8 @@ class GuidesTests {
 	@MethodSource("dependencyConditions")
 	void checklistItemWithDependencyConditionMatchesOnlyWhenDependencyPresent(String stage,
 			Map<String, String> dependencies, String expected, List<String> unexpected) {
-		List<String> ids = ids(this.guides.checklist(List.of(StageId.parse(stage)), dependencies, dependencies));
+		List<String> ids = ids(this.guides.checklist(List.of(StageId.parse(stage)), new ResolvedVersions(dependencies),
+				new ResolvedVersions(dependencies)));
 
 		assertThat(ids).contains(expected);
 		unexpected.forEach((id) -> assertThat(ids).doesNotContain(id));
@@ -81,8 +83,8 @@ class GuidesTests {
 	void libraryChecklistMatchesByCrossesAndAffected(String stage, String before, String after, String expected,
 			String expectedTrigger, List<String> unexpected) {
 		String library = "org.hibernate.orm:hibernate-core";
-		List<ChecklistMatch> matches = this.guides.checklist(List.of(StageId.parse(stage)), Map.of(library, before),
-				Map.of(library, after));
+		List<ChecklistMatch> matches = this.guides.checklist(List.of(StageId.parse(stage)),
+				new ResolvedVersions(Map.of(library, before)), new ResolvedVersions(Map.of(library, after)));
 
 		assertThat(ids(matches)).contains(expected);
 		unexpected.forEach((id) -> assertThat(ids(matches)).doesNotContain(id));
@@ -116,7 +118,8 @@ class GuidesTests {
 	void doesNotAssumeUnknownDependencies() {
 		assertThat(this.guides.stage(StageId.parse("3.5")).checklist()).extracting(ChecklistItem::id)
 			.contains("boot-3.5/task-executor-name", "boot-3.5/heapdump");
-		assertThat(ids(this.guides.checklist(List.of(StageId.boot("3.5")), Map.of(), Map.of())))
+		assertThat(ids(this.guides.checklist(List.of(StageId.boot("3.5")), ResolvedVersions.UNKNOWN,
+				ResolvedVersions.UNKNOWN)))
 			.contains("boot-3.5/task-executor-name")
 			.doesNotContain("boot-3.5/heapdump");
 	}

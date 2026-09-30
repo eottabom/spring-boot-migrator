@@ -284,7 +284,7 @@ OpenRewrite 레시피는 소스를 LST(Lossless Semantic Tree, 타입 정보가 
 | `git` | 대상 프로젝트의 git 조작과 작업 트리 상태 | `Git`, `WorkingTree` |
 | `console` | 콘솔 출력 | `RunnerConsole` |
 | `io` | 파일과 외부 프로세스 | `AtomicFiles`, `TextFiles`, `Processes` |
-| `version` | 버전 비교 | `Versions` |
+| `version` | 버전 비교와 resolve 된 의존성 버전 | `Versions`, `ResolvedVersions` |
 
 의존 방향은 `plugin → config, pipeline → step → 도메인 패키지` 한쪽으로만 흐른다. `plan`, `guide`, `result`, `project`, `workspace`, `config` 는
 실행 흐름을 모르고, step 은 서로 부르지 않는다 (같이 쓰는 동작은 도우미로 뺀다). `stage`, `io`, `version` 은 다른 패키지를 모르고, `git` 은 `io` 만 안다. `ArchitectureTests` 가 이 방향을 검사한다.

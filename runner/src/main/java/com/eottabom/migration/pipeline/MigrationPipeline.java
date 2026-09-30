@@ -15,6 +15,7 @@ import com.eottabom.migration.plan.MigrationPlan;
 import com.eottabom.migration.plan.Stage;
 import com.eottabom.migration.project.ProjectState;
 import com.eottabom.migration.recipe.AssembledRecipe;
+import com.eottabom.migration.version.ResolvedVersions;
 import com.eottabom.migration.workspace.MigrationWorkspace;
 import com.eottabom.migration.workspace.RunState;
 
@@ -155,6 +156,7 @@ final class MigrationPipeline {
 		console.heading("[시작] 의존성 버전 / detect / 원본 빌드");
 		if (!resumed) {
 			resolveStartVersions(scanner, ws);
+			this.session.startVersions(ResolvedVersions.read(ws.start().versions()));
 		}
 		if (config.gate().level().builds() && !config.preview() && !resumed) {
 			BaselineBuild.Result baseline = new BaselineBuild(this.session.gradle(), console, this.session.projectDir())

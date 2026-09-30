@@ -1,15 +1,13 @@
 package com.eottabom.migration.result;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeSet;
 
-import com.eottabom.migration.io.TextFiles;
+import com.eottabom.migration.version.ResolvedVersions;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -19,7 +17,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public record DependencyChanges(List<VersionChange> changed, List<String> added, List<String> removed) {
 
-	static DependencyChanges compare(Map<String, String> before, Map<String, String> after) {
+	static DependencyChanges compare(ResolvedVersions beforeVersions, ResolvedVersions afterVersions) {
+		Map<String, String> before = beforeVersions.byModule();
+		Map<String, String> after = afterVersions.byModule();
 		if (before.isEmpty() || after.isEmpty()) {
 			return new DependencyChanges(List.of(), List.of(), List.of());
 		}
@@ -50,17 +50,6 @@ public record DependencyChanges(List<VersionChange> changed, List<String> added,
 		}
 		boolean minorChanged = beforeParts.length > 1 && afterParts.length > 1 && !beforeParts[1].equals(afterParts[1]);
 		return minorChanged ? Level.MINOR : Level.PATCH;
-	}
-
-	public static Map<String, String> readVersions(Path file) {
-		Map<String, String> versions = new LinkedHashMap<>();
-		for (String line : TextFiles.readLines(file)) {
-			int separator = line.indexOf('=');
-			if (separator > 0) {
-				versions.put(line.substring(0, separator), line.substring(separator + 1));
-			}
-		}
-		return versions;
 	}
 
 	record VersionChange(String name, String before, String after, Level level) {

@@ -13,6 +13,7 @@ import com.eottabom.migration.result.RecipeChanges.CustomChange;
 import com.eottabom.migration.result.TestReport.PropertyChange;
 import com.eottabom.migration.result.TestReport.TestFailure;
 import com.eottabom.migration.stage.StageId;
+import com.eottabom.migration.version.ResolvedVersions;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -40,8 +41,7 @@ public record StageResult(StageId stage, List<StageId> covers, Outcome compile, 
 		TestReport tests = TestReport.collect(in.projectDir(), in.failureHints(), in.baselineFailedTests(),
 				in.testResults());
 		RecipeChanges changes = RecipeChanges.collect(in.rewriteLog(), in.projectRecipes());
-		DependencyChanges deps = DependencyChanges.compare(DependencyChanges.readVersions(in.versionsBefore()),
-				DependencyChanges.readVersions(in.versionsAfter()));
+		DependencyChanges deps = DependencyChanges.compare(in.versionsBefore(), in.versionsAfter());
 		List<String> unreadable = in.unreadableResults()
 			.stream()
 			.map((file) -> in.projectDir().relativize(file).toString())
@@ -116,8 +116,8 @@ public record StageResult(StageId stage, List<StageId> covers, Outcome compile, 
 	 * @param unreadableResults 끝까지 읽지 못한 테스트 결과 파일
 	 */
 	public record Input(StageId stage, List<StageId> covers, Path projectDir, Path compileLog, Path rewriteLog,
-			Path detectPatch, Path versionsBefore, Path versionsAfter, Outcome compile, Outcome build,
-			boolean buildFailureExisting, List<ReportedChecklistItem> checklist, @Nullable String source,
+			Path detectPatch, ResolvedVersions versionsBefore, ResolvedVersions versionsAfter, Outcome compile,
+			Outcome build, boolean buildFailureExisting, List<ReportedChecklistItem> checklist, @Nullable String source,
 			List<FailureHint> failureHints, Set<String> projectRecipes, Set<String> baselineFailedTests,
 			Set<String> flakyTests, List<Path> testResults, List<Path> unreadableResults,
 			List<String> deprecationFixes) {

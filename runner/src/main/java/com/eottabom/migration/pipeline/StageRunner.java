@@ -17,6 +17,7 @@ import com.eottabom.migration.plan.Stage;
 import com.eottabom.migration.result.Outcome;
 import com.eottabom.migration.result.StageResult;
 import com.eottabom.migration.stage.StageTag;
+import com.eottabom.migration.version.ResolvedVersions;
 import com.eottabom.migration.workspace.RunState.Reason;
 import com.eottabom.migration.workspace.RunState.Stopped;
 import com.eottabom.migration.workspace.StageFiles;
@@ -89,7 +90,9 @@ record StageRunner(RunSession session) {
 	private void complete(Stage stage, StageTag tag, StageFiles files, Verified verified, @Nullable String treeBefore,
 			String commitDetail) {
 		GateOutcome gate = verified.gate();
-		record(stage, tag, files, gate, verified.deprecationFixes(), treeBefore);
+		// stage 후의 버전은 한 번 읽어 결과와 다음 stage 의 비교에 같이 쓴다
+		ResolvedVersions versionsAfter = ResolvedVersions.read(files.versions());
+		record(stage, tag, files, gate, verified.deprecationFixes(), treeBefore, versionsAfter);
 		if (!gate.passed()) {
 			stop(stage, tag, files, gate, treeBefore);
 		}
@@ -97,15 +100,15 @@ record StageRunner(RunSession session) {
 			new CommitStep(session().console()).commit(session().git(), session().state().createdFiles(), files, tag,
 					commitDetail);
 		}
-		session().passed(tag);
+		session().passed(tag, versionsAfter);
 	}
 
 	/** result.md, result.json, patch, result.html, history.md 의 stage 한 줄 */
 	private void record(Stage stage, StageTag tag, StageFiles files, GateOutcome gate, List<String> deprecationFixes,
-			@Nullable String treeBefore) {
+			@Nullable String treeBefore, ResolvedVersions versionsAfter) {
 		StageResult result = new AssessStep(session().components().guides()).assess(stage.id(), stage.covers(),
-				session().projectDir(), files, session().ws().start(), session().previousVersions(), gate,
-				deprecationFixes, session().projectRecipes(), session().state().baseline().failedTests());
+				session().projectDir(), files, session().ws().start(), session().previousVersions(), versionsAfter,
+				gate, deprecationFixes, session().projectRecipes(), session().state().baseline().failedTests());
 		RecordStep record = new RecordStep(session().console());
 		String row = record.write(result, files).historyRow(tag);
 		if (session().isGit()) {

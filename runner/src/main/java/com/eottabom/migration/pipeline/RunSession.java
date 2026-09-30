@@ -14,6 +14,7 @@ import com.eottabom.migration.pipeline.step.RewriteStep;
 import com.eottabom.migration.project.ProjectState;
 import com.eottabom.migration.recipe.ProjectRecipes;
 import com.eottabom.migration.stage.StageTag;
+import com.eottabom.migration.version.ResolvedVersions;
 import com.eottabom.migration.workspace.MigrationWorkspace;
 import com.eottabom.migration.workspace.RunState;
 import com.eottabom.migration.workspace.RunStateStore;
@@ -46,7 +47,7 @@ final class RunSession {
 	private RunState state = RunState.start("", "", "", null);
 
 	/** 다음 stage 와 비교할 의존성 버전 (직전 stage 후, 처음에는 시작할 때 모은 것) */
-	private Path previousVersions;
+	private ResolvedVersions previousVersions = ResolvedVersions.UNKNOWN;
 
 	/** 마지막으로 통과한 stage 의 태그 */
 	private @Nullable StageTag lastTag;
@@ -62,7 +63,6 @@ final class RunSession {
 		ProjectState project = components().inspector().inspect(config.projectDir());
 		this.workingTree = RunnerOutputs.workingTree(config.projectDir());
 		this.gradle = runner.gradle(project, config);
-		this.previousVersions = ws.start().versions();
 	}
 
 	MigrationConfig config() {
@@ -134,23 +134,30 @@ final class RunSession {
 		}
 	}
 
-	Path previousVersions() {
+	ResolvedVersions previousVersions() {
 		return this.previousVersions;
+	}
+
+	/** 첫 stage 는 시작할 때 모은 버전과 비교한다 */
+	void startVersions(ResolvedVersions versions) {
+		this.previousVersions = versions;
 	}
 
 	@Nullable StageTag lastTag() {
 		return this.lastTag;
 	}
 
-	/** stage 를 통과했다. 다음 stage 는 이 stage 후의 버전과 비교한다 */
-	void passed(StageTag tag) {
-		this.previousVersions = this.ws.versionsAfter(tag);
+	/** stage 를 통과했다. 다음 stage 는 이 stage 후의 버전과 비교한다 (모으지 못했으면 마지막으로 아는 버전) */
+	void passed(StageTag tag, ResolvedVersions versionsAfter) {
+		if (!versionsAfter.isUnknown()) {
+			this.previousVersions = versionsAfter;
+		}
 		this.lastTag = tag;
 	}
 
 	/** 재개할 때 멈춘 stage 의 직전 stage 에서 이어 간다 */
 	void continueAfter(@Nullable StageTag tag) {
-		this.previousVersions = this.ws.versionsAfter(tag);
+		this.previousVersions = ResolvedVersions.read(this.ws.versionsAfter(tag));
 		this.lastTag = tag;
 	}
 

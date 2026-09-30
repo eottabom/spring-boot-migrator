@@ -14,6 +14,7 @@ import com.eottabom.migration.guide.ChecklistItem.Fix;
 import com.eottabom.migration.guide.FailureHint;
 import com.eottabom.migration.stage.StageId;
 import com.eottabom.migration.stage.StageTag;
+import com.eottabom.migration.version.ResolvedVersions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
@@ -135,9 +136,10 @@ class StageResultTests {
 			.of(new ReportedChecklistItem("x", Fix.MANUAL, "제목", "설명", null, null, "com.example.FindX", null));
 
 		StageResult result = StageResult.assess(new StageResult.Input(StageId.boot("3.4"), List.of(StageId.boot("3.4")),
-				this.project, log, rewrite, find, before, after, Outcome.PASSED, Outcome.PASSED, false, issues,
-				"https://guide", HINTS, Set.of(), Set.of(), Set.of("demo.AppTest#flaky"), allResults(),
-				List.of(this.project.resolve("bad.xml")), List.of("org.openrewrite.java.migrate.util.UseLocaleOf")));
+				this.project, log, rewrite, find, ResolvedVersions.read(before), ResolvedVersions.read(after),
+				Outcome.PASSED, Outcome.PASSED, false, issues, "https://guide", HINTS, Set.of(), Set.of(),
+				Set.of("demo.AppTest#flaky"), allResults(), List.of(this.project.resolve("bad.xml")),
+				List.of("org.openrewrite.java.migrate.util.UseLocaleOf")));
 		result.write(this.project.resolve("out.md"), this.project.resolve("out.json"));
 		StageSummary summary = result.summary();
 
@@ -195,8 +197,9 @@ class StageResultTests {
 
 		StageResult
 			.assess(new StageResult.Input(StageId.boot("4.1"), List.of(StageId.boot("4.1")), this.project, none, none,
-					none, none, none, Outcome.PASSED, Outcome.PASSED, false, List.of(), null, HINTS, Set.of(),
-					Set.of("demo.AppTest#boom"), Set.of(), allResults(), List.of(), List.of()))
+					none, ResolvedVersions.read(none), ResolvedVersions.UNKNOWN, Outcome.PASSED, Outcome.PASSED, false,
+					List.of(), null, HINTS, Set.of(), Set.of("demo.AppTest#boom"), Set.of(), allResults(), List.of(),
+					List.of()))
 			.write(this.project.resolve("out.md"), this.project.resolve("out.json"));
 
 		assertMatchesSchema(this.project.resolve("out.json"));

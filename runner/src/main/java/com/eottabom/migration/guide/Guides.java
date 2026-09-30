@@ -5,11 +5,11 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.stage.StageId;
+import com.eottabom.migration.version.ResolvedVersions;
 
 /**
  * guides/ 전체. 파일이 있는 버전이 stage 가 된다.
@@ -81,12 +81,12 @@ public record Guides(List<BootGuide> boot, List<JavaGuide> java, List<GradleGuid
 
 	/**
 	 * stage 들에 걸리는 체크리스트. stage 항목은 when 조건을 전후 의존성으로 보고, 라이브러리 항목은 전후 버전 변화로 본다.
-	 * @param before stage 전 resolve 된 버전 (group:artifact → version). 모르면 빈 맵
-	 * @param after stage 후 resolve 된 버전. 모르면 빈 맵
+	 * @param before stage 전 resolve 된 버전
+	 * @param after stage 후 resolve 된 버전
 	 */
-	public List<ChecklistMatch> checklist(List<StageId> stages, Map<String, String> before, Map<String, String> after) {
-		Set<String> dependencies = new HashSet<>(before.keySet());
-		dependencies.addAll(after.keySet());
+	public List<ChecklistMatch> checklist(List<StageId> stages, ResolvedVersions before, ResolvedVersions after) {
+		Set<String> dependencies = new HashSet<>(before.modules());
+		dependencies.addAll(after.modules());
 		List<ChecklistMatch> matches = new ArrayList<>();
 		for (StageId stage : stages) {
 			for (ChecklistItem item : stage(stage).checklist()) {
@@ -96,8 +96,8 @@ public record Guides(List<BootGuide> boot, List<JavaGuide> java, List<GradleGuid
 			}
 		}
 		for (LibraryGuide library : this.libraries) {
-			String from = before.get(library.library());
-			String to = after.get(library.library());
+			String from = before.of(library.library());
+			String to = after.of(library.library());
 			if (from == null || to == null) {
 				continue;
 			}
