@@ -136,9 +136,11 @@ class StageResultTests {
 			.of(new ReportedChecklistItem("x", Fix.MANUAL, "제목", "설명", null, null, "com.example.FindX", null));
 
 		StageResult result = StageResult.assess(new StageResult.Input(StageId.boot("3.4"), List.of(StageId.boot("3.4")),
-				this.project, log, rewrite, find, ResolvedVersions.read(before), ResolvedVersions.read(after),
-				Outcome.PASSED, Outcome.PASSED, false, issues, "https://guide", HINTS, Set.of(), Set.of(),
-				Set.of("demo.AppTest#flaky"), allResults(), List.of(this.project.resolve("bad.xml")),
+				this.project, new StageResult.Logs(log, rewrite, find), ResolvedVersions.read(before),
+				ResolvedVersions.read(after),
+				new StageResult.Gates(Outcome.PASSED, Outcome.PASSED, false, Set.of("demo.AppTest#flaky"), allResults(),
+						List.of(this.project.resolve("bad.xml"))),
+				new StageResult.Guidance(issues, "https://guide", HINTS), Set.of(), Set.of(),
 				List.of("org.openrewrite.java.migrate.util.UseLocaleOf")));
 		result.write(this.project.resolve("out.md"), this.project.resolve("out.json"));
 		StageSummary summary = result.summary();
@@ -196,10 +198,10 @@ class StageResultTests {
 		Path none = this.project.resolve("missing");
 
 		StageResult
-			.assess(new StageResult.Input(StageId.boot("4.1"), List.of(StageId.boot("4.1")), this.project, none, none,
-					none, ResolvedVersions.read(none), ResolvedVersions.UNKNOWN, Outcome.PASSED, Outcome.PASSED, false,
-					List.of(), null, HINTS, Set.of(), Set.of("demo.AppTest#boom"), Set.of(), allResults(), List.of(),
-					List.of()))
+			.assess(new StageResult.Input(StageId.boot("4.1"), List.of(StageId.boot("4.1")), this.project,
+					new StageResult.Logs(none, none, none), ResolvedVersions.read(none), ResolvedVersions.UNKNOWN,
+					new StageResult.Gates(Outcome.PASSED, Outcome.PASSED, false, Set.of(), allResults(), List.of()),
+					new StageResult.Guidance(List.of(), null, HINTS), Set.of(), Set.of("demo.AppTest#boom"), List.of()))
 			.write(this.project.resolve("out.md"), this.project.resolve("out.json"));
 
 		assertMatchesSchema(this.project.resolve("out.json"));

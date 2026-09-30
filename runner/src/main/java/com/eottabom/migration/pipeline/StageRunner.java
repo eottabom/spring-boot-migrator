@@ -110,10 +110,10 @@ final class StageRunner {
 
 	/** result.md, result.json, patch, result.html, history.md 의 stage 한 줄 */
 	private void record(StageRun run, Verified verified, ResolvedVersions versionsAfter) {
-		StageResult result = new AssessStep(this.session.guides()).assess(run.stage().id(), run.stage().covers(),
-				this.session.projectDir(), run.files(), this.session.ws().start(), this.session.previousVersions(),
-				versionsAfter, verified.gate(), verified.deprecationFixes(), this.session.projectRecipes(),
-				this.session.state().baseline().failedTests());
+		StageResult result = new AssessStep(this.session.guides(), this.session.projectDir(), this.session.ws().start(),
+				this.session.projectRecipes())
+			.assess(run.stage(), run.files(), this.session.previousVersions(), versionsAfter, verified.gate(),
+					verified.deprecationFixes(), this.session.state().baseline().failedTests());
 		RecordStep record = new RecordStep(this.session.console());
 		String row = record.write(result, run.files()).historyRow(run.tag());
 		if (this.session.isGit()) {

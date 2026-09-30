@@ -37,20 +37,23 @@ public record StageResult(StageId stage, List<StageId> covers, Outcome compile, 
 	private static final Pattern DETECT_MARKER = Pattern.compile("/\\*~~(\\([^)]*\\))?>\\*/");
 
 	public static StageResult assess(Input in) {
-		CompileWarnings warnings = CompileWarnings.collect(in.compileLog(), in.projectDir());
-		TestReport tests = TestReport.collect(in.projectDir(), in.failureHints(), in.baselineFailedTests(),
-				in.testResults());
-		RecipeChanges changes = RecipeChanges.collect(in.rewriteLog(), in.projectRecipes());
+		Path projectDir = in.projectDir();
+		Gates gates = in.gates();
+		CompileWarnings warnings = CompileWarnings.collect(in.logs().compileLog(), projectDir);
+		TestReport tests = TestReport.collect(projectDir, in.guidance().failureHints(), in.baselineFailedTests(),
+				gates.testResults());
+		RecipeChanges changes = RecipeChanges.collect(in.logs().rewriteLog(), in.projectRecipes());
 		DependencyChanges deps = DependencyChanges.compare(in.versionsBefore(), in.versionsAfter());
-		List<String> unreadable = in.unreadableResults()
+		List<String> unreadable = gates.unreadableResults()
 			.stream()
-			.map((file) -> in.projectDir().relativize(file).toString())
+			.map((file) -> projectDir.relativize(file).toString())
 			.toList();
-		return new StageResult(in.stage(), in.covers(), in.compile(), in.build(), in.buildFailureExisting(),
-				new Tests(tests.total(), tests.failures(), List.copyOf(in.flakyTests()), unreadable), warnings,
-				in.deprecationFixes(), new Properties(tests.renamed(), tests.unsupported()), detected(in.detectPatch()),
+		return new StageResult(in.stage(), in.covers(), gates.compile(), gates.build(), gates.buildFailureExisting(),
+				new Tests(tests.total(), tests.failures(), List.copyOf(gates.flakyTests()), unreadable), warnings,
+				in.deprecationFixes(), new Properties(tests.renamed(), tests.unsupported()),
+				detected(in.logs().detectPatch()),
 				new Changes(changes.customChanges(), changes.upstreamOnly(), List.copyOf(changes.changed())), deps,
-				in.checklist(), in.source());
+				in.guidance().checklist(), in.guidance().source());
 	}
 
 	public StageSummary summary() {
@@ -111,16 +114,46 @@ public record StageResult(StageId stage, List<StageId> covers, Outcome compile, 
 	}
 
 	/**
+	 * 결과를 만드는 데 필요한 것.
+	 *
+	 * @param versionsBefore stage 전 resolve 된 버전
+	 * @param versionsAfter stage 후 resolve 된 버전
 	 * @param projectRecipes 대상 프로젝트의 .rewrite/ 레시피 이름 (custom 변경으로 센다)
+	 * @param baselineFailedTests 원본에서도 실패하던 테스트 (결과에 기존 실패로 표시)
+	 * @param deprecationFixes deprecated API 를 바꾼 대체 레시피
+	 */
+	public record Input(StageId stage, List<StageId> covers, Path projectDir, Logs logs,
+			ResolvedVersions versionsBefore, ResolvedVersions versionsAfter, Gates gates, Guidance guidance,
+			Set<String> projectRecipes, Set<String> baselineFailedTests, List<String> deprecationFixes) {
+	}
+
+	/**
+	 * stage 가 남긴 파일.
+	 *
+	 * @param detectPatch 시작할 때 detect 레시피가 남긴 patch
+	 */
+	public record Logs(Path compileLog, Path rewriteLog, Path detectPatch) {
+	}
+
+	/**
+	 * 게이트 결과.
+	 *
+	 * @param buildFailureExisting 빌드 실패가 원본에서도 실패하던 태스크 때문이다
+	 * @param flakyTests 실패했다가 다시 돌려 통과한 테스트
 	 * @param testResults 이 stage 의 build 게이트가 만든 테스트 결과 파일
 	 * @param unreadableResults 끝까지 읽지 못한 테스트 결과 파일
 	 */
-	public record Input(StageId stage, List<StageId> covers, Path projectDir, Path compileLog, Path rewriteLog,
-			Path detectPatch, ResolvedVersions versionsBefore, ResolvedVersions versionsAfter, Outcome compile,
-			Outcome build, boolean buildFailureExisting, List<ReportedChecklistItem> checklist, @Nullable String source,
-			List<FailureHint> failureHints, Set<String> projectRecipes, Set<String> baselineFailedTests,
-			Set<String> flakyTests, List<Path> testResults, List<Path> unreadableResults,
-			List<String> deprecationFixes) {
+	public record Gates(Outcome compile, Outcome build, boolean buildFailureExisting, Set<String> flakyTests,
+			List<Path> testResults, List<Path> unreadableResults) {
+	}
+
+	/**
+	 * guides/ 에서 고른 것.
+	 *
+	 * @param source stage 가이드의 공식 문서
+	 */
+	public record Guidance(List<ReportedChecklistItem> checklist, @Nullable String source,
+			List<FailureHint> failureHints) {
 	}
 
 }
