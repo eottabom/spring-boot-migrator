@@ -17,7 +17,6 @@ import com.eottabom.migration.project.ProjectState;
 import com.eottabom.migration.recipe.AssembledRecipe;
 import com.eottabom.migration.version.ResolvedVersions;
 import com.eottabom.migration.workspace.MigrationWorkspace;
-import com.eottabom.migration.workspace.RunState;
 
 /**
  * 한 번의 migrationRun. 재개 판단, 시작 준비(의존성 버전, detect, 원본 빌드) 뒤에 stage 마다 step 을 돈다
@@ -46,8 +45,8 @@ final class MigrationPipeline {
 
 	private final StageRunner stages;
 
-	MigrationPipeline(MigrationRunner runner, MigrationConfig config, MigrationWorkspace ws) {
-		this.session = new RunSession(runner, config, ws);
+	MigrationPipeline(RunnerComponents components, MigrationConfig config, MigrationWorkspace ws) {
+		this.session = new RunSession(components, config, ws);
 		this.stages = new StageRunner(this.session);
 	}
 
@@ -56,9 +55,9 @@ final class MigrationPipeline {
 		RunnerConsole console = this.session.console();
 		Resumed resumed = config.preview() ? Resumed.NONE : new Resumption(this.session, this.stages).resume();
 
-		ProjectState project = this.session.runner()
-			.withResolvedBootVersion(this.session.components().inspector().inspect(this.session.projectDir()),
-					this.session.gradle(), this.session.ws().start());
+		ProjectState project = this.session.components()
+			.withResolvedBootVersion(this.session.inspector().inspect(this.session.projectDir()), this.session.gradle(),
+					this.session.ws().start());
 		MigrationPlan plan = this.session.components().planner().plan(project, config);
 		String summary = config.summary(plan.targetJava());
 		console.heading("프로젝트 : " + this.session.projectDir());
@@ -133,9 +132,8 @@ final class MigrationPipeline {
 	 * stage 를 되돌릴 때 기존 변경까지 지워진다. 지난 실행의 기록은 버린다.
 	 */
 	private void start(ProjectState project) {
-		String owner = this.session.store().project();
 		if (!this.session.isGit()) {
-			this.session.state(RunState.start(owner, "", "", project.bootVersion()));
+			this.session.start("", "", project.bootVersion());
 			return;
 		}
 		String head = this.session.git().head();
@@ -144,7 +142,7 @@ final class MigrationPipeline {
 		if (head == null || start == null) {
 			throw new MigrationException("시작 시점의 작업 트리를 기록하지 못했어요 (git write-tree / commit-tree 실패)");
 		}
-		this.session.state(RunState.start(owner, head, start, project.bootVersion()));
+		this.session.start(head, start, project.bootVersion());
 	}
 
 	/** stage 전에 의존성 버전, 원본 빌드, detect 결과를 모은다. 재개했다면 처음 실행 때 모은 것을 쓴다 */
@@ -162,7 +160,7 @@ final class MigrationPipeline {
 			BaselineBuild.Result baseline = new BaselineBuild(this.session.gradle(), console, this.session.projectDir())
 				.run(ws.start(), !config.gate().baselineTests());
 			baseline.notes().forEach(this.session.history()::note);
-			this.session.state(this.session.state().withBaseline(baseline.baseline()));
+			this.session.recordBaseline(baseline.baseline());
 		}
 		Path detectPatch = ws.start().detectPatch();
 		if (resumed && Files.exists(detectPatch)) {
@@ -190,8 +188,8 @@ final class MigrationPipeline {
 	}
 
 	private void preview(MigrationPlan plan, int lastCompletedOrder) {
-		PreviewRun preview = new PreviewRun(this.session.runner().gradleFactory(),
-				this.session.components().inspector(), this.session.console());
+		PreviewRun preview = new PreviewRun(this.session.components().gradleFactory(), this.session.inspector(),
+				this.session.console());
 		if (this.session.isGit()) {
 			preview.run(this.session.projectDir(), this.session.ws(), plan.stages(), lastCompletedOrder,
 					this.session.projectRecipes(), this.session.gradle().javaHome());
@@ -210,9 +208,9 @@ final class MigrationPipeline {
 		MigrationWorkspace ws = this.session.ws();
 		// 재개한 실행도 처음 시작할 때의 버전부터 센다
 		String startBoot = this.session.state().startBoot();
-		String finalBoot = this.session.components().inspector().bootVersion(this.session.projectDir());
+		String finalBoot = this.session.currentBoot();
 		this.session.history().finished(startBoot, finalBoot);
-		this.session.store().delete();
+		this.session.deleteState();
 		if (this.session.isGit()) {
 			this.session.git().deleteRef(START_REF);
 		}
