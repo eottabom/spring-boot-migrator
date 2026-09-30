@@ -9,7 +9,6 @@ import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.console.RunnerConsole;
 import com.eottabom.migration.gradle.FailedTasks;
 import com.eottabom.migration.gradle.ProjectGradle;
-import com.eottabom.migration.gradle.VerifyInitScript;
 import com.eottabom.migration.result.TestResults;
 import com.eottabom.migration.workspace.RunFiles;
 import com.eottabom.migration.workspace.RunState.Baseline;
@@ -18,7 +17,7 @@ import com.eottabom.migration.workspace.RunState.Baseline;
  * 원본 빌드를 한 번 돌려 원래부터 실패하던 태스크와 테스트를 모은다. stage 에서는 여기 없는 실패만 막는다. 원본 컴파일이 깨지면 레시피를 돌릴 수
  * 없어 멈춘다.
  */
-public record BaselineBuild(ProjectGradle gradle, VerifyInitScript verifyInit, RunnerConsole console, Path projectDir) {
+public record BaselineBuild(ProjectGradle gradle, RunnerConsole console, Path projectDir) {
 
 	/**
 	 * @param skipTests 테스트를 건너뛴다. 원본 테스트 실패를 모으지 않아 stage 의 테스트 실패는 모두 새 실패가 된다
@@ -31,8 +30,7 @@ public record BaselineBuild(ProjectGradle gradle, VerifyInitScript verifyInit, R
 			args.addAll(List.of("-x", "test"));
 			this.console.line("   원본 빌드에서 테스트를 건너뛰어요. stage 의 테스트 실패는 모두 새 실패로 봐요");
 		}
-		TestRun.Result run = new TestRun(this.gradle, this.verifyInit, this.projectDir).run(log,
-				start.baselineTestDirs(), args, true);
+		TestRun.Result run = new TestRun(this.gradle, this.projectDir).run(log, start.baselineTestDirs(), args, true);
 		Set<String> failedTasks = run.built() ? Set.of() : FailedTasks.read(start.baselineFailedTasks(), log);
 		if (FailedTasks.anyCompileTask(failedTasks)) {
 			throw new MigrationException("현재 소스가 컴파일되지 않아요. 컴파일 에러를 고치고 다시 실행해 주세요 → " + log);

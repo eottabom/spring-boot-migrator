@@ -278,7 +278,7 @@ OpenRewrite 레시피는 소스를 LST(Lossless Semantic Tree, 타입 정보가 
 | `recipe` | 대상 프로젝트 레시피 | `ProjectRecipes` (`.rewrite/` 탐색), `AssembledRecipe` (`rewrite.assembled.yml`) |
 | `pipeline` | 실행 흐름 | `MigrationRunner` (태스크 진입점), `MigrationPipeline` (한 번의 실행), `StageRunner` (stage 의 step 순서), `Resumption` (재개), `RunSession`, `RunHistory`, `PreviewRun`, `RunLock` |
 | `pipeline.step` | stage 안의 동작 | `RewriteStep`, `GateStep`, `DeprecationStep`, `AssessStep`, `RecordStep`, `CommitStep` 과 step 이 같이 쓰는 도우미 `RecipeRun`, `TestRun`, `FlakyTestRetry`, `BaselineBuild`, `StagePatches` |
-| `gradle` | 대상 빌드 실행 | `ProjectGradle`, `GradleWrapperProcess` (gradlew 프로세스, 제한 시간), `VerifyInitScript`, `FailedTasks` |
+| `gradle` | 대상 빌드 실행 | `ProjectGradle`, `GradleWrapperProcess` (gradlew 프로세스, 제한 시간), `InitScripts` (대상에 붙이는 init script 와 레시피 jar), `FailedTasks` |
 | `result` | 결과 | `StageResult`, `StageSummary`, `ResultMarkdown`, `ResultHtml`, `TestReport`, `TestResults`, `CompileWarnings`, `RecipeChanges`, `DependencyChanges` |
 | `workspace` | `.spring-boot-migrator/` 와 git | `MigrationWorkspace`, `StageFiles`, `RunFiles`, `RunState`, `RunStateStore`, `Git` |
 | `console` | 콘솔 출력 | `RunnerConsole` |

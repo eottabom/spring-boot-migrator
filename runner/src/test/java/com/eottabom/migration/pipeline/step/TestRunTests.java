@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import com.eottabom.migration.gradle.ProjectGradle;
-import com.eottabom.migration.gradle.VerifyInitScript;
+import com.eottabom.migration.gradle.ProjectGradle.RewriteTask;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -81,24 +81,24 @@ class TestRunTests {
 			}
 
 			@Override
-			public boolean run(Path log, List<String> args) {
+			public boolean verify(Path log, List<String> args) {
 				assertThat(args).contains("-PmigrationTestResultsOut=" + reportDirs);
 				build.accept(reportDirs);
 				return true;
 			}
 
 			@Override
-			public boolean runQuietly(List<String> args) {
+			public boolean verifyQuietly(List<String> args) {
 				throw new AssertionError();
 			}
 
 			@Override
-			public boolean rewrite(Path log, String task, String recipe, Path init, Path libs, @Nullable Path config) {
+			public boolean rewrite(Path log, RewriteTask task, String recipe, @Nullable Path config) {
 				throw new AssertionError();
 			}
 		};
-		return new TestRun(gradle, new VerifyInitScript(this.project.resolve("verify.gradle")), projectDir)
-			.run(this.project.resolve("build.log"), reportDirs, List.of("build"), requireResults);
+		return new TestRun(gradle, projectDir).run(this.project.resolve("build.log"), reportDirs, List.of("build"),
+				requireResults);
 	}
 
 	private static void write(Path file, String content) {

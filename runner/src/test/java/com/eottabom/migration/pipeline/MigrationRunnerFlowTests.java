@@ -23,6 +23,7 @@ import com.eottabom.migration.config.MigrationConfig.Target;
 import com.eottabom.migration.config.Mode;
 import com.eottabom.migration.gradle.FakeProjectGradle;
 import com.eottabom.migration.gradle.FakeProjectGradle.BuildOutcome;
+import com.eottabom.migration.gradle.InitScripts;
 import org.gradle.api.logging.Logging;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -63,9 +64,10 @@ class MigrationRunnerFlowTests {
 		});
 		this.fake.rewrites.add((dir) -> replace(dir.resolve("build.gradle"), "3.4.0", "3.5.0"));
 		this.runner = new MigrationRunner(
-				new MigrationRunner.RunnerPaths(this.project.resolve("rewrite.init.gradle"),
-						this.project.resolve("verify.init.gradle"), this.project.resolve("libs"), Path.of("../guides"),
-						Path.of("../schema")),
+				new MigrationRunner.RunnerPaths(
+						new InitScripts(this.project.resolve("rewrite.init.gradle"),
+								this.project.resolve("verify.init.gradle"), this.project.resolve("libs")),
+						Path.of("../guides"), Path.of("../schema")),
 				Logging.getLogger(MigrationRunnerFlowTests.class), (dir, javaHome) -> this.fake.at(dir));
 	}
 

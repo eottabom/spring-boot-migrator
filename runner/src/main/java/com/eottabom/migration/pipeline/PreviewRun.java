@@ -10,8 +10,8 @@ import java.util.Objects;
 import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.console.RunnerConsole;
 import com.eottabom.migration.gradle.ProjectGradle;
+import com.eottabom.migration.gradle.ProjectGradle.RewriteTask;
 import com.eottabom.migration.io.TextFiles;
-import com.eottabom.migration.pipeline.MigrationRunner.RunnerPaths;
 import com.eottabom.migration.plan.Stage;
 import com.eottabom.migration.project.ProjectInspector;
 import com.eottabom.migration.recipe.AssembledRecipe;
@@ -28,8 +28,7 @@ import org.jspecify.annotations.Nullable;
  * 에 차례로 적용하고 stage 별 patch 만 남긴다. 대상 프로젝트의 작업 트리는 바뀌지 않는다. git 저장소가 아니면 첫 stage 만
  * rewriteDryRun 으로 본다.
  */
-record PreviewRun(RunnerPaths paths, ProjectGradle.Factory gradleFactory, ProjectInspector inspector,
-		RunnerConsole console) {
+record PreviewRun(ProjectGradle.Factory gradleFactory, ProjectInspector inspector, RunnerConsole console) {
 
 	/**
 	 * @param lastCompletedOrder 지난 기록의 마지막 stage 번호 (그 뒤에 이어서 붙인다)
@@ -55,8 +54,7 @@ record PreviewRun(RunnerPaths paths, ProjectGradle.Factory gradleFactory, Projec
 				Assembled assembled = AssembledRecipe.write(worktree, projectName, stage, tag, projectRecipes);
 				this.console.heading("[" + stage.name() + "] " + stage.recipeNames()
 						+ RunnerConsole.projectRecipeSuffix(projectRecipes, stage) + " (preview)");
-				if (!gradle.rewrite(files.rewriteLog(), "rewriteRun", assembled.name(), this.paths.rewriteInit(),
-						this.paths.recipeLibs(), assembled.file())) {
+				if (!gradle.rewrite(files.rewriteLog(), RewriteTask.RUN, assembled.name(), assembled.file())) {
 					throw new MigrationException("preview 실패 → " + files.rewriteLog());
 				}
 				String current = worktreeGit.commitAll("preview " + stage.name());
@@ -85,8 +83,7 @@ record PreviewRun(RunnerPaths paths, ProjectGradle.Factory gradleFactory, Projec
 				projectRecipes);
 		MigrationWorkspace.copyOrEmpty(assembled.file(), files.assembledRecipe());
 		this.console.heading("[" + stage.name() + "] " + stage.recipeNames() + " (preview)");
-		if (!gradle.rewrite(files.rewriteLog(), "rewriteDryRun", assembled.name(), this.paths.rewriteInit(),
-				this.paths.recipeLibs(), assembled.file())) {
+		if (!gradle.rewrite(files.rewriteLog(), RewriteTask.DRY_RUN, assembled.name(), assembled.file())) {
 			throw new MigrationException("preview 실패 → " + files.rewriteLog());
 		}
 		if (MigrationWorkspace.copyOrEmpty(ProjectScanner.rewritePatch(projectDir), files.previewPatch())) {

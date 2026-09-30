@@ -21,6 +21,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisabledOnOs(OS.WINDOWS)
 class GradleWrapperProcessTests {
 
+	private static final InitScripts SCRIPTS = new InitScripts(Path.of("rewrite.init.gradle"),
+			Path.of("verify.init.gradle"), Path.of("recipe-libs"));
+
 	@TempDir
 	Path project;
 
@@ -28,7 +31,7 @@ class GradleWrapperProcessTests {
 	void stopsBuildThatRunsPastTimeout() throws IOException {
 		gradlew("sleep 30");
 		GradleWrapperProcess gradle = new GradleWrapperProcess(this.project, null, "-Xmx64m", Duration.ofSeconds(1),
-				Logging.getLogger(GradleWrapperProcessTests.class));
+				SCRIPTS, Logging.getLogger(GradleWrapperProcessTests.class));
 		long start = System.currentTimeMillis();
 
 		boolean passed = gradle.run(this.project.resolve("build.log"), List.of("build"));
@@ -42,7 +45,7 @@ class GradleWrapperProcessTests {
 	void reportsExitCodeAndKeepsOutputInLog() throws IOException {
 		gradlew("echo \"> Task :compileJava\"; echo \"args $*\"; exit 3");
 		GradleWrapperProcess gradle = new GradleWrapperProcess(this.project, null, "-Xmx64m", Duration.ofMinutes(1),
-				Logging.getLogger(GradleWrapperProcessTests.class));
+				SCRIPTS, Logging.getLogger(GradleWrapperProcessTests.class));
 
 		boolean passed = gradle.run(this.project.resolve("build.log"), List.of("build", "--continue"));
 
@@ -57,7 +60,7 @@ class GradleWrapperProcessTests {
 		Files.writeString(this.project.resolve("gradle.properties"),
 				"org.gradle.jvmargs=-Xms6g -Xmx8g -Dfile.encoding=UTF-8 --add-exports jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED -XX:MaxMetaspaceSize=512m\n");
 
-		GradleWrapperProcess gradle = new GradleWrapperProcess(this.project, null, null, Duration.ofMinutes(1),
+		GradleWrapperProcess gradle = new GradleWrapperProcess(this.project, null, null, Duration.ofMinutes(1), SCRIPTS,
 				Logging.getLogger(GradleWrapperProcessTests.class));
 
 		assertThat(gradle.jvmArgs())
@@ -71,7 +74,7 @@ class GradleWrapperProcessTests {
 		Files.writeString(this.project.resolve("gradle.properties"), "org.gradle.jvmargs=-Dfile.encoding=UTF-8\n");
 
 		GradleWrapperProcess gradle = new GradleWrapperProcess(this.project, null, "-Xmx64m", Duration.ofMinutes(1),
-				Logging.getLogger(GradleWrapperProcessTests.class));
+				SCRIPTS, Logging.getLogger(GradleWrapperProcessTests.class));
 
 		assertThat(gradle.jvmArgs()).isEqualTo("-Xmx64m");
 	}
@@ -80,7 +83,7 @@ class GradleWrapperProcessTests {
 	void killsTargetGradleWhenRunnerIsInterrupted() throws Exception {
 		Path pidFile = this.project.resolve("pid");
 		gradlew("echo $$ > " + pidFile + "; sleep 30");
-		GradleWrapperProcess gradle = new GradleWrapperProcess(this.project, null, "-Xmx64m", Duration.ZERO,
+		GradleWrapperProcess gradle = new GradleWrapperProcess(this.project, null, "-Xmx64m", Duration.ZERO, SCRIPTS,
 				Logging.getLogger(GradleWrapperProcessTests.class));
 		Thread runner = new Thread(() -> {
 			try {

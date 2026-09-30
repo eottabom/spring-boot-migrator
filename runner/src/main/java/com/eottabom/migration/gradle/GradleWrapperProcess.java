@@ -27,7 +27,7 @@ import org.jspecify.annotations.Nullable;
 
 /** 대상 프로젝트의 Gradle wrapper 를 별도 프로세스로 실행한다. 대상은 자기 Gradle, 플러그인, JDK 로 돌아야 한다. */
 public record GradleWrapperProcess(Path projectDir, @Nullable String javaHome, @Nullable String jvmArgs,
-		Duration timeout, Logger logger) implements ProjectGradle {
+		Duration timeout, InitScripts scripts, Logger logger) implements ProjectGradle {
 
 	private static final long KILL_WAIT_SECONDS = 10;
 
@@ -98,18 +98,33 @@ public record GradleWrapperProcess(Path projectDir, @Nullable String javaHome, @
 	 * --no-daemon 은 데몬이 옛 레시피 jar 를 캐시하지 않도록 한다.
 	 */
 	@Override
-	public boolean rewrite(Path log, String task, String recipe, Path rewriteInit, Path recipeLibs,
-			@Nullable Path configFile) {
-		List<String> args = new ArrayList<>(List.of("--no-daemon", "--init-script", rewriteInit.toString(), "clean",
-				task, "-Drewrite.activeRecipe=" + recipe, "-PrewriteRecipeLibs=" + recipeLibs));
+	public boolean rewrite(Path log, RewriteTask task, String recipe, @Nullable Path configFile) {
+		List<String> args = new ArrayList<>(
+				List.of("--no-daemon", "--init-script", this.scripts.rewriteInit().toString(), "clean", task.taskName(),
+						"-Drewrite.activeRecipe=" + recipe, "-PrewriteRecipeLibs=" + this.scripts.recipeLibs()));
 		if (configFile != null) {
 			args.add("-PrewriteConfigFile=" + configFile);
 		}
 		return run(log, args);
 	}
 
-	/** 출력은 log 파일로 보내고, 실행 중에는 경과 시간과 현재 태스크를 주기적으로 찍는다 */
 	@Override
+	public boolean verify(Path log, List<String> args) {
+		return run(log, withVerifyInit(args));
+	}
+
+	@Override
+	public boolean verifyQuietly(List<String> args) {
+		return runQuietly(withVerifyInit(args));
+	}
+
+	private List<String> withVerifyInit(List<String> args) {
+		List<String> all = new ArrayList<>(List.of("--init-script", this.scripts.verifyInit().toString()));
+		all.addAll(args);
+		return all;
+	}
+
+	/** 출력은 log 파일로 보내고, 실행 중에는 경과 시간과 현재 태스크를 주기적으로 찍는다 */
 	public boolean run(Path log, List<String> args) {
 		long start = System.currentTimeMillis();
 		AtomicReference<String> currentTask = new AtomicReference<>("준비 중");
@@ -153,7 +168,6 @@ public record GradleWrapperProcess(Path projectDir, @Nullable String javaHome, @
 	}
 
 	/** 결과만 필요하고 로그는 남기지 않는 실행. */
-	@Override
 	public boolean runQuietly(List<String> args) {
 		Process process = null;
 		try {

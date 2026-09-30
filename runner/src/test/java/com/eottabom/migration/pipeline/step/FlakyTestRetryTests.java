@@ -11,7 +11,7 @@ import java.util.stream.Stream;
 
 import com.eottabom.migration.console.RunnerConsole;
 import com.eottabom.migration.gradle.ProjectGradle;
-import com.eottabom.migration.gradle.VerifyInitScript;
+import com.eottabom.migration.gradle.ProjectGradle.RewriteTask;
 import com.eottabom.migration.stage.StageTag;
 import com.eottabom.migration.workspace.MigrationWorkspace;
 import org.gradle.api.logging.Logging;
@@ -57,7 +57,7 @@ class FlakyTestRetryTests {
 			}
 
 			@Override
-			public boolean run(Path log, List<String> args) {
+			public boolean verify(Path log, List<String> args) {
 				try {
 					switch (scenario) {
 						case "deleted" -> Files.delete(xml);
@@ -76,12 +76,12 @@ class FlakyTestRetryTests {
 			}
 
 			@Override
-			public boolean runQuietly(List<String> args) {
+			public boolean verifyQuietly(List<String> args) {
 				throw new AssertionError();
 			}
 
 			@Override
-			public boolean rewrite(Path log, String task, String recipe, Path init, Path libs, @Nullable Path config) {
+			public boolean rewrite(Path log, RewriteTask task, String recipe, @Nullable Path config) {
 				throw new AssertionError();
 			}
 		};
@@ -140,8 +140,8 @@ class FlakyTestRetryTests {
 	}
 
 	private FlakyTestRetry retry(ProjectGradle gradle, int retries) {
-		return new FlakyTestRetry(gradle, new VerifyInitScript(this.project.resolve("verify.gradle")),
-				new RunnerConsole(Logging.getLogger(FlakyTestRetryTests.class)), this.project, retries);
+		return new FlakyTestRetry(gradle, new RunnerConsole(Logging.getLogger(FlakyTestRetryTests.class)), this.project,
+				retries);
 	}
 
 	private static void clear(Path dir) {
@@ -182,18 +182,18 @@ class FlakyTestRetryTests {
 		}
 
 		@Override
-		public boolean run(Path log, List<String> args) {
+		public boolean verify(Path log, List<String> args) {
 			this.onRetry.accept(args);
 			return true;
 		}
 
 		@Override
-		public boolean runQuietly(List<String> args) {
+		public boolean verifyQuietly(List<String> args) {
 			throw new AssertionError();
 		}
 
 		@Override
-		public boolean rewrite(Path log, String task, String recipe, Path init, Path libs, @Nullable Path config) {
+		public boolean rewrite(Path log, RewriteTask task, String recipe, @Nullable Path config) {
 			throw new AssertionError();
 		}
 

@@ -14,7 +14,7 @@ record RunnerComponents(RunnerConsole console, ProjectInspector inspector, Migra
 	static RunnerComponents assemble(RunnerPaths paths, Logger logger) {
 		Guides guides = Guides.load(paths.guidesDir(), paths.schemaDir());
 		return new RunnerComponents(new RunnerConsole(logger), new ProjectInspector(), new MigrationPlanner(guides),
-				guides, new ProjectScanner(paths));
+				guides, new ProjectScanner());
 	}
 
 }

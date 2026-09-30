@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import com.eottabom.migration.config.MigrationConfig;
 import com.eottabom.migration.config.MigrationConfig.BuildSettings;
 import com.eottabom.migration.gradle.GradleWrapperProcess;
+import com.eottabom.migration.gradle.InitScripts;
 import com.eottabom.migration.gradle.ProjectGradle;
 import com.eottabom.migration.plan.MigrationPlan;
 import com.eottabom.migration.project.JdkLocator;
@@ -32,8 +33,8 @@ public final class MigrationRunner {
 	 * @param build 대상 Gradle 을 띄우는 설정 (JVM 옵션, 제한 시간)
 	 */
 	public MigrationRunner(RunnerPaths paths, BuildSettings build, Logger logger) {
-		this(paths, logger,
-				(dir, javaHome) -> new GradleWrapperProcess(dir, javaHome, build.jvmArgs(), build.timeout(), logger));
+		this(paths, logger, (dir, javaHome) -> new GradleWrapperProcess(dir, javaHome, build.jvmArgs(), build.timeout(),
+				paths.scripts(), logger));
 	}
 
 	/** 대상 빌드 실행을 바꿔 끼운다 (러너 통합 테스트) */
@@ -65,8 +66,7 @@ public final class MigrationRunner {
 	/** 현재 소스의 컴파일(+제거 예정 API 경고)과 build(전체 테스트 + 패키징). 소스는 바꾸지 않는다. */
 	public void verify(MigrationConfig config) {
 		ProjectState project = this.components.inspector().inspect(config.projectDir());
-		new VerifyCommand(this.components.scanner(), this.components.console()).verify(project, gradle(project, config),
-				config.gate().level());
+		new VerifyCommand(this.components.console()).verify(project, gradle(project, config), config.gate().level());
 	}
 
 	public void run(MigrationConfig config) {
@@ -118,13 +118,11 @@ public final class MigrationRunner {
 	}
 
 	/**
-	 * @param rewriteInit init/rewrite.init.gradle
-	 * @param verifyInit init/verify.init.gradle
-	 * @param recipeLibs recipes/build/recipe-libs (레시피 jar 와 의존 jar)
+	 * @param scripts 대상 Gradle 에 붙이는 init script 와 레시피 jar
 	 * @param guidesDir guides/ (버전별 가이드)
 	 * @param schemaDir schema/ (가이드, 설정 파일, 재개 기록의 JSON Schema)
 	 */
-	public record RunnerPaths(Path rewriteInit, Path verifyInit, Path recipeLibs, Path guidesDir, Path schemaDir) {
+	public record RunnerPaths(InitScripts scripts, Path guidesDir, Path schemaDir) {
 	}
 
 }

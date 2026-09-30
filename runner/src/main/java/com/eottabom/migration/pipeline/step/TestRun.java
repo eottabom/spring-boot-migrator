@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.eottabom.migration.gradle.ProjectGradle;
-import com.eottabom.migration.gradle.VerifyInitScript;
 import com.eottabom.migration.io.TextFiles;
 import com.eottabom.migration.result.TestResults;
 import com.eottabom.migration.result.TestResults.Snapshot;
@@ -15,7 +14,7 @@ import com.eottabom.migration.result.TestResults.Snapshot;
  * 테스트가 도는 빌드 한 번. verify.init.gradle 을 붙여 실행하고 이 실행이 새로 쓴 결과 XML 만 모은다. 원본 빌드, stage 게이트,
  * 재시도, migrationVerify 가 같은 방법으로 결과를 센다.
  */
-public record TestRun(ProjectGradle gradle, VerifyInitScript verifyInit, Path projectDir) {
+public record TestRun(ProjectGradle gradle, Path projectDir) {
 
 	/**
 	 * @param reportDirs 테스트 태스크가 결과 XML 을 쓴 디렉토리를 남길 파일 (-PmigrationTestResultsOut)
@@ -26,7 +25,7 @@ public record TestRun(ProjectGradle gradle, VerifyInitScript verifyInit, Path pr
 		Snapshot before = Snapshot.take(this.projectDir);
 		List<String> all = new ArrayList<>(args);
 		all.add("-PmigrationTestResultsOut=" + reportDirs);
-		boolean built = this.gradle.run(log, this.verifyInit.args(all.toArray(String[]::new)));
+		boolean built = this.gradle.verify(log, all);
 		List<Path> dirs = TextFiles.readLines(reportDirs)
 			.stream()
 			.filter((line) -> !line.isBlank())

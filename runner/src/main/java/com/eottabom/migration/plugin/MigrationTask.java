@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.config.ConfigLoader;
 import com.eottabom.migration.config.MigrationConfig;
+import com.eottabom.migration.gradle.InitScripts;
 import com.eottabom.migration.pipeline.MigrationRunner;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.gradle.api.DefaultTask;
@@ -74,8 +75,8 @@ public abstract class MigrationTask extends DefaultTask {
 
 	protected MigrationRunner runner(MigrationConfig config) {
 		return new MigrationRunner(
-				new MigrationRunner.RunnerPaths(getRewriteInitScript().get().getAsFile().toPath(),
-						getVerifyInitScript().get().getAsFile().toPath(), getRecipeLibs().get().getAsFile().toPath(),
+				new MigrationRunner.RunnerPaths(new InitScripts(getRewriteInitScript().get().getAsFile().toPath(),
+						getVerifyInitScript().get().getAsFile().toPath(), getRecipeLibs().get().getAsFile().toPath()),
 						getGuidesDir().get().getAsFile().toPath(), getSchemaDir().get().getAsFile().toPath()),
 				config.build(), getLogger());
 	}

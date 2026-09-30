@@ -72,15 +72,14 @@ public final class FakeProjectGradle implements ProjectGradle {
 	}
 
 	@Override
-	public boolean runQuietly(List<String> args) {
-		return run(null, args);
+	public boolean verifyQuietly(List<String> args) {
+		return verify(null, args);
 	}
 
 	@Override
-	public boolean rewrite(Path log, String task, String recipe, Path rewriteInit, Path recipeLibs,
-			@Nullable Path configFile) {
-		this.calls.add(task + " " + recipe);
-		if (task.equals("rewriteRun") && !this.rewrites.isEmpty()) {
+	public boolean rewrite(Path log, RewriteTask task, String recipe, @Nullable Path configFile) {
+		this.calls.add(task.taskName() + " " + recipe);
+		if (task == RewriteTask.RUN && !this.rewrites.isEmpty()) {
 			this.rewrites.poll().accept(this.projectDir);
 		}
 		write(log, "BUILD SUCCESSFUL");
@@ -88,9 +87,8 @@ public final class FakeProjectGradle implements ProjectGradle {
 	}
 
 	@Override
-	public boolean run(@Nullable Path log, List<String> args) {
-		String cmd = String.join(" ", args);
-		this.calls.add(cmd.replaceAll("--init-script \\S+ ", ""));
+	public boolean verify(@Nullable Path log, List<String> args) {
+		this.calls.add(String.join(" ", args));
 		if (!this.resolvesStartVersions && args.contains("migrationResolvedVersions")
 				&& !args.contains("compileJava")) {
 			write(log, "BUILD FAILED");

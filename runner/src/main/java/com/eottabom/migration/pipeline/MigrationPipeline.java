@@ -155,8 +155,7 @@ final class MigrationPipeline {
 			resolveStartVersions(scanner, ws);
 		}
 		if (config.gate().level().builds() && !config.preview() && !resumed) {
-			BaselineBuild.Result baseline = new BaselineBuild(this.session.gradle(), this.session.verifyInitScript(),
-					console, this.session.projectDir())
+			BaselineBuild.Result baseline = new BaselineBuild(this.session.gradle(), console, this.session.projectDir())
 				.run(ws.start(), !config.gate().baselineTests());
 			baseline.notes().forEach(this.session.history()::note);
 			this.session.state(this.session.state().withBaseline(baseline.baseline()));
@@ -187,7 +186,7 @@ final class MigrationPipeline {
 	}
 
 	private void preview(MigrationPlan plan, int lastCompletedOrder) {
-		PreviewRun preview = new PreviewRun(this.session.runner().paths(), this.session.runner().gradleFactory(),
+		PreviewRun preview = new PreviewRun(this.session.runner().gradleFactory(),
 				this.session.components().inspector(), this.session.console());
 		if (this.session.isGit()) {
 			preview.run(this.session.projectDir(), this.session.ws(), plan.stages(), lastCompletedOrder,

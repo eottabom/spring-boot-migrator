@@ -16,7 +16,7 @@ import com.eottabom.migration.workspace.RunFiles;
 /**
  * migrationVerify. 현재 소스의 컴파일(+제거 예정 API 경고)과 build(전체 테스트 + 패키징). 소스는 바꾸지 않는다.
  */
-record VerifyCommand(ProjectScanner scanner, RunnerConsole console) {
+record VerifyCommand(RunnerConsole console) {
 
 	void verify(ProjectState project, ProjectGradle gradle, GateLevel gate) {
 		if (!gate.compiles()) {
@@ -25,8 +25,7 @@ record VerifyCommand(ProjectScanner scanner, RunnerConsole console) {
 		RunFiles files = new RunFiles(MigrationWorkspace.in(project.dir()).dir().resolve("verify"));
 		this.console.project(project, gradle.javaHome());
 		this.console.heading("[verify] compile (+deprecation/removal 경고 수집)");
-		if (!gradle.run(files.compileLog(),
-				this.scanner.verifyInitScript().args("clean", "compileJava", "compileTestJava"))) {
+		if (!gradle.verify(files.compileLog(), List.of("clean", "compileJava", "compileTestJava"))) {
 			throw new MigrationException("컴파일 실패 → " + files.compileLog());
 		}
 		this.console.line("   [removal] 경고 {}건, [deprecation] 경고 {}건 → {}",
@@ -39,8 +38,8 @@ record VerifyCommand(ProjectScanner scanner, RunnerConsole console) {
 
 	private void build(ProjectState project, ProjectGradle gradle, RunFiles files) {
 		this.console.heading("[verify] build (전체 테스트 + 패키징)");
-		TestRun.Result run = new TestRun(gradle, this.scanner.verifyInitScript(), project.dir()).run(files.buildLog(),
-				files.testDirs(), List.of("build"), true);
+		TestRun.Result run = new TestRun(gradle, project.dir()).run(files.buildLog(), files.testDirs(),
+				List.of("build"), true);
 		TestResults.Results tests = run.tests();
 		this.console.line("   테스트 {}개, 실패 {}개", tests.total(), tests.failed());
 		if (!run.built()) {

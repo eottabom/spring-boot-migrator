@@ -11,15 +11,40 @@ public interface ProjectGradle {
 	/** null 이면 현재 JAVA_HOME */
 	@Nullable String javaHome();
 
-	boolean run(Path log, List<String> args);
+	/** verify.init.gradle 을 붙여 실행하고 출력을 log 에 남긴다 */
+	boolean verify(Path log, List<String> args);
 
-	boolean runQuietly(List<String> args);
+	/** verify.init.gradle 을 붙여 실행하되 결과만 보고 로그는 남기지 않는다 */
+	boolean verifyQuietly(List<String> args);
 
-	/** configFile 은 .rewrite/rewrite.assembled.yml, null 이면 플러그인 기본값 */
-	boolean rewrite(Path log, String task, String recipe, Path rewriteInit, Path recipeLibs, @Nullable Path configFile);
+	/**
+	 * rewrite.init.gradle 을 붙여 레시피를 돌린다.
+	 * @param configFile .rewrite/rewrite.assembled.yml, null 이면 플러그인 기본값
+	 */
+	boolean rewrite(Path log, RewriteTask task, String recipe, @Nullable Path configFile);
 
-	default boolean rewrite(Path log, String task, String recipe, Path rewriteInit, Path recipeLibs) {
-		return rewrite(log, task, recipe, rewriteInit, recipeLibs, null);
+	default boolean rewrite(Path log, RewriteTask task, String recipe) {
+		return rewrite(log, task, recipe, null);
+	}
+
+	enum RewriteTask {
+
+		/** 소스를 바꾼다 */
+		RUN("rewriteRun"),
+
+		/** 소스는 그대로 두고 build/reports/rewrite/rewrite.patch 만 만든다 */
+		DRY_RUN("rewriteDryRun");
+
+		private final String taskName;
+
+		RewriteTask(String taskName) {
+			this.taskName = taskName;
+		}
+
+		public String taskName() {
+			return this.taskName;
+		}
+
 	}
 
 	@FunctionalInterface
