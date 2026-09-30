@@ -244,7 +244,7 @@ class MigrationPlannerTests {
 	}
 
 	private static ProjectState project(@Nullable String boot, String gradle, Integer java) {
-		return new ProjectState(Path.of("."), boot, gradle, java, java, false, false);
+		return new ProjectState(Path.of("."), boot, gradle, java, java);
 	}
 
 	private static MigrationConfig request(@Nullable String boot, @Nullable String java) {

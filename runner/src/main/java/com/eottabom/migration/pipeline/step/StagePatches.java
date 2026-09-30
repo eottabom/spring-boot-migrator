@@ -5,7 +5,7 @@ import java.util.Collection;
 
 import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.console.RunnerConsole;
-import com.eottabom.migration.workspace.Git;
+import com.eottabom.migration.git.Git;
 import com.eottabom.migration.workspace.StageFiles;
 import org.jspecify.annotations.Nullable;
 

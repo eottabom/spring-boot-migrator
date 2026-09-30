@@ -6,8 +6,6 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import com.eottabom.migration.GitFixture;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -34,7 +32,6 @@ class ProjectInspectorTests {
 		assertThat(model.gradleVersion()).isEqualTo(gradle);
 		assertThat(model.lowestDeclaredJava()).isEqualTo(java);
 		assertThat(model.highestToolchainJava()).isEqualTo(highestToolchainJava);
-		assertThat(model.gitRoot()).isFalse();
 	}
 
 	// @formatter:off
@@ -166,19 +163,6 @@ class ProjectInspectorTests {
 		Path file = this.dir.resolve(path);
 		Files.createDirectories(file.getParent());
 		Files.writeString(file, content);
-	}
-
-	@Test
-	void treatsRepositoryRootAndLinkedWorktreeAsGitButNotSubdirectory() {
-		Path repo = this.dir.resolve("repo");
-		GitFixture.write(repo.resolve("api/build.gradle"), "plugins {}\n");
-		GitFixture.init(repo);
-		Path worktree = this.dir.resolve("worktree");
-		GitFixture.git(repo, "worktree", "add", "-q", "-b", "feature", worktree.toString());
-
-		assertThat(ProjectInspector.isGitRoot(repo)).isTrue();
-		assertThat(ProjectInspector.isGitRoot(worktree)).isTrue();
-		assertThat(ProjectInspector.isGitRoot(repo.resolve("api"))).isFalse();
 	}
 
 }

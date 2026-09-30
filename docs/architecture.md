@@ -280,13 +280,14 @@ OpenRewrite 레시피는 소스를 LST(Lossless Semantic Tree, 타입 정보가 
 | `pipeline.step` | stage 안의 동작 | `RewriteStep`, `GateStep`, `DeprecationStep`, `AssessStep`, `RecordStep`, `CommitStep` 과 step 이 같이 쓰는 도우미 `RecipeRun`, `TestRun`, `FlakyTestRetry`, `BaselineBuild`, `StagePatches` |
 | `gradle` | 대상 빌드 실행 | `ProjectGradle`, `GradleWrapperProcess` (gradlew 프로세스, 제한 시간), `InitScripts` (대상에 붙이는 init script 와 레시피 jar), `FailedTasks` |
 | `result` | 결과 | `StageResult`, `StageSummary`, `ResultMarkdown`, `ResultHtml`, `TestReport`, `TestResults`, `CompileWarnings`, `RecipeChanges`, `DependencyChanges` |
-| `workspace` | `.spring-boot-migrator/` 와 git | `MigrationWorkspace`, `StageFiles`, `RunFiles`, `RunState`, `RunStateStore`, `Git` |
+| `workspace` | `.spring-boot-migrator/` | `MigrationWorkspace`, `StageFiles`, `RunFiles`, `RunState`, `RunStateStore` |
+| `git` | 대상 프로젝트의 git 조작과 작업 트리 상태 | `Git`, `WorkingTree` |
 | `console` | 콘솔 출력 | `RunnerConsole` |
 | `io` | 파일과 외부 프로세스 | `AtomicFiles`, `TextFiles`, `Processes` |
 | `version` | 버전 비교 | `Versions` |
 
 의존 방향은 `plugin → config, pipeline → step → 도메인 패키지` 한쪽으로만 흐른다. `plan`, `guide`, `result`, `project`, `workspace`, `config` 는
-실행 흐름을 모르고, step 은 서로 부르지 않는다 (같이 쓰는 동작은 도우미로 뺀다). `stage`, `io`, `version` 은 다른 패키지를 모른다. `ArchitectureTests` 가 이 방향을 검사한다.
+실행 흐름을 모르고, step 은 서로 부르지 않는다 (같이 쓰는 동작은 도우미로 뺀다). `stage`, `io`, `version` 은 다른 패키지를 모르고, `git` 은 `io` 만 안다. `ArchitectureTests` 가 이 방향을 검사한다.
 러너 통합 테스트(`MigrationRunnerFlowTests`)는 `ProjectGradle` 을 가짜 구현으로 바꿔 실패, 수정, 재개, deprecated API 대체, `--mode=all` 흐름을 재현한다.
 
 ## Extending

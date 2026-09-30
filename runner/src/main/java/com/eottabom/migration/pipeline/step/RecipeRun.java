@@ -4,10 +4,10 @@ import java.nio.file.Path;
 import java.util.Set;
 
 import com.eottabom.migration.MigrationException;
+import com.eottabom.migration.git.Git;
 import com.eottabom.migration.gradle.ProjectGradle;
 import com.eottabom.migration.gradle.ProjectGradle.RewriteTask;
 import com.eottabom.migration.recipe.AssembledRecipe.Assembled;
-import com.eottabom.migration.workspace.Git;
 import org.jspecify.annotations.Nullable;
 
 /**

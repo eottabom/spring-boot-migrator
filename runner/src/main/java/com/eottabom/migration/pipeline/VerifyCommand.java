@@ -23,7 +23,7 @@ record VerifyCommand(RunnerConsole console) {
 			throw new MigrationException("migrationVerify 의 --gate 는 compile 또는 build");
 		}
 		RunFiles files = new RunFiles(MigrationWorkspace.in(project.dir()).dir().resolve("verify"));
-		this.console.project(project, gradle.javaHome());
+		this.console.project(project, gradle.javaHome(), RunnerOutputs.workingTree(project.dir()).describe());
 		this.console.heading("[verify] compile (+deprecation/removal 경고 수집)");
 		if (!gradle.verify(files.compileLog(), List.of("clean", "compileJava", "compileTestJava"))) {
 			throw new MigrationException("컴파일 실패 → " + files.compileLog());

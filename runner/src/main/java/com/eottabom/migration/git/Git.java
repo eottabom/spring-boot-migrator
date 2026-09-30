@@ -1,4 +1,4 @@
-package com.eottabom.migration.workspace;
+package com.eottabom.migration.git;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -17,6 +17,38 @@ import org.jspecify.annotations.Nullable;
 
 /** 대상 프로젝트의 git 조작. */
 public record Git(Path dir) {
+
+	/** 러너와 사용자 커밋을 구분하려고 러너가 만드는 커밋에 쓰는 이름 */
+	private static final List<String> RUNNER_IDENTITY = List.of("-c", "user.name=spring-boot-migrator", "-c",
+			"user.email=spring-boot-migrator@localhost");
+
+	/**
+	 * @param excludedPaths 변경으로 보지 않을 경로 (러너가 만드는 결과 디렉토리 등. git exclude 를 쓰기 전에도 생길 수
+	 * 있다)
+	 */
+	public WorkingTree workingTree(List<String> excludedPaths) {
+		if (!isRepositoryRoot()) {
+			return new WorkingTree(false, false);
+		}
+		List<String> command = new ArrayList<>(List.of("git", "status", "--porcelain", "--", "."));
+		excludedPaths.forEach((path) -> command.add(":(exclude)" + path));
+		String status = Processes.capture(this.dir, command.toArray(String[]::new));
+		return new WorkingTree(true, status != null && !status.isBlank());
+	}
+
+	/** git 저장소의 최상위 디렉토리인지. 하위 디렉토리는 patch 경로가 저장소 기준이라 git 저장소로 보지 않는다. */
+	public boolean isRepositoryRoot() {
+		String top = Processes.capture(this.dir, "git", "rev-parse", "--show-toplevel");
+		if (top == null || top.isBlank()) {
+			return false;
+		}
+		try {
+			return Path.of(top.trim()).toRealPath().equals(this.dir.toRealPath());
+		}
+		catch (IOException ex) {
+			return false;
+		}
+	}
 
 	public @Nullable String head() {
 		String out = Processes.capture(this.dir, "git", "rev-parse", "HEAD");
@@ -61,9 +93,8 @@ public record Git(Path dir) {
 	 * @return 시작 상태 커밋 id. 만들지 못하면 null
 	 */
 	public @Nullable String pinStart(String ref, String tree) {
-		String commit = Processes.capture(this.dir, "git", "-c", "user.name=spring-boot-migrator", "-c",
-				"user.email=spring-boot-migrator@localhost", "commit-tree", tree, "-p", "HEAD", "-m",
-				"spring-boot-migrator start");
+		String commit = Processes.capture(this.dir,
+				asRunner("commit-tree", tree, "-p", "HEAD", "-m", "spring-boot-migrator start"));
 		if (commit == null || commit.isBlank() || !run("git", "update-ref", ref, commit.trim())) {
 			return null;
 		}
@@ -204,8 +235,7 @@ public record Git(Path dir) {
 		if (!addToIndex(created)) {
 			return null;
 		}
-		if (!run("git", "-c", "user.name=spring-boot-migrator", "-c", "user.email=spring-boot-migrator@localhost",
-				"commit", "-q", "--allow-empty", "--no-verify", "-m", message)) {
+		if (!run(asRunner("commit", "-q", "--allow-empty", "--no-verify", "-m", message))) {
 			return null;
 		}
 		return head();
@@ -219,6 +249,13 @@ public record Git(Path dir) {
 	public String recentCommits(int count) {
 		String out = Processes.capture(this.dir, "git", "log", "--oneline", "-" + count);
 		return (out != null) ? out.trim().replace('\n', ';') : "";
+	}
+
+	private static String[] asRunner(String... gitArgs) {
+		List<String> command = new ArrayList<>(List.of("git"));
+		command.addAll(RUNNER_IDENTITY);
+		command.addAll(List.of(gitArgs));
+		return command.toArray(String[]::new);
 	}
 
 	private boolean run(String... command) {

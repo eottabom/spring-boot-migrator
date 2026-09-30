@@ -15,7 +15,7 @@ record ScanCommand(ProjectScanner scanner, RunnerConsole console) {
 
 	void scan(ProjectState project, ProjectGradle gradle) {
 		RunFiles files = MigrationWorkspace.in(project.dir()).scan();
-		this.console.project(project, gradle.javaHome());
+		this.console.project(project, gradle.javaHome(), RunnerOutputs.workingTree(project.dir()).describe());
 		this.console.projectRecipes(project.dir(), ProjectRecipes.discover(project.dir()));
 
 		this.console.heading("[scan] 의존성 버전");

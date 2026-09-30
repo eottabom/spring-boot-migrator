@@ -1,4 +1,4 @@
-package com.eottabom.migration.workspace;
+package com.eottabom.migration.git;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -46,6 +46,31 @@ class GitTests {
 			.doesNotContain("build.gradle");
 		assertThat(GitFixture.git(this.repo, "diff", "--name-only")).isEqualTo(unstaged);
 		assertThat(Files.readString(this.repo.resolve("out.patch"))).contains("App.java", "build.gradle");
+	}
+
+	@Test
+	void treatsRepositoryRootAndLinkedWorktreeAsRepositoryButNotSubdirectory() {
+		GitFixture.write(this.repo.resolve("api/build.gradle"), "plugins {}\n");
+		Path worktree = this.temp.resolve("worktree");
+		GitFixture.git(this.repo, "worktree", "add", "-q", "-b", "feature", worktree.toString());
+
+		assertThat(new Git(this.repo).isRepositoryRoot()).isTrue();
+		assertThat(new Git(worktree).isRepositoryRoot()).isTrue();
+		assertThat(new Git(this.repo.resolve("api")).isRepositoryRoot()).isFalse();
+		assertThat(new Git(this.repo.resolve("api")).workingTree(List.of())).isEqualTo(new WorkingTree(false, false));
+	}
+
+	@Test
+	void workingTreeIgnoresExcludedPathsWhenLookingForChanges() {
+		Git git = new Git(this.repo);
+		assertThat(git.workingTree(List.of()).describe()).isEqualTo("깨끗함");
+
+		GitFixture.write(this.repo.resolve(".spring-boot-migrator/scan/versions.log"), "scan\n");
+
+		assertThat(git.workingTree(List.of(".spring-boot-migrator"))).isEqualTo(new WorkingTree(true, false));
+		assertThat(git.workingTree(List.of())).isEqualTo(new WorkingTree(true, true));
+		assertThat(git.workingTree(List.of()).describe()).isEqualTo("커밋되지 않은 변경 있음");
+		assertThat(new WorkingTree(false, false).describe()).isEqualTo("아님");
 	}
 
 	@Test

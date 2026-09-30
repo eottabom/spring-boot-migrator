@@ -9,6 +9,7 @@ import java.util.Objects;
 
 import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.console.RunnerConsole;
+import com.eottabom.migration.git.Git;
 import com.eottabom.migration.gradle.ProjectGradle;
 import com.eottabom.migration.gradle.ProjectGradle.RewriteTask;
 import com.eottabom.migration.io.TextFiles;
@@ -18,7 +19,6 @@ import com.eottabom.migration.recipe.AssembledRecipe;
 import com.eottabom.migration.recipe.AssembledRecipe.Assembled;
 import com.eottabom.migration.recipe.ProjectRecipes;
 import com.eottabom.migration.stage.StageTag;
-import com.eottabom.migration.workspace.Git;
 import com.eottabom.migration.workspace.MigrationWorkspace;
 import com.eottabom.migration.workspace.StageFiles;
 import org.jspecify.annotations.Nullable;

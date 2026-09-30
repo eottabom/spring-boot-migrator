@@ -5,6 +5,8 @@ import java.util.Objects;
 
 import com.eottabom.migration.config.MigrationConfig;
 import com.eottabom.migration.console.RunnerConsole;
+import com.eottabom.migration.git.Git;
+import com.eottabom.migration.git.WorkingTree;
 import com.eottabom.migration.gradle.ProjectGradle;
 import com.eottabom.migration.pipeline.step.GateStep;
 import com.eottabom.migration.pipeline.step.RecipeRun;
@@ -12,7 +14,6 @@ import com.eottabom.migration.pipeline.step.RewriteStep;
 import com.eottabom.migration.project.ProjectState;
 import com.eottabom.migration.recipe.ProjectRecipes;
 import com.eottabom.migration.stage.StageTag;
-import com.eottabom.migration.workspace.Git;
 import com.eottabom.migration.workspace.MigrationWorkspace;
 import com.eottabom.migration.workspace.RunState;
 import com.eottabom.migration.workspace.RunStateStore;
@@ -40,7 +41,7 @@ final class RunSession {
 	/** stage 가 Java 버전을 올리면 다시 고른 JDK 로 바꾼다 */
 	private ProjectGradle gradle;
 
-	private final boolean isGit;
+	private final WorkingTree workingTree;
 
 	private RunState state = RunState.start("", "", "", null);
 
@@ -59,7 +60,7 @@ final class RunSession {
 		this.projectRecipes = MigrationRunner.projectRecipes(config);
 		this.history = new RunHistory(ws, projectName());
 		ProjectState project = components().inspector().inspect(config.projectDir());
-		this.isGit = project.gitRoot();
+		this.workingTree = RunnerOutputs.workingTree(config.projectDir());
 		this.gradle = runner.gradle(project, config);
 		this.previousVersions = ws.start().versions();
 	}
@@ -112,8 +113,13 @@ final class RunSession {
 		return this.gradle;
 	}
 
+	/** 실행을 시작할 때의 작업 트리 상태 */
+	WorkingTree workingTree() {
+		return this.workingTree;
+	}
+
 	boolean isGit() {
-		return this.isGit;
+		return this.workingTree.repository();
 	}
 
 	RunState state() {
@@ -163,7 +169,7 @@ final class RunSession {
 	}
 
 	RecipeRun recipeRun() {
-		return new RecipeRun(this.gradle, this.isGit ? this.git : null);
+		return new RecipeRun(this.gradle, isGit() ? this.git : null);
 	}
 
 	RewriteStep rewriteStep() {

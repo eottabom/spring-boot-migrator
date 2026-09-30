@@ -5,8 +5,8 @@ import java.util.List;
 
 import com.eottabom.migration.GitFixture;
 import com.eottabom.migration.console.RunnerConsole;
+import com.eottabom.migration.git.Git;
 import com.eottabom.migration.stage.StageTag;
-import com.eottabom.migration.workspace.Git;
 import com.eottabom.migration.workspace.StageFiles;
 import org.gradle.api.logging.Logging;
 import org.junit.jupiter.api.io.TempDir;

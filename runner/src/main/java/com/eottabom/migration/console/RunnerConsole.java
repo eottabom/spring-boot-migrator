@@ -24,13 +24,16 @@ import org.jspecify.annotations.Nullable;
  */
 public record RunnerConsole(Logger logger) {
 
-	public void project(ProjectState project, @Nullable String javaHome) {
+	/**
+	 * @param workingTree git 작업 트리 상태를 풀어 쓴 말
+	 */
+	public void project(ProjectState project, @Nullable String javaHome, String workingTree) {
 		this.heading("프로젝트 : " + project.dir());
 		this.line("   Boot     : {}", orUnknown(project.bootVersion()));
 		this.line("   Gradle   : {}", orUnknown(project.gradleVersion()));
 		this.line("   Java     : {}", orUnknown(project.lowestDeclaredJava()));
 		this.line("   JAVA_HOME: {}", orDefault(javaHome));
-		this.line("   git      : {}", !project.gitRoot() ? "아님" : project.dirty() ? "커밋되지 않은 변경 있음" : "깨끗함");
+		this.line("   git      : {}", workingTree);
 	}
 
 	public void projectRecipes(Path projectDir, ProjectRecipes projectRecipes) {

@@ -28,20 +28,20 @@ class ArchitectureTests {
 	}
 
 	@ParameterizedTest(name = "[{index}] {0} 는 {1} 를 모른다")
-	@CsvSource(delimiter = '|',
-			value = {
-					"io|config,console,gradle,guide,pipeline,plan,plugin,project,recipe,result,stage,version,workspace",
-					"version|config,console,gradle,guide,io,pipeline,plan,plugin,project,recipe,result,stage,workspace",
-					"stage|config,console,gradle,guide,io,pipeline,plan,plugin,project,recipe,result,version,workspace",
-					"config|console,gradle,guide,pipeline,plan,plugin,project,recipe,result,workspace",
-					"guide|config,console,gradle,pipeline,plan,plugin,project,recipe,result,workspace",
-					"project|config,console,gradle,guide,pipeline,plan,plugin,recipe,result,workspace",
-					"plan|console,gradle,pipeline,plugin,recipe,result,workspace",
-					"result|config,console,gradle,pipeline,plan,plugin,project,recipe,workspace",
-					"workspace|config,console,gradle,guide,pipeline,plan,plugin,project,recipe,result",
-					"recipe|config,console,gradle,guide,pipeline,plugin,project,result,workspace",
-					"gradle|config,console,guide,pipeline,plan,plugin,project,recipe,result,workspace",
-					"console|config,gradle,pipeline,plugin,result,workspace", "pipeline.step|plugin" })
+	@CsvSource(delimiter = '|', value = {
+			"io|config,console,git,gradle,guide,pipeline,plan,plugin,project,recipe,result,stage,version,workspace",
+			"version|config,console,git,gradle,guide,io,pipeline,plan,plugin,project,recipe,result,stage,workspace",
+			"stage|config,console,git,gradle,guide,io,pipeline,plan,plugin,project,recipe,result,version,workspace",
+			"git|config,console,gradle,guide,pipeline,plan,plugin,project,recipe,result,stage,version,workspace",
+			"config|console,git,gradle,guide,pipeline,plan,plugin,project,recipe,result,workspace",
+			"guide|config,console,git,gradle,pipeline,plan,plugin,project,recipe,result,workspace",
+			"project|config,console,git,gradle,guide,pipeline,plan,plugin,recipe,result,workspace",
+			"plan|console,git,gradle,pipeline,plugin,recipe,result,workspace",
+			"result|config,console,git,gradle,pipeline,plan,plugin,project,recipe,workspace",
+			"workspace|config,console,git,gradle,guide,pipeline,plan,plugin,project,recipe,result",
+			"recipe|config,console,git,gradle,guide,pipeline,plugin,project,result,workspace",
+			"gradle|config,console,git,guide,pipeline,plan,plugin,project,recipe,result,workspace",
+			"console|config,git,gradle,pipeline,plugin,result,workspace", "pipeline.step|plugin" })
 	void packageDoesNotDependOn(String pkg, String forbidden) {
 		String[] packages = Arrays.stream(forbidden.split(","))
 			.map((name) -> BASE + name + "..")

@@ -7,6 +7,7 @@ import java.util.Set;
 import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.config.MigrationConfig;
 import com.eottabom.migration.console.RunnerConsole;
+import com.eottabom.migration.git.WorkingTree;
 import com.eottabom.migration.io.TextFiles;
 import com.eottabom.migration.pipeline.Resumption.Resumed;
 import com.eottabom.migration.pipeline.step.BaselineBuild;
@@ -65,12 +66,12 @@ final class MigrationPipeline {
 				RunnerConsole.orDefault(this.session.gradle().javaHome()));
 		console.line("   목표     : Boot {}  ({})", plan.targetBoot(), summary);
 		console.projectRecipes(this.session.projectDir(), this.session.projectRecipes());
-		if (project.gitRoot()) {
+		if (this.session.isGit()) {
 			// 결과 디렉토리와 조립한 레시피는 git 에 올리지 않는다 (patch 스냅샷과 커밋 대상에서 제외)
 			this.session.git().exclude(MigrationWorkspace.DIR_NAME + "/");
 			this.session.git().exclude(AssembledRecipe.RELATIVE_PATH);
 		}
-		checkWorkingTree(project, resumed.active());
+		checkWorkingTree(resumed.active());
 		if (plan.isEmpty()) {
 			if (resumed.continued()) {
 				// 멈췄던 마지막 stage 가 재개로 통과했다. 남은 stage 가 없어도 실행을 마무리한다
@@ -109,12 +110,13 @@ final class MigrationPipeline {
 	}
 
 	/** 새로 시작할 때는 자동 변경이 기존 변경과 섞이지 않도록 깨끗한 작업 트리를 요구한다 */
-	private void checkWorkingTree(ProjectState project, boolean resumed) {
+	private void checkWorkingTree(boolean resumed) {
 		MigrationConfig config = this.session.config();
-		if (config.commit() && !project.gitRoot()) {
+		WorkingTree workingTree = this.session.workingTree();
+		if (config.commit() && !workingTree.repository()) {
 			throw new MigrationException("--commit 은 git 저장소에서만 쓸 수 있어요");
 		}
-		if (!project.dirty() || resumed || config.preview()) {
+		if (!workingTree.dirty() || resumed || config.preview()) {
 			return;
 		}
 		if (config.commit()) {
@@ -131,7 +133,7 @@ final class MigrationPipeline {
 	 */
 	private void start(ProjectState project) {
 		String owner = this.session.store().project();
-		if (!project.gitRoot()) {
+		if (!this.session.isGit()) {
 			this.session.state(RunState.start(owner, "", "", project.bootVersion()));
 			return;
 		}
