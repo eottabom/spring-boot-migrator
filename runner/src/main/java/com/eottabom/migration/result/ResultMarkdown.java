@@ -47,8 +47,7 @@ final class ResultMarkdown {
 	}
 
 	private void summary(StageResult result) {
-		heading("# " + (Character.isDigit(result.stage().charAt(0)) ? "Spring Boot " : "") + result.stage()
-				+ " 마이그레이션 결과");
+		heading("# " + result.stage().title() + " 마이그레이션 결과");
 		this.lines.addAll(result.summary().table());
 		add("");
 	}

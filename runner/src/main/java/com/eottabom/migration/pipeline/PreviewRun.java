@@ -16,6 +16,7 @@ import com.eottabom.migration.project.ProjectInspector;
 import com.eottabom.migration.recipe.AssembledRecipe;
 import com.eottabom.migration.recipe.AssembledRecipe.Assembled;
 import com.eottabom.migration.recipe.ProjectRecipes;
+import com.eottabom.migration.stage.StageTag;
 import com.eottabom.migration.workspace.Git;
 import com.eottabom.migration.workspace.MigrationWorkspace;
 import com.eottabom.migration.workspace.StageFiles;
@@ -49,7 +50,7 @@ record PreviewRun(RunnerPaths paths, ProjectGradle.Factory gradleFactory, Projec
 			int order = lastCompletedOrder;
 			for (Stage stage : stages) {
 				order++;
-				String tag = stage.tag(order);
+				StageTag tag = stage.tag(order);
 				StageFiles files = ws.stage(tag);
 				Assembled assembled = AssembledRecipe.write(worktree, projectName, stage, tag, projectRecipes);
 				this.console.heading("[" + stage.name() + "] " + stage.recipeNames()
@@ -77,7 +78,7 @@ record PreviewRun(RunnerPaths paths, ProjectGradle.Factory gradleFactory, Projec
 	}
 
 	/** git 저장소가 아니면 임시 worktree 를 쓸 수 없어 첫 stage 만 rewriteDryRun 으로 본다 */
-	void firstStage(Path projectDir, MigrationWorkspace ws, Stage stage, String tag, ProjectRecipes projectRecipes,
+	void firstStage(Path projectDir, MigrationWorkspace ws, Stage stage, StageTag tag, ProjectRecipes projectRecipes,
 			ProjectGradle gradle) {
 		StageFiles files = ws.stage(tag);
 		Assembled assembled = AssembledRecipe.write(projectDir, String.valueOf(projectDir.getFileName()), stage, tag,

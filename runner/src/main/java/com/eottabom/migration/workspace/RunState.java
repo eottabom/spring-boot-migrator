@@ -5,6 +5,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.eottabom.migration.stage.StageId;
+import com.eottabom.migration.stage.StageTag;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.jspecify.annotations.Nullable;
 
@@ -69,17 +71,12 @@ public record RunState(int version, String project, String baseRevision, String 
 	/**
 	 * 게이트에서 멈춘 stage. 같은 명령을 다시 실행하면 여기서 이어서 한다.
 	 *
-	 * @param covers stage 가 다루는 stage 이름 (--mode=all 이면 여러 개)
+	 * @param covers stage 가 다루는 stage (--mode=all 이면 여러 개)
 	 * @param previousTag 마지막으로 통과한 stage 의 태그 (없으면 null)
 	 * @param treeBefore stage 전 작업 트리. 재개해서 통과하면 이 tree 부터 stage diff 를 다시 만든다
 	 */
-	public record Stopped(String stage, String tag, List<String> covers, @Nullable String previousTag, Reason reason,
-			@Nullable String treeBefore) {
-
-		public int order() {
-			return Integer.parseInt(this.tag.substring(0, this.tag.indexOf('-')));
-		}
-
+	public record Stopped(StageId stage, StageTag tag, List<StageId> covers, @Nullable StageTag previousTag,
+			Reason reason, @Nullable String treeBefore) {
 	}
 
 	/** 멈춘 이유 */

@@ -12,6 +12,7 @@ import java.util.List;
 
 import com.eottabom.migration.io.AtomicFiles;
 import com.eottabom.migration.io.TextFiles;
+import com.eottabom.migration.stage.StageTag;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -37,8 +38,9 @@ public final class ResultHtml {
 		ArrayNode stages = data.putArray("stages");
 		for (StageEntry entry : page.stages()) {
 			ObjectNode stage = stages.addObject();
-			stage.put("tag", entry.tag());
-			stage.put("name", entry.name());
+			stage.put("tag", entry.tag().dirName());
+			stage.put("name", entry.tag().stage().name());
+			stage.put("title", entry.tag().stage().title());
 			stage.set("result", Files.exists(entry.resultJson()) ? ResultJson.read(entry.resultJson()) : null);
 			String patch = Files.exists(entry.stagePatch()) ? TextFiles.read(entry.stagePatch()) : null;
 			boolean truncated = patch != null && patch.length() > MAX_PATCH_CHARS;
@@ -84,7 +86,7 @@ public final class ResultHtml {
 	 * @param resultJson 없으면 결과 없이 stage 만 보여 준다
 	 * @param stagePatch 없으면 diff 없이 보여 준다
 	 */
-	public record StageEntry(String tag, String name, Path resultJson, Path stagePatch) {
+	public record StageEntry(StageTag tag, Path resultJson, Path stagePatch) {
 	}
 
 }

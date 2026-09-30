@@ -15,6 +15,7 @@ import com.eottabom.migration.guide.GradleGuide;
 import com.eottabom.migration.guide.Guides;
 import com.eottabom.migration.guide.JavaGuide;
 import com.eottabom.migration.project.ProjectState;
+import com.eottabom.migration.stage.StageId;
 import com.eottabom.migration.version.Versions;
 import org.jspecify.annotations.Nullable;
 
@@ -89,7 +90,7 @@ public record MigrationPlanner(Guides guides) {
 							+ ")에 없어요. 동작은 하지만 문제가 생기면 이것부터 확인해 주세요");
 				}
 			}
-			plan.add(new Stage(Stage.Kind.JAVA, "java" + targetJava, STAGE_RECIPE + "Java_" + targetJava));
+			plan.add(new Stage(StageId.java(targetJava), STAGE_RECIPE + "Java_" + targetJava));
 		}
 		javaNotes(notes, config.target().java(), project.lowestDeclaredJava(), targetJava, target, targetRequirements);
 		List<Stage> stages = (config.allAtOnce() && plan.size() > 1) ? List.of(allAtOnce(plan)) : List.copyOf(plan);
@@ -110,12 +111,11 @@ public record MigrationPlanner(Guides guides) {
 	/** --mode=all. 모든 stage 의 레시피를 차례로 이어 한 번에 돌린다. 이름은 마지막 Boot stage */
 	private static Stage allAtOnce(List<Stage> stages) {
 		Stage last = stages.stream()
-			.filter((stage) -> stage.kind() == Stage.Kind.BOOT)
+			.filter((stage) -> stage.id().kind() == StageId.Kind.BOOT)
 			.reduce((first, second) -> second)
 			.orElse(stages.get(stages.size() - 1));
-		return new Stage(last.kind(), last.name(),
-				stages.stream().flatMap((stage) -> stage.recipes().stream()).toList(),
-				stages.stream().map(Stage::name).toList());
+		return new Stage(last.id(), stages.stream().flatMap((stage) -> stage.recipes().stream()).toList(),
+				stages.stream().map(Stage::id).toList());
 	}
 
 	/**
@@ -198,8 +198,7 @@ public record MigrationPlanner(Guides guides) {
 	}
 
 	private static Stage gradleStage(GradleGuide guide) {
-		return new Stage(Stage.Kind.GRADLE, "gradle" + guide.version(),
-				STAGE_RECIPE + "Gradle_" + guide.version().replace('.', '_'));
+		return new Stage(StageId.gradle(guide.version()), STAGE_RECIPE + "Gradle_" + guide.version().replace('.', '_'));
 	}
 
 	/** upstream 만 쓰면 upstream stage 와 그 버전 변경을 옮긴 catalog 규칙만 돌린다 */
@@ -207,7 +206,8 @@ public record MigrationPlanner(Guides guides) {
 		String suffix = version.replace('.', '_');
 		List<String> recipes = custom ? List.of(STAGE_RECIPE + "Boot_" + suffix)
 				: List.of(UPSTREAM_RECIPE + "Boot_" + suffix, UPSTREAM_RECIPE + "catalog.Boot_" + suffix);
-		return new Stage(Stage.Kind.BOOT, version, recipes, List.of(version));
+		StageId id = StageId.boot(version);
+		return new Stage(id, recipes, List.of(id));
 	}
 
 	static String minor(String version) {

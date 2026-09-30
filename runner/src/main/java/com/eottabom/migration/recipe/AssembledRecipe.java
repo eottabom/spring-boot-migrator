@@ -9,6 +9,7 @@ import java.util.List;
 
 import com.eottabom.migration.plan.Stage;
 import com.eottabom.migration.recipe.ProjectRecipes.Order;
+import com.eottabom.migration.stage.StageTag;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
@@ -30,9 +31,9 @@ public final class AssembledRecipe {
 	private AssembledRecipe() {
 	}
 
-	public static Assembled write(Path projectDir, String projectName, Stage stage, String tag,
+	public static Assembled write(Path projectDir, String projectName, Stage stage, StageTag tag,
 			ProjectRecipes projectRecipes) {
-		String name = "migration.assembled.Stage_" + tag.replaceAll("[^A-Za-z0-9]", "_");
+		String name = "migration.assembled.Stage_" + tag.recipeSuffix();
 		List<String> before = projectRecipes.names(stage.covers(), Order.BEFORE);
 		List<String> after = projectRecipes.names(stage.covers(), Order.AFTER);
 		List<String> recipeList = new ArrayList<>(before);

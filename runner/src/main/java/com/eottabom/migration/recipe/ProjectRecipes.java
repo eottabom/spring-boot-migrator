@@ -16,7 +16,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import com.eottabom.migration.plan.Stage;
+import com.eottabom.migration.stage.StageId;
 import org.yaml.snakeyaml.Yaml;
 
 /**
@@ -78,12 +78,17 @@ public record ProjectRecipes(List<Path> files, List<RecipeDocument> documents, L
 	}
 
 	/** 이 stage 들에 붙일 레시피. 여러 stage 에 붙은 레시피도 한 번만 */
-	public List<String> names(List<String> stageNames, Order order) {
+	public List<String> names(List<StageId> stages, Order order) {
 		return this.recipes.stream()
 			.filter((recipe) -> recipe.order() == order
-					&& stageNames.stream().map(Stage::projectTag).anyMatch(recipe::appliesTo))
+					&& stages.stream().map(ProjectRecipes::stageKey).anyMatch(recipe::appliesTo))
 			.map(ProjectRecipe::name)
 			.toList();
+	}
+
+	/** migration-stage 태그의 값. Gradle stage 는 버전과 무관하게 gradle */
+	private static String stageKey(StageId stage) {
+		return (stage.kind() == StageId.Kind.GRADLE) ? "gradle" : stage.name();
 	}
 
 	private static Optional<ProjectRecipe> tagged(String name, Path file, List<String> tags) {

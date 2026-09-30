@@ -11,6 +11,7 @@ import com.eottabom.migration.pipeline.step.GateStep;
 import com.eottabom.migration.pipeline.step.RewriteStep;
 import com.eottabom.migration.project.ProjectState;
 import com.eottabom.migration.recipe.ProjectRecipes;
+import com.eottabom.migration.stage.StageTag;
 import com.eottabom.migration.workspace.Git;
 import com.eottabom.migration.workspace.MigrationWorkspace;
 import com.eottabom.migration.workspace.RunState;
@@ -47,7 +48,7 @@ final class RunSession {
 	private Path previousVersions;
 
 	/** 마지막으로 통과한 stage 의 태그 */
-	private @Nullable String lastTag;
+	private @Nullable StageTag lastTag;
 
 	RunSession(MigrationRunner runner, MigrationConfig config, MigrationWorkspace ws) {
 		this.runner = runner;
@@ -133,18 +134,18 @@ final class RunSession {
 		return this.previousVersions;
 	}
 
-	@Nullable String lastTag() {
+	@Nullable StageTag lastTag() {
 		return this.lastTag;
 	}
 
 	/** stage 를 통과했다. 다음 stage 는 이 stage 후의 버전과 비교한다 */
-	void passed(String tag) {
+	void passed(StageTag tag) {
 		this.previousVersions = this.ws.versionsAfter(tag);
 		this.lastTag = tag;
 	}
 
 	/** 재개할 때 멈춘 stage 의 직전 stage 에서 이어 간다 */
-	void continueAfter(@Nullable String tag) {
+	void continueAfter(@Nullable StageTag tag) {
 		this.previousVersions = this.ws.versionsAfter(tag);
 		this.lastTag = tag;
 	}

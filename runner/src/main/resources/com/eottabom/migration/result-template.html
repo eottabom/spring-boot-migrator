@@ -591,7 +591,7 @@ footer { color: var(--muted); font-size: 13px; margin-top: 48px; padding-top: 16
       : fact('빌드', '실행 안 함');
     const covers = (r.covers || []).length > 1 ? $('span', { class: 'covers' }, r.covers.join(' → ')) : null;
     head.append($('div', { class: 'stage-head' },
-      $('h2', null, (/^\d/.test(s.name) ? 'Spring Boot ' : '') + s.name + ' stage', covers),
+      $('h2', null, s.title + ' stage', covers),
       $('dl', { class: 'facts' },
         fact('컴파일', { ok: '통과', fail: '실패', skip: '실행 안 함' }[r.compile], r.compile === 'ok' ? 'ok' : r.compile === 'fail' ? 'fail' : null),
         tests, build, fact('바뀐 파일', ((r.changes && r.changes.files) || []).length + '개'),

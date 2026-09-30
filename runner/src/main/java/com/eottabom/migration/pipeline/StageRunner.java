@@ -14,6 +14,7 @@ import com.eottabom.migration.pipeline.step.StagePatches;
 import com.eottabom.migration.plan.Stage;
 import com.eottabom.migration.result.Outcome;
 import com.eottabom.migration.result.StageResult;
+import com.eottabom.migration.stage.StageTag;
 import com.eottabom.migration.workspace.RunState.Reason;
 import com.eottabom.migration.workspace.RunState.Stopped;
 import com.eottabom.migration.workspace.StageFiles;
@@ -26,7 +27,7 @@ import org.jspecify.annotations.Nullable;
  */
 record StageRunner(RunSession session) {
 
-	void run(Stage stage, String tag) {
+	void run(Stage stage, StageTag tag) {
 		// 되돌리고 같은 태그로 다시 시도하면 지난 시도의 결과가 남아 있다
 		session().ws().clearStage(tag);
 		StageFiles files = session().ws().stage(tag);
@@ -69,32 +70,32 @@ record StageRunner(RunSession session) {
 		StageFiles files = session().ws().stage(stopped.tag());
 		GateOutcome gate = session().config().gate().level().builds() ? session().gateStep().build("재개", files, true)
 				: GateOutcome.compileOnly(Outcome.PASSED);
-		Stage stage = new Stage(Stage.Kind.BOOT, stopped.stage(), List.of(), stopped.covers());
+		Stage stage = new Stage(stopped.stage(), List.of(), stopped.covers());
 		complete(stage, stopped.tag(), files, gate, List.of(), stopped.treeBefore(), "(재개, 수정 포함)");
 	}
 
 	/** Assess 와 Record 뒤에 게이트 결과로 멈추거나 커밋하고 다음 stage 로 간다 */
-	private void complete(Stage stage, String tag, StageFiles files, GateOutcome gate, List<String> deprecationFixes,
+	private void complete(Stage stage, StageTag tag, StageFiles files, GateOutcome gate, List<String> deprecationFixes,
 			@Nullable String treeBefore, String commitDetail) {
 		record(stage, tag, files, gate, deprecationFixes, treeBefore);
 		if (!gate.passed()) {
 			stop(stage, tag, files, gate, treeBefore);
 		}
 		if (session().config().commit()) {
-			new CommitStep(session().console()).commit(session().git(), session().state().createdFiles(), files,
-					stage.name(), commitDetail, tag);
+			new CommitStep(session().console()).commit(session().git(), session().state().createdFiles(), files, tag,
+					commitDetail);
 		}
 		session().passed(tag);
 	}
 
 	/** result.md, result.json, patch, result.html, history.md 의 stage 한 줄 */
-	private void record(Stage stage, String tag, StageFiles files, GateOutcome gate, List<String> deprecationFixes,
+	private void record(Stage stage, StageTag tag, StageFiles files, GateOutcome gate, List<String> deprecationFixes,
 			@Nullable String treeBefore) {
-		StageResult result = new AssessStep(session().components().guides()).assess(stage.name(), stage.covers(),
+		StageResult result = new AssessStep(session().components().guides()).assess(stage.id(), stage.covers(),
 				session().projectDir(), files, session().ws().start(), session().previousVersions(), gate,
 				deprecationFixes, session().projectRecipes(), session().state().baseline().failedTests());
 		RecordStep record = new RecordStep(session().console());
-		String row = record.write(result, files).historyRow(stage.name(), tag);
+		String row = record.write(result, files).historyRow(tag);
 		if (session().isGit()) {
 			new StagePatches(session().console(), session().git()).write(files, session().state().createdFiles(),
 					session().ws().tempIndex(), treeBefore, session().state().startRevision());
@@ -105,12 +106,12 @@ record StageRunner(RunSession session) {
 	}
 
 	/** 깨진 상태로 다음 stage 로 가거나 커밋하지 않는다. 같은 명령을 다시 실행하면 이 stage 부터 이어서 한다 */
-	private void stop(Stage stage, String tag, StageFiles files, GateOutcome gate, @Nullable String treeBefore) {
-		session().history().stopped(stage.name(), tag, gate.describe());
+	private void stop(Stage stage, StageTag tag, StageFiles files, GateOutcome gate, @Nullable String treeBefore) {
+		session().history().stopped(tag, gate.describe());
 		if (session().isGit()) {
 			Reason reason = gate.compileFailed() ? Reason.COMPILE : Reason.BUILD;
 			session().state(session().state()
-				.stoppedAt(new Stopped(stage.name(), tag, stage.covers(), session().lastTag(), reason, treeBefore),
+				.stoppedAt(new Stopped(stage.id(), tag, stage.covers(), session().lastTag(), reason, treeBefore),
 						session().git().untracked()));
 		}
 		if (gate.compileFailed()) {

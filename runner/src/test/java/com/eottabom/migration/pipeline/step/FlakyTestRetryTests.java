@@ -12,6 +12,7 @@ import java.util.stream.Stream;
 import com.eottabom.migration.console.RunnerConsole;
 import com.eottabom.migration.gradle.ProjectGradle;
 import com.eottabom.migration.gradle.VerifyInitScript;
+import com.eottabom.migration.stage.StageTag;
 import com.eottabom.migration.workspace.MigrationWorkspace;
 import org.gradle.api.logging.Logging;
 import org.jspecify.annotations.Nullable;
@@ -84,8 +85,8 @@ class FlakyTestRetryTests {
 				throw new AssertionError();
 			}
 		};
-		FlakyTestRetry.Retried retried = retry(build, 1).retry(ws.stage("01-boot-3.4"), Set.of("demo.AppTest#target"),
-				List.of(xml));
+		FlakyTestRetry.Retried retried = retry(build, 1).retry(ws.stage(StageTag.parse("01-boot-3.4")),
+				Set.of("demo.AppTest#target"), List.of(xml));
 		assertThat(retried.failing()).isEqualTo(expectFailure ? Set.of("demo.AppTest#target") : Set.of());
 		assertThat(retried.flaky()).isEqualTo(expectFailure ? Set.of() : Set.of("demo.AppTest#target"));
 	}
@@ -114,7 +115,7 @@ class FlakyTestRetryTests {
 		});
 
 		Set<String> remaining = retry(gradle, 2)
-			.retry(ws.stage("01-boot-3.4"), Set.of("demo.AppTest#a", "demo.SlowTest#s"), build)
+			.retry(ws.stage(StageTag.parse("01-boot-3.4")), Set.of("demo.AppTest#a", "demo.SlowTest#s"), build)
 			.failing();
 
 		assertThat(attempt[0]).isEqualTo(2);
@@ -122,7 +123,7 @@ class FlakyTestRetryTests {
 		assertThat(Files.readString(other)).isEqualTo(result("", "o", "demo.OtherTest"));
 		// 2회차에 지워진 AppTest 는 build 결과(실패)가 아니라 1회차 결과(통과)로 되돌린다
 		assertThat(Files.readString(app)).isEqualTo(result("", "a", "demo.AppTest"));
-		assertThat(ws.stage("01-boot-3.4").keptResults()).doesNotExist();
+		assertThat(ws.stage(StageTag.parse("01-boot-3.4")).keptResults()).doesNotExist();
 	}
 
 	@Test
@@ -132,10 +133,10 @@ class FlakyTestRetryTests {
 			throw new AssertionError("다시 돌리지 않는다");
 		});
 
-		retry(gradle, 1).retry(ws.stage("01-boot-3.4"), Set.of(),
+		retry(gradle, 1).retry(ws.stage(StageTag.parse("01-boot-3.4")), Set.of(),
 				List.of(this.project.resolve("build/test-results/test/TEST-x.xml")));
 
-		assertThat(ws.stage("01-boot-3.4").keptResults()).doesNotExist();
+		assertThat(ws.stage(StageTag.parse("01-boot-3.4")).keptResults()).doesNotExist();
 	}
 
 	private FlakyTestRetry retry(ProjectGradle gradle, int retries) {

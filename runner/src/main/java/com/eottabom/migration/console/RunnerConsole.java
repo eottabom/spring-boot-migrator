@@ -70,7 +70,7 @@ public record RunnerConsole(Logger logger) {
 		for (Stage stage : stages) {
 			List<ChecklistItem> items = stage.covers()
 				.stream()
-				.flatMap((name) -> guides.stage(name).checklist().stream())
+				.flatMap((covered) -> guides.stage(covered).checklist().stream())
 				.toList();
 			if (items.isEmpty()) {
 				continue;

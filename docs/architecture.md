@@ -269,6 +269,7 @@ OpenRewrite 레시피는 소스를 LST(Lossless Semantic Tree, 타입 정보가 
 | `config` | 설정 파일과 CLI 병합, 스키마 검증 | `MigrationConfig`, `ConfigLoader`, `Mode`, `Gate`, `JavaTarget` |
 | `project` | 대상 프로젝트 읽기 | `ProjectInspector`, `ProjectState`, `VersionCatalog`, `JdkLocator` |
 | `guide` | guides/ 읽기 | `Guides`, `BootGuide`, `JavaGuide`, `GradleGuide`, `LibraryGuide`, `ChecklistItem`, `FailureHint`, `Deprecation` |
+| `stage` | stage 식별 (다른 패키지를 모른다) | `StageId` (종류와 버전. 이름 `3.4`, `java21`, `gradle8.14`), `StageTag` (번호와 stage. 결과 폴더 이름 `03-boot-3.4`) |
 | `plan` | stage 결정 (파일과 프로세스를 다루지 않는다) | `MigrationPlanner`, `MigrationPlan`, `Stage` |
 | `recipe` | 대상 프로젝트 레시피 | `ProjectRecipes` (`.rewrite/` 탐색), `AssembledRecipe` (`rewrite.assembled.yml`) |
 | `pipeline` | 실행 흐름 | `MigrationRunner` (태스크 진입점), `MigrationPipeline` (한 번의 실행), `StageRunner` (stage 의 step 순서), `Resumption` (재개), `RunSession`, `RunHistory`, `PreviewRun`, `RunLock` |

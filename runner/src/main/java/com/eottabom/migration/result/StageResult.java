@@ -12,20 +12,21 @@ import com.eottabom.migration.io.TextFiles;
 import com.eottabom.migration.result.RecipeChanges.CustomChange;
 import com.eottabom.migration.result.TestReport.PropertyChange;
 import com.eottabom.migration.result.TestReport.TestFailure;
+import com.eottabom.migration.stage.StageId;
 import org.jspecify.annotations.Nullable;
 
 /**
  * stage 하나의 결과. 로그와 테스트 결과를 읽어 모으고({@link #assess(Input)}) result.md 와 result.json 으로 쓴다.
  * result.json 의 형식은 schema/result.schema.json 이다.
  *
- * @param covers 이 stage 가 다룬 stage 이름 (--mode=all 이면 여러 개)
+ * @param covers 이 stage 가 다룬 stage (--mode=all 이면 여러 개)
  * @param buildFailureExisting 빌드 실패가 원본에서도 실패하던 태스크 때문이다 (기존 문제로 표시)
  * @param deprecationFixes deprecated API 를 바꾼 대체 레시피
  * @param detect detect 레시피가 찾은 위치
  * @param checklist 러너가 guides/ 에서 고른 체크리스트 항목
  * @param source stage 가이드의 공식 문서
  */
-public record StageResult(String stage, List<String> covers, Outcome compile, Outcome build,
+public record StageResult(StageId stage, List<StageId> covers, Outcome compile, Outcome build,
 		boolean buildFailureExisting, Tests tests, CompileWarnings warnings, List<String> deprecationFixes,
 		Properties properties, List<DetectedItem> detect, Changes changes, DependencyChanges deps,
 		List<ReportedChecklistItem> checklist, @Nullable String source) {
@@ -114,7 +115,7 @@ public record StageResult(String stage, List<String> covers, Outcome compile, Ou
 	 * @param testResults 이 stage 의 build 게이트가 만든 테스트 결과 파일
 	 * @param unreadableResults 끝까지 읽지 못한 테스트 결과 파일
 	 */
-	public record Input(String stage, List<String> covers, Path projectDir, Path compileLog, Path rewriteLog,
+	public record Input(StageId stage, List<StageId> covers, Path projectDir, Path compileLog, Path rewriteLog,
 			Path detectPatch, Path versionsBefore, Path versionsAfter, Outcome compile, Outcome build,
 			boolean buildFailureExisting, List<ReportedChecklistItem> checklist, @Nullable String source,
 			List<FailureHint> failureHints, Set<String> projectRecipes, Set<String> baselineFailedTests,

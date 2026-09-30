@@ -9,11 +9,11 @@ import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import com.eottabom.migration.io.AtomicFiles;
 import com.eottabom.migration.io.TextFiles;
+import com.eottabom.migration.stage.StageTag;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -32,8 +32,6 @@ import org.jspecify.annotations.Nullable;
 public record MigrationWorkspace(Path dir) {
 
 	public static final String DIR_NAME = ".spring-boot-migrator";
-
-	private static final Pattern STAGE_DIR = Pattern.compile("^\\d{2,}-.+$");
 
 	public MigrationWorkspace {
 		try {
@@ -84,17 +82,18 @@ public record MigrationWorkspace(Path dir) {
 		return new RunFiles(this.dir.resolve("scan"));
 	}
 
-	public StageFiles stage(String tag) {
-		return new StageFiles(this.dir.resolve(tag));
+	public StageFiles stage(StageTag tag) {
+		return new StageFiles(this.dir.resolve(tag.dirName()));
 	}
 
-	/** 지난 실행까지 포함한 stage 폴더 이름 (번호 순서) */
-	public List<String> stageTags() {
+	/** 지난 실행까지 포함한 stage 폴더 (번호 순서) */
+	public List<StageTag> stageTags() {
 		try (Stream<Path> files = Files.list(this.dir)) {
 			return files.filter((file) -> Files.isDirectory(file))
 				.map((file) -> file.getFileName().toString())
-				.filter((name) -> STAGE_DIR.matcher(name).matches())
-				.sorted(Comparator.comparingInt((String tag) -> Integer.parseInt(tag.substring(0, tag.indexOf('-')))))
+				.filter(StageTag::isDirName)
+				.map(StageTag::parse)
+				.sorted(Comparator.comparingInt(StageTag::order))
 				.toList();
 		}
 		catch (IOException ex) {
@@ -103,12 +102,12 @@ public record MigrationWorkspace(Path dir) {
 	}
 
 	/** 같은 태그로 다시 시도할 때 지난 시도의 결과가 섞이지 않게 stage 폴더를 비운다 */
-	public void clearStage(String tag) {
-		deleteTree(this.dir.resolve(tag));
+	public void clearStage(StageTag tag) {
+		deleteTree(this.dir.resolve(tag.dirName()));
 	}
 
 	/** tag stage 가 남긴 의존성 버전 목록. tag 가 없거나 파일이 없으면 시작할 때 모은 목록 */
-	public Path versionsAfter(@Nullable String tag) {
+	public Path versionsAfter(@Nullable StageTag tag) {
 		Path stageVersions = (tag != null) ? stage(tag).versions() : null;
 		return (stageVersions != null && Files.exists(stageVersions)) ? stageVersions : start().versions();
 	}

@@ -3,6 +3,7 @@ package com.eottabom.migration.pipeline.step;
 import java.util.Collection;
 
 import com.eottabom.migration.console.RunnerConsole;
+import com.eottabom.migration.stage.StageTag;
 import com.eottabom.migration.workspace.Git;
 import com.eottabom.migration.workspace.MigrationWorkspace;
 import com.eottabom.migration.workspace.StageFiles;
@@ -14,8 +15,8 @@ import org.gradle.api.GradleException;
 public record CommitStep(RunnerConsole console) {
 
 	/** 커밋하지 못하면 멈춘다. 다음 stage 로 가면 두 stage 의 변경이 한 커밋에 섞인다. 담을 변경이 없으면 그냥 넘어간다 */
-	public void commit(Git git, Collection<String> createdFiles, StageFiles files, String stageName, String detail,
-			String tag) {
+	public void commit(Git git, Collection<String> createdFiles, StageFiles files, StageTag tag, String detail) {
+		String stageName = tag.stage().name();
 		Git.CommitResult result = git.commit(createdFiles, "chore: Spring Boot " + stageName + " 마이그레이션 " + detail,
 				"- 결과는 " + MigrationWorkspace.DIR_NAME + "/" + tag + "/result.md", files.commitLog());
 		switch (result) {

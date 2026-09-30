@@ -8,6 +8,7 @@ import com.eottabom.migration.config.MigrationConfig;
 import com.eottabom.migration.config.Mode;
 import com.eottabom.migration.guide.Guides;
 import com.eottabom.migration.project.ProjectState;
+import com.eottabom.migration.stage.StageId;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -235,11 +236,10 @@ class MigrationPlannerTests {
 	// @formatter:on
 
 	@Test
-	void gradleStageUsesGradleProjectTag() {
+	void insertsGradleStageWithItsRecipe() {
 		Stage gradle = this.planner.plan(project("3.2.8", "8.3", 17), request("3.4", "keep")).stages().get(1);
 
-		assertThat(gradle.kind()).isEqualTo(Stage.Kind.GRADLE);
-		assertThat(Stage.projectTag(gradle.name())).isEqualTo("gradle");
+		assertThat(gradle.id()).isEqualTo(StageId.gradle("8.14"));
 		assertThat(gradle.recipes()).containsExactly("com.eottabom.rewrite.stage.Gradle_8_14");
 	}
 

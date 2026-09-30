@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.eottabom.migration.stage.StageTag;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -31,8 +32,8 @@ class ResultHtmlTests {
 
 		ResultHtml.write(html,
 				new ResultHtml.Page("demo", "3.3.5", null,
-						List.of(new ResultHtml.StageEntry("01-boot-3.4", "3.4", result, patch),
-								new ResultHtml.StageEntry("02-java21", "java21", this.dir.resolve("none.json"),
+						List.of(new ResultHtml.StageEntry(StageTag.parse("01-boot-3.4"), result, patch),
+								new ResultHtml.StageEntry(StageTag.parse("02-java21"), this.dir.resolve("none.json"),
 										this.dir.resolve("none.patch")))));
 
 		String page = Files.readString(html);
@@ -59,8 +60,8 @@ class ResultHtmlTests {
 		Path patch = Files.writeString(this.dir.resolve("stage.patch"), file.repeat(2000));
 		Path html = this.dir.resolve("result.html");
 
-		ResultHtml.write(html, new ResultHtml.Page("demo", null, null,
-				List.of(new ResultHtml.StageEntry("01-boot-3.4", "3.4", this.dir.resolve("none.json"), patch))));
+		ResultHtml.write(html, new ResultHtml.Page("demo", null, null, List
+			.of(new ResultHtml.StageEntry(StageTag.parse("01-boot-3.4"), this.dir.resolve("none.json"), patch))));
 
 		Matcher script = Pattern.compile("<script id=\"data\" type=\"application/json\">(.*?)</script>", Pattern.DOTALL)
 			.matcher(Files.readString(html));

@@ -28,8 +28,10 @@ class ArchitectureTests {
 
 	@ParameterizedTest(name = "[{index}] {0} 는 {1} 를 모른다")
 	@CsvSource(delimiter = '|',
-			value = { "io|config,console,gradle,guide,pipeline,plan,plugin,project,recipe,result,version,workspace",
-					"version|config,console,gradle,guide,io,pipeline,plan,plugin,project,recipe,result,workspace",
+			value = {
+					"io|config,console,gradle,guide,pipeline,plan,plugin,project,recipe,result,stage,version,workspace",
+					"version|config,console,gradle,guide,io,pipeline,plan,plugin,project,recipe,result,stage,workspace",
+					"stage|config,console,gradle,guide,io,pipeline,plan,plugin,project,recipe,result,version,workspace",
 					"config|console,gradle,guide,pipeline,plan,plugin,project,recipe,result,workspace",
 					"guide|config,console,gradle,pipeline,plan,plugin,project,recipe,result,workspace",
 					"project|config,console,gradle,guide,pipeline,plan,plugin,recipe,result,workspace",

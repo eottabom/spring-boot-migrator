@@ -85,7 +85,7 @@ record Resumption(RunSession session, StageRunner stages) {
 		}
 		session().console().line("   {} stage 전 상태로 되돌렸어요. {} stage 부터 다시 시도할게요", stopped.stage(), stopped.stage());
 		session().state(session().state().resumed());
-		return new Resumed(true, stopped.order() - 1, "- 재개해서 " + stopped.stage() + " stage 전 상태로 되돌리고 다시 시도했어요");
+		return new Resumed(true, stopped.tag().order() - 1, "- 재개해서 " + stopped.stage() + " stage 전 상태로 되돌리고 다시 시도했어요");
 	}
 
 	/**

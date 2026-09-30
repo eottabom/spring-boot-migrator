@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 import com.eottabom.migration.guide.ChecklistItem.Fix;
+import com.eottabom.migration.stage.StageId;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -50,7 +51,7 @@ class GuidesTests {
 	@MethodSource("dependencyConditions")
 	void checklistItemWithDependencyConditionMatchesOnlyWhenDependencyPresent(String stage,
 			Map<String, String> dependencies, String expected, List<String> unexpected) {
-		List<String> ids = ids(this.guides.checklist(List.of(stage), dependencies, dependencies));
+		List<String> ids = ids(this.guides.checklist(List.of(StageId.parse(stage)), dependencies, dependencies));
 
 		assertThat(ids).contains(expected);
 		unexpected.forEach((id) -> assertThat(ids).doesNotContain(id));
@@ -80,7 +81,7 @@ class GuidesTests {
 	void libraryChecklistMatchesByCrossesAndAffected(String stage, String before, String after, String expected,
 			String expectedTrigger, List<String> unexpected) {
 		String library = "org.hibernate.orm:hibernate-core";
-		List<ChecklistMatch> matches = this.guides.checklist(List.of(stage), Map.of(library, before),
+		List<ChecklistMatch> matches = this.guides.checklist(List.of(StageId.parse(stage)), Map.of(library, before),
 				Map.of(library, after));
 
 		assertThat(ids(matches)).contains(expected);
@@ -113,33 +114,34 @@ class GuidesTests {
 
 	@Test
 	void doesNotAssumeUnknownDependencies() {
-		assertThat(this.guides.stage("3.5").checklist()).extracting(ChecklistItem::id)
+		assertThat(this.guides.stage(StageId.parse("3.5")).checklist()).extracting(ChecklistItem::id)
 			.contains("boot-3.5/task-executor-name", "boot-3.5/heapdump");
-		assertThat(ids(this.guides.checklist(List.of("3.5"), Map.of(), Map.of())))
+		assertThat(ids(this.guides.checklist(List.of(StageId.boot("3.5")), Map.of(), Map.of())))
 			.contains("boot-3.5/task-executor-name")
 			.doesNotContain("boot-3.5/heapdump");
 	}
 
 	@Test
 	void stageHintsComeBeforeCommonHints() {
-		List<FailureHint> hints = this.guides.failureHints(List.of("3.5"));
+		List<FailureHint> hints = this.guides.failureHints(List.of(StageId.boot("3.5")));
 
 		assertThat(hints.get(0).text()).contains("taskExecutor");
 		assertThat(hints).extracting(FailureHint::text)
 			.anyMatch((text) -> text.contains("Docker"))
 			.noneMatch((text) -> text.contains("MockMvc"));
-		assertThat(this.guides.deprecations(List.of("3.5"))).extracting(Deprecation::recipe)
+		assertThat(this.guides.deprecations(List.of(StageId.boot("3.5")))).extracting(Deprecation::recipe)
 			.contains("org.openrewrite.java.migrate.util.UseLocaleOf");
-		assertThat(this.guides.deprecations(List.of("3.5")))
+		assertThat(this.guides.deprecations(List.of(StageId.boot("3.5"))))
 			.filteredOn((deprecation) -> deprecation.matches("Locale(String) in Locale has been deprecated"))
 			.hasSize(1);
 	}
 
 	@Test
 	void resolvesStageNames() {
-		assertThat(this.guides.stage("java21")).isInstanceOf(JavaGuide.class);
-		assertThat(this.guides.stage("gradle9.1")).isInstanceOf(GradleGuide.class);
-		assertThatThrownBy(() -> this.guides.stage("gradle7.0")).hasMessageContaining("guides/gradle/7.0.yml");
+		assertThat(this.guides.stage(StageId.parse("java21"))).isInstanceOf(JavaGuide.class);
+		assertThat(this.guides.stage(StageId.parse("gradle9.1"))).isInstanceOf(GradleGuide.class);
+		assertThatThrownBy(() -> this.guides.stage(StageId.parse("gradle7.0")))
+			.hasMessageContaining("guides/gradle/7.0.yml");
 		assertThatThrownBy(() -> this.guides.java(11)).hasMessageContaining("--java 는 17 | 21 | 25");
 		assertThatThrownBy(() -> this.guides.boot("2.7")).hasMessageContaining("guides/boot/2.7.yml");
 	}
@@ -186,7 +188,7 @@ class GuidesTests {
 	}
 
 	private ChecklistItem checklistItem(String stage, String id) {
-		return this.guides.stage(stage)
+		return this.guides.stage(StageId.parse(stage))
 			.checklist()
 			.stream()
 			.filter((item) -> item.id().equals(id))

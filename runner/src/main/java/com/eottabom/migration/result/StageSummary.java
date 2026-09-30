@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.eottabom.migration.guide.ChecklistItem.Fix;
+import com.eottabom.migration.stage.StageTag;
 
 /**
  * stage 결과 상단의 요약 표. 마크다운 표, history.md 의 stage 한 줄, 콘솔 출력이 모두 이 모델에서 나온다.
@@ -55,8 +56,8 @@ public record StageSummary(List<Row> rows) {
 	}
 
 	/** history.md 의 stage 한 줄 */
-	public String historyRow(String stage, String tag) {
-		return "| " + stage + " | " + value(COMPILE) + " | " + value(TESTS) + " | " + value(BUILD) + " | "
+	public String historyRow(StageTag tag) {
+		return "| " + tag.stage() + " | " + value(COMPILE) + " | " + value(TESTS) + " | " + value(BUILD) + " | "
 				+ value(CHANGED_FILES) + " | " + value(DETECTED) + " | " + value(CHECKLIST) + " | [" + tag + "](" + tag
 				+ "/result.md) |\n";
 	}

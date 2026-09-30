@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter;
 import com.eottabom.migration.console.RunnerConsole;
 import com.eottabom.migration.plan.MigrationPlan;
 import com.eottabom.migration.project.ProjectState;
+import com.eottabom.migration.stage.StageTag;
 import com.eottabom.migration.workspace.MigrationWorkspace;
 import org.jspecify.annotations.Nullable;
 
@@ -50,8 +51,8 @@ record RunHistory(MigrationWorkspace ws, String projectName) {
 		append(row);
 	}
 
-	void stopped(String stageName, String tag, String reason) {
-		append("\n" + stageName + " stage 에서 " + reason + "로 멈췄어요 (" + tag + "/result.md)\n\n");
+	void stopped(StageTag tag, String reason) {
+		append("\n" + tag.stage() + " stage 에서 " + reason + "로 멈췄어요 (" + tag + "/result.md)\n\n");
 	}
 
 	void finished(@Nullable String startBoot, @Nullable String finalBoot) {

@@ -11,6 +11,7 @@ import com.eottabom.migration.plan.Stage;
 import com.eottabom.migration.recipe.AssembledRecipe;
 import com.eottabom.migration.recipe.AssembledRecipe.Assembled;
 import com.eottabom.migration.recipe.ProjectRecipes;
+import com.eottabom.migration.stage.StageTag;
 import com.eottabom.migration.workspace.Git;
 import com.eottabom.migration.workspace.MigrationWorkspace;
 import com.eottabom.migration.workspace.StageFiles;
@@ -31,7 +32,7 @@ public record RewriteStep(ProjectGradle gradle, RunnerConsole console, Path proj
 	/**
 	 * @param createdFiles 지금까지 레시피가 만든 파일 (stage 전 작업 트리에 넣는다)
 	 */
-	public RewriteOutcome run(Stage stage, String tag, StageFiles files, ProjectRecipes projectRecipes,
+	public RewriteOutcome run(Stage stage, StageTag tag, StageFiles files, ProjectRecipes projectRecipes,
 			Collection<String> createdFiles, Path tempIndex) {
 		Assembled assembled = AssembledRecipe.write(this.projectDir, String.valueOf(this.projectDir.getFileName()),
 				stage, tag, projectRecipes);
