@@ -118,6 +118,19 @@ class ProjectInspectorTests {
 				"4.0.7", null, 25, 25
 			),
 			Arguments.of(
+				"version catalog 의 version = { ref = .. } 표기",
+				Map.of(
+					"build.gradle", "plugins {\n    alias(libs.plugins.spring.boot) apply false\n}\n",
+					"gradle/libs.versions.toml", """
+						[versions]
+						spring-boot = "3.4.5"
+
+						[plugins]
+						spring-boot = { id = "org.springframework.boot", version = { ref = "spring-boot" } }
+						"""),
+				"3.4.5", null, null, null
+			),
+			Arguments.of(
 				"이름이 libs 가 아닌 version catalog",
 				Map.of(
 					"build.gradle", "plugins {\n    alias(deps.plugins.spring.boot) apply false\n}\n",

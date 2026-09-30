@@ -35,6 +35,10 @@ record VersionCatalog(Map<String, String> versions, Map<String, String> plugins)
 	/** "value" 또는 inline table 의 key = "value". TOML 의 작은따옴표 문자열('value')도 받는다 */
 	private static final Pattern ATTRIBUTE = Pattern.compile("(?:([\\w.]+)\\s*=\\s*)?(?:\"([^\"]*)\"|'([^']*)')");
 
+	/** version = { ref = "x" } 는 version.ref = "x" 와 같은 뜻이다 */
+	private static final Pattern VERSION_REF_TABLE = Pattern
+		.compile("version\\s*=\\s*\\{\\s*ref\\s*=\\s*(\"[^\"]*\"|'[^']*')\\s*}");
+
 	/** gradle/*.versions.toml 을 모두 읽는다. 같은 플러그인이 여러 catalog 에 있으면 libs 를 먼저 본다 */
 	static VersionCatalog read(Path projectDir) {
 		Map<String, String> versions = new HashMap<>();
@@ -110,7 +114,7 @@ record VersionCatalog(Map<String, String> versions, Map<String, String> plugins)
 	/** 따옴표 값의 key 와 값. 키 없는 값("4.0.7")은 빈 키로 둔다 */
 	private static Map<String, String> attributes(String value) {
 		Map<String, String> attributes = new HashMap<>();
-		Matcher matcher = ATTRIBUTE.matcher(value);
+		Matcher matcher = ATTRIBUTE.matcher(VERSION_REF_TABLE.matcher(value).replaceAll("version.ref = $1"));
 		while (matcher.find()) {
 			String text = (matcher.group(2) != null) ? matcher.group(2) : matcher.group(3);
 			attributes.putIfAbsent((matcher.group(1) != null) ? matcher.group(1) : "", text);
