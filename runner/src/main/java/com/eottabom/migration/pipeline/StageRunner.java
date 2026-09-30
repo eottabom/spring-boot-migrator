@@ -24,7 +24,7 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * stage 하나의 step. Rewrite, Gate(compile), Deprecation, Gate(build), Assess, Record,
- * Commit 을 차례로 부른다. 재개할 때는 Rewrite 없이 게이트부터 다시 확인한다. 게이트를 통과하지 못하면 재개 기록을 남기고 멈춘다.
+ * Commit 을 차례로 부른다. 재개할 때는 Rewrite 만 빼고 같은 순서로 다시 돈다. 게이트를 통과하지 못하면 재개 기록을 남기고 멈춘다.
  */
 record StageRunner(RunSession session) {
 
@@ -42,43 +42,54 @@ record StageRunner(RunSession session) {
 
 		// 이 stage 의 게이트부터 바뀐 Java 버전으로 돈다
 		session().refreshJdk();
-		List<String> deprecationFixes = List.of();
-		GateOutcome gate = GateOutcome.SKIPPED;
-		if (session().config().gate().level().compiles()) {
-			GateStep gateStep = session().gateStep();
-			Outcome compile = gateStep.compile(stage.name(), files);
-			if (compile == Outcome.PASSED) {
-				DeprecationStep.Fixed fixed = new DeprecationStep(session().components().guides(),
-						session().recipeRun(), session().console())
-					.fix(stage, tag, files, session().projectDir());
-				if (fixed.applied()) {
-					deprecationFixes = fixed.recipes();
-					session().state(session().state().withCreatedFiles(fixed.createdFiles()));
-					compile = gateStep.compile(stage.name(), files);
-				}
-			}
-			gate = (compile == Outcome.PASSED && session().config().gate().level().builds())
-					? gateStep.build(stage.name(), files, false) : GateOutcome.compileOnly(compile);
-		}
-		complete(stage, tag, files, gate, deprecationFixes, rewrite.treeBefore(),
-				"(OpenRewrite " + stage.recipeNames() + ")");
+		Verified verified = verify(stage, tag, files);
+		complete(stage, tag, files, verified, rewrite.treeBefore(), "(OpenRewrite " + stage.recipeNames() + ")");
 	}
 
 	/**
-	 * 게이트에서 멈췄던 stage 를 다시 확인한다. 컴파일은 호출하는 쪽이 이미 확인했다.
+	 * 게이트에서 멈췄던 stage 를 Rewrite 없이 같은 순서로 다시 확인한다.
+	 * @return 컴파일로 멈췄는데 아직 컴파일되지 않으면 false. 이때는 아무것도 기록하지 않고, 호출하는 쪽이 되돌릴지 정한다
 	 */
-	void resume(Stopped stopped) {
+	boolean resume(Stopped stopped) {
 		StageFiles files = session().ws().stage(stopped.tag());
-		GateOutcome gate = session().config().gate().level().builds() ? session().gateStep().build("재개", files, true)
-				: GateOutcome.compileOnly(Outcome.PASSED);
 		Stage stage = new Stage(stopped.stage(), List.of(), stopped.covers());
-		complete(stage, stopped.tag(), files, gate, List.of(), stopped.treeBefore(), "(재개, 수정 포함)");
+		Verified verified = verify(stage, stopped.tag(), files);
+		if (verified.gate().compileFailed() && stopped.reason() == Reason.COMPILE) {
+			return false;
+		}
+		session().history().resuming(stopped.stage());
+		complete(stage, stopped.tag(), files, verified, stopped.treeBefore(), "(재개, 수정 포함)");
+		return true;
+	}
+
+	/** compile 게이트, deprecated API 대체, build 게이트. 처음 돌 때와 재개할 때 같은 순서로 돈다 */
+	private Verified verify(Stage stage, StageTag tag, StageFiles files) {
+		if (!session().config().gate().level().compiles()) {
+			return new Verified(GateOutcome.SKIPPED, List.of());
+		}
+		GateStep gateStep = session().gateStep();
+		List<String> deprecationFixes = List.of();
+		Outcome compile = gateStep.compile(stage.name(), files);
+		if (compile == Outcome.PASSED) {
+			DeprecationStep.Fixed fixed = new DeprecationStep(session().components().guides(), session().recipeRun(),
+					session().console())
+				.fix(stage, tag, files, session().projectDir());
+			if (fixed.applied()) {
+				deprecationFixes = fixed.recipes();
+				session().state(session().state().withCreatedFiles(fixed.createdFiles()));
+				compile = gateStep.compile(stage.name(), files);
+			}
+		}
+		boolean builds = compile == Outcome.PASSED && session().config().gate().level().builds();
+		return new Verified(builds ? gateStep.build(stage.name(), files) : GateOutcome.compileOnly(compile),
+				deprecationFixes);
 	}
 
 	/** Assess 와 Record 뒤에 게이트 결과로 멈추거나 커밋하고 다음 stage 로 간다 */
-	private void complete(Stage stage, StageTag tag, StageFiles files, GateOutcome gate, List<String> deprecationFixes,
-			@Nullable String treeBefore, String commitDetail) {
-		record(stage, tag, files, gate, deprecationFixes, treeBefore);
+	private void complete(Stage stage, StageTag tag, StageFiles files, Verified verified, @Nullable String treeBefore,
+			String commitDetail) {
+		GateOutcome gate = verified.gate();
+		record(stage, tag, files, gate, verified.deprecationFixes(), treeBefore);
 		if (!gate.passed()) {
 			stop(stage, tag, files, gate, treeBefore);
 		}
@@ -123,6 +134,12 @@ record StageRunner(RunSession session) {
 		throw new GradleException("[" + stage.name() + "] " + gate.describe() + ". 결과는 "
 				+ session().ws().resultHtml().toUri() + "\n" + "   고치고 같은 명령을 다시 실행하면 이 stage 검증부터 다시 하고, 통과하면 "
 				+ (session().config().commit() ? "커밋하고 " : "") + "다음 stage 로 넘어가요. 테스트 결과와 상관없이 진행하려면 --gate=compile");
+	}
+
+	/**
+	 * @param deprecationFixes deprecated API 를 바꾼 대체 레시피
+	 */
+	private record Verified(GateOutcome gate, List<String> deprecationFixes) {
 	}
 
 }

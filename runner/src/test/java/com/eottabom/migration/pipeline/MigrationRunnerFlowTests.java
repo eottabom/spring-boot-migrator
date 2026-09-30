@@ -129,8 +129,10 @@ class MigrationRunnerFlowTests {
 		write("src/main/java/demo/Fix.java", "package demo;\nclass Fix {}\n");
 		this.runner.run(request("3.5", true));
 
-		// 원본 빌드 1번과 재개 게이트 1번
-		assertThat(this.fake.count("clean build --continue")).isEqualTo(2);
+		// 원본 빌드, 재개한 3.4 의 build 게이트, 3.5 의 build 게이트. clean 부터 하는 것은 원본 빌드뿐이다 (게이트는
+		// compile 이 clean 을 한다)
+		assertThat(this.fake.count("build --continue")).isEqualTo(3);
+		assertThat(this.fake.count("clean build --continue")).isEqualTo(1);
 		assertThat(migrationCommits()).hasSize(2);
 		assertThat(git("show", "--name-only", "--format=", "HEAD~1")).contains("Fix.java", "lombok.config");
 		assertThat(git("log", "--name-only", "--format=")).doesNotContain("test-output.log");
@@ -419,7 +421,8 @@ class MigrationRunnerFlowTests {
 		assertThatThrownBy(() -> this.runner.run(request("3.5", false))).hasMessageContaining("테스트 1개 실패");
 		write("src/main/java/demo/Fix.java", "package demo;\nclass Fix {}\n");
 		replace(this.project.resolve("src/main/java/demo/App.java"), "class App {}", "class App { int fixed; }");
-		// 재개는 통과하고 3.5 는 컴파일로 멈춘다
+		// 재개는 통과하고(3.4 의 compile 게이트) 3.5 는 컴파일로 멈춘다
+		this.fake.compiles.add(true);
 		this.fake.compiles.add(false);
 		assertThatThrownBy(() -> this.runner.run(request("3.5", false))).hasMessageContaining("컴파일 실패");
 		assertThat(read(".spring-boot-migrator/01-boot-3.4/cumulative.patch")).contains("Fix.java", "int fixed;");
@@ -480,6 +483,26 @@ class MigrationRunnerFlowTests {
 			.contains("org.openrewrite.staticanalysis.PrimitiveWrapperClassConstructorToValueOf");
 		assertThat(read(".spring-boot-migrator/01-boot-3.4/compile-before-deprecations.log")).contains("[removal]");
 		assertThat(read(".spring-boot-migrator/01-boot-3.4/result.md")).contains("## deprecated API 대체");
+	}
+
+	@Test
+	void resumedStageRunsDeprecationStepAndReportsFreshCompileLog() throws IOException {
+		this.fake.compiles.add(false);
+		assertThatThrownBy(() -> this.runner.run(request("3.4", false))).hasMessageContaining("컴파일 실패");
+		assertThat(read(".spring-boot-migrator/01-boot-3.4/compile.log")).contains("Compilation failed");
+
+		// 고친 뒤의 컴파일에서 나온 경고로 대체 레시피를 돌리고, 결과도 그 컴파일 로그로 만든다
+		this.fake.compileWarnings.add(this.project.resolve("src/main/java/demo/App.java")
+				+ ":3: warning: [removal] Integer(int) in Integer has been deprecated and marked for removal");
+		this.fake.compileWarnings.add(this.project.resolve("src/main/java/demo/App.java")
+				+ ":5: warning: [removal] old() in App has been deprecated and marked for removal");
+		this.runner.run(request("3.4", false));
+
+		assertThat(this.fake.count("rewriteRun migration.assembled.Deprecations_01_boot_3_4")).isEqualTo(1);
+		assertThat(read(".spring-boot-migrator/01-boot-3.4/compile.log")).doesNotContain("Compilation failed");
+		assertThat(read(".spring-boot-migrator/01-boot-3.4/result.md")).contains("## deprecated API 대체")
+			.contains("old() in App has been deprecated");
+		assertThat(this.project.resolve(".spring-boot-migrator/run-state.json")).doesNotExist();
 	}
 
 	@Test

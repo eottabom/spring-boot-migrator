@@ -60,7 +60,7 @@ cd spring-boot-migrator
 <!-- coverage:start -->
 | Module | Line | Branch | Method |
 |---|---|---|---|
-| runner | 82.8% | 74.1% | 89.7% |
+| runner | 82.8% | 74.3% | 89.8% |
 | recipes | 97.4% | 86.7% | 98.6% |
 <!-- coverage:end -->
 

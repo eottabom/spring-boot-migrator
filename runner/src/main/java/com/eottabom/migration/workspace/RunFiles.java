@@ -58,11 +58,6 @@ public record RunFiles(Path dir) {
 		return this.dir.resolve("baseline-test-dirs.txt");
 	}
 
-	/** 재개할 때 컴파일이 고쳐졌는지 보는 빌드 */
-	public Path resumeCompileLog() {
-		return this.dir.resolve("resume-compile.log");
-	}
-
 	public Path compileLog() {
 		return this.dir.resolve("compile.log");
 	}
