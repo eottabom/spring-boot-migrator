@@ -5,9 +5,8 @@ import java.util.Objects;
 
 import com.eottabom.migration.config.MigrationConfig;
 import com.eottabom.migration.console.RunnerConsole;
-import com.eottabom.migration.gradle.BuildTool;
-import com.eottabom.migration.gradle.VerifyScript;
-import com.eottabom.migration.pipeline.MigrationRunnerFactory.Components;
+import com.eottabom.migration.gradle.ProjectGradle;
+import com.eottabom.migration.gradle.VerifyInitScript;
 import com.eottabom.migration.pipeline.step.GateStep;
 import com.eottabom.migration.pipeline.step.RewriteStep;
 import com.eottabom.migration.project.ProjectState;
@@ -38,7 +37,7 @@ final class RunSession {
 	private final RunHistory history;
 
 	/** stage 가 Java 버전을 올리면 다시 고른 JDK 로 바꾼다 */
-	private BuildTool gradle;
+	private ProjectGradle gradle;
 
 	private boolean isGit;
 
@@ -70,7 +69,7 @@ final class RunSession {
 		return this.ws;
 	}
 
-	Components components() {
+	RunnerComponents components() {
 		return this.runner.components();
 	}
 
@@ -106,7 +105,7 @@ final class RunSession {
 		return this.history;
 	}
 
-	BuildTool gradle() {
+	ProjectGradle gradle() {
 		return this.gradle;
 	}
 
@@ -160,12 +159,12 @@ final class RunSession {
 		if (!Objects.equals(javaHome, this.gradle.javaHome())) {
 			console().line("   JAVA_HOME 변경: {} → {}", RunnerConsole.orDefault(this.gradle.javaHome()),
 					RunnerConsole.orDefault(javaHome));
-			this.gradle = this.runner.buildTools().create(projectDir(), javaHome);
+			this.gradle = this.runner.gradleFactory().create(projectDir(), javaHome);
 		}
 	}
 
-	VerifyScript verifyScript() {
-		return components().scanner().verifyScript();
+	VerifyInitScript verifyInitScript() {
+		return components().scanner().verifyInitScript();
 	}
 
 	RewriteStep rewriteStep() {
@@ -174,7 +173,7 @@ final class RunSession {
 	}
 
 	GateStep gateStep() {
-		return new GateStep(this.gradle, verifyScript(), console(), projectDir(), this.config.gate().testRetries(),
+		return new GateStep(this.gradle, verifyInitScript(), console(), projectDir(), this.config.gate().testRetries(),
 				this.state.baseline());
 	}
 

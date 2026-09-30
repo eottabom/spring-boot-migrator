@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Objects;
 
 import com.eottabom.migration.console.RunnerConsole;
-import com.eottabom.migration.gradle.BuildTool;
+import com.eottabom.migration.gradle.ProjectGradle;
 import com.eottabom.migration.misc.TextFiles;
 import com.eottabom.migration.pipeline.MigrationRunner.RunnerPaths;
 import com.eottabom.migration.plan.Stage;
@@ -27,7 +27,7 @@ import org.jspecify.annotations.Nullable;
  * 에 차례로 적용하고 stage 별 patch 만 남긴다. 대상 프로젝트의 작업 트리는 바뀌지 않는다. git 저장소가 아니면 첫 stage 만
  * rewriteDryRun 으로 본다.
  */
-record StagePreview(RunnerPaths paths, BuildTool.Factory buildTools, ProjectInspector inspector,
+record PreviewRun(RunnerPaths paths, ProjectGradle.Factory gradleFactory, ProjectInspector inspector,
 		RunnerConsole console) {
 
 	/**
@@ -43,7 +43,7 @@ record StagePreview(RunnerPaths paths, BuildTool.Factory buildTools, ProjectInsp
 			throw new GradleException("preview 용 임시 worktree 를 만들지 못했어요 → " + worktree);
 		}
 		try {
-			BuildTool gradle = this.buildTools.create(worktree, javaHome);
+			ProjectGradle gradle = this.gradleFactory.create(worktree, javaHome);
 			Git worktreeGit = new Git(worktree);
 			String previous = Objects.requireNonNull(worktreeGit.head(), "미리보기 worktree 의 HEAD");
 			int number = order;
@@ -77,7 +77,7 @@ record StagePreview(RunnerPaths paths, BuildTool.Factory buildTools, ProjectInsp
 
 	/** git 저장소가 아니면 임시 worktree 를 쓸 수 없어 첫 stage 만 rewriteDryRun 으로 본다 */
 	void firstStage(Path projectDir, MigrationWorkspace ws, Stage stage, String tag, ProjectRecipes projectRecipes,
-			BuildTool gradle) {
+			ProjectGradle gradle) {
 		StageFiles files = ws.stage(tag);
 		Assembled assembled = AssembledRecipe.write(projectDir, String.valueOf(projectDir.getFileName()), stage, tag,
 				projectRecipes);

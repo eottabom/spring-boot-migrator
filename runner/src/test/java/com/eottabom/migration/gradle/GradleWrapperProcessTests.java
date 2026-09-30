@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * gradlew 대신 셸 스크립트를 두고 실행 결과와 제한 시간을 확인한다.
  */
 @DisabledOnOs(OS.WINDOWS)
-class ProjectGradleTests {
+class GradleWrapperProcessTests {
 
 	@TempDir
 	Path project;
@@ -27,8 +27,8 @@ class ProjectGradleTests {
 	@Test
 	void stopsBuildThatRunsPastTimeout() throws IOException {
 		gradlew("sleep 30");
-		ProjectGradle gradle = new ProjectGradle(this.project, null, "-Xmx64m", Duration.ofSeconds(1),
-				Logging.getLogger(ProjectGradleTests.class));
+		GradleWrapperProcess gradle = new GradleWrapperProcess(this.project, null, "-Xmx64m", Duration.ofSeconds(1),
+				Logging.getLogger(GradleWrapperProcessTests.class));
 		long start = System.currentTimeMillis();
 
 		boolean passed = gradle.run(this.project.resolve("build.log"), List.of("build"));
@@ -41,8 +41,8 @@ class ProjectGradleTests {
 	@Test
 	void reportsExitCodeAndKeepsOutputInLog() throws IOException {
 		gradlew("echo \"> Task :compileJava\"; echo \"args $*\"; exit 3");
-		ProjectGradle gradle = new ProjectGradle(this.project, null, "-Xmx64m", Duration.ofMinutes(1),
-				Logging.getLogger(ProjectGradleTests.class));
+		GradleWrapperProcess gradle = new GradleWrapperProcess(this.project, null, "-Xmx64m", Duration.ofMinutes(1),
+				Logging.getLogger(GradleWrapperProcessTests.class));
 
 		boolean passed = gradle.run(this.project.resolve("build.log"), List.of("build", "--continue"));
 
@@ -57,8 +57,8 @@ class ProjectGradleTests {
 		Files.writeString(this.project.resolve("gradle.properties"),
 				"org.gradle.jvmargs=-Xms6g -Xmx8g -Dfile.encoding=UTF-8 --add-exports jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED -XX:MaxMetaspaceSize=512m\n");
 
-		ProjectGradle gradle = new ProjectGradle(this.project, null, null, Duration.ofMinutes(1),
-				Logging.getLogger(ProjectGradleTests.class));
+		GradleWrapperProcess gradle = new GradleWrapperProcess(this.project, null, null, Duration.ofMinutes(1),
+				Logging.getLogger(GradleWrapperProcessTests.class));
 
 		assertThat(gradle.jvmArgs())
 			.startsWith("-Dfile.encoding=UTF-8 --add-exports jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED -Xmx")
@@ -70,8 +70,8 @@ class ProjectGradleTests {
 	void usesExplicitJvmArgsAsGiven() throws IOException {
 		Files.writeString(this.project.resolve("gradle.properties"), "org.gradle.jvmargs=-Dfile.encoding=UTF-8\n");
 
-		ProjectGradle gradle = new ProjectGradle(this.project, null, "-Xmx64m", Duration.ofMinutes(1),
-				Logging.getLogger(ProjectGradleTests.class));
+		GradleWrapperProcess gradle = new GradleWrapperProcess(this.project, null, "-Xmx64m", Duration.ofMinutes(1),
+				Logging.getLogger(GradleWrapperProcessTests.class));
 
 		assertThat(gradle.jvmArgs()).isEqualTo("-Xmx64m");
 	}
@@ -80,8 +80,8 @@ class ProjectGradleTests {
 	void killsTargetGradleWhenRunnerIsInterrupted() throws Exception {
 		Path pidFile = this.project.resolve("pid");
 		gradlew("echo $$ > " + pidFile + "; sleep 30");
-		ProjectGradle gradle = new ProjectGradle(this.project, null, "-Xmx64m", Duration.ZERO,
-				Logging.getLogger(ProjectGradleTests.class));
+		GradleWrapperProcess gradle = new GradleWrapperProcess(this.project, null, "-Xmx64m", Duration.ZERO,
+				Logging.getLogger(GradleWrapperProcessTests.class));
 		Thread runner = new Thread(() -> {
 			try {
 				gradle.run(this.project.resolve("build.log"), List.of("build"));

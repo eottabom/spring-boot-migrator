@@ -13,8 +13,8 @@ import java.util.TreeSet;
 import java.util.stream.Stream;
 
 import com.eottabom.migration.console.RunnerConsole;
-import com.eottabom.migration.gradle.BuildTool;
-import com.eottabom.migration.gradle.VerifyScript;
+import com.eottabom.migration.gradle.ProjectGradle;
+import com.eottabom.migration.gradle.VerifyInitScript;
 import com.eottabom.migration.result.TestResults;
 import com.eottabom.migration.workspace.StageFiles;
 
@@ -27,7 +27,8 @@ import com.eottabom.migration.workspace.StageFiles;
  *
  * @param retries 다시 돌리는 횟수 (0 이면 다시 돌리지 않는다)
  */
-record FlakyTestRetry(BuildTool gradle, VerifyScript verify, RunnerConsole console, Path projectDir, int retries) {
+record FlakyTestRetry(ProjectGradle gradle, VerifyInitScript verifyInit, RunnerConsole console, Path projectDir,
+		int retries) {
 
 	/**
 	 * @param results build 가 쓴 결과 XML (다시 돌린 뒤 지워지면 되돌린다)
@@ -58,7 +59,7 @@ record FlakyTestRetry(BuildTool gradle, VerifyScript verify, RunnerConsole conso
 			for (String testClass : testClasses(failing)) {
 				args.addAll(List.of("--tests", testClass));
 			}
-			TestRun.Result run = new TestRun(this.gradle, this.verify, this.projectDir).run(files.retryLog(attempt),
+			TestRun.Result run = new TestRun(this.gradle, this.verifyInit, this.projectDir).run(files.retryLog(attempt),
 					files.retryTestDirs(attempt), args, false);
 			// 이번 결과가 다음 회차에 지워져도 마지막 결과로 되돌린다
 			copy(run.files(), kept);

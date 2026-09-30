@@ -7,8 +7,8 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Consumer;
 
-import com.eottabom.migration.gradle.BuildTool;
-import com.eottabom.migration.gradle.VerifyScript;
+import com.eottabom.migration.gradle.ProjectGradle;
+import com.eottabom.migration.gradle.VerifyInitScript;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -74,7 +74,7 @@ class TestRunTests {
 
 	private TestRun.Result run(Path projectDir, Consumer<Path> build, boolean requireResults) {
 		Path reportDirs = this.project.resolve("dirs.txt");
-		BuildTool gradle = new BuildTool() {
+		ProjectGradle gradle = new ProjectGradle() {
 			@Override
 			public @Nullable String javaHome() {
 				return null;
@@ -97,7 +97,7 @@ class TestRunTests {
 				throw new AssertionError();
 			}
 		};
-		return new TestRun(gradle, new VerifyScript(this.project.resolve("verify.gradle")), projectDir)
+		return new TestRun(gradle, new VerifyInitScript(this.project.resolve("verify.gradle")), projectDir)
 			.run(this.project.resolve("build.log"), reportDirs, List.of("build"), requireResults);
 	}
 

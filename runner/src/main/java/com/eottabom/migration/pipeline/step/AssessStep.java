@@ -11,7 +11,7 @@ import com.eottabom.migration.result.DependencyChanges;
 import com.eottabom.migration.result.Outcome;
 import com.eottabom.migration.result.ReportedChecklistItem;
 import com.eottabom.migration.result.StageResult;
-import com.eottabom.migration.workspace.ProjectFiles;
+import com.eottabom.migration.workspace.RunFiles;
 import com.eottabom.migration.workspace.StageFiles;
 
 /**
@@ -25,9 +25,9 @@ public record AssessStep(Guides guides) {
 	 * @param previousVersions stage 전 resolve 된 버전
 	 * @param baselineFailedTests 원본에서도 실패하던 테스트 (결과에 기존 실패로 표시)
 	 */
-	public StageResult assess(String stageName, List<String> covers, Path projectDir, StageFiles files,
-			ProjectFiles start, Path previousVersions, GateOutcome gate, List<String> deprecationFixes,
-			ProjectRecipes projectRecipes, Set<String> baselineFailedTests) {
+	public StageResult assess(String stageName, List<String> covers, Path projectDir, StageFiles files, RunFiles start,
+			Path previousVersions, GateOutcome gate, List<String> deprecationFixes, ProjectRecipes projectRecipes,
+			Set<String> baselineFailedTests) {
 		// 원본에서도 실패하던 태스크만 실패했으면 기존 문제로 표시한다
 		boolean buildFailureExisting = gate.build() == Outcome.FAILED && !gate.buildBlocking();
 		Set<String> projectRecipeNames = Set

@@ -107,7 +107,8 @@ public final class ConfigLoader {
 				new Target(text(target, "boot", defaults.target().boot()),
 						target.has("java") ? JavaTarget.parse(target.get("java").asText()) : defaults.target().java()),
 				node.has("mode") ? Mode.parse(node.get("mode").asText()) : defaults.mode(),
-				new GateSettings(gate.has("level") ? Gate.parse(gate.get("level").asText()) : defaults.gate().level(),
+				new GateSettings(
+						gate.has("level") ? GateLevel.parse(gate.get("level").asText()) : defaults.gate().level(),
 						gate.path("testRetries").asInt(defaults.gate().testRetries()),
 						gate.path("baselineTests").asBoolean(defaults.gate().baselineTests())),
 				new RecipeSettings(recipes.path("custom").asBoolean(defaults.recipes().custom()),

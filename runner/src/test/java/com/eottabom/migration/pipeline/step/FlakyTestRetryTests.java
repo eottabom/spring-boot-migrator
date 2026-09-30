@@ -10,8 +10,8 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import com.eottabom.migration.console.RunnerConsole;
-import com.eottabom.migration.gradle.BuildTool;
-import com.eottabom.migration.gradle.VerifyScript;
+import com.eottabom.migration.gradle.ProjectGradle;
+import com.eottabom.migration.gradle.VerifyInitScript;
 import com.eottabom.migration.workspace.MigrationWorkspace;
 import org.gradle.api.logging.Logging;
 import org.jspecify.annotations.Nullable;
@@ -49,7 +49,7 @@ class FlakyTestRetryTests {
 		Path xml = this.project.resolve("build/test-results/test/TEST-demo.AppTest.xml");
 		Files.createDirectories(xml.getParent());
 		Files.writeString(xml, result("failure", "target"));
-		BuildTool build = new BuildTool() {
+		ProjectGradle build = new ProjectGradle() {
 			@Override
 			public @Nullable String javaHome() {
 				return null;
@@ -104,7 +104,7 @@ class FlakyTestRetryTests {
 		List<Path> build = List.of(app, other, slow);
 		// 재시도마다 test 태스크가 결과 디렉토리를 비우고 거른 클래스만 쓴다. 1회차에 AppTest 가 통과하고 2회차는 SlowTest 만 돈다
 		int[] attempt = { 0 };
-		BuildTool gradle = new RetryOnly((args) -> {
+		ProjectGradle gradle = new RetryOnly((args) -> {
 			attempt[0]++;
 			clear(dir);
 			if (args.contains("demo.AppTest*")) {
@@ -128,7 +128,7 @@ class FlakyTestRetryTests {
 	@Test
 	void doesNotCopyResultsWhenNothingIsRetried() {
 		MigrationWorkspace ws = MigrationWorkspace.in(this.project);
-		BuildTool gradle = new RetryOnly((args) -> {
+		ProjectGradle gradle = new RetryOnly((args) -> {
 			throw new AssertionError("다시 돌리지 않는다");
 		});
 
@@ -138,8 +138,8 @@ class FlakyTestRetryTests {
 		assertThat(ws.stage("01-boot-3.4").keptResults()).doesNotExist();
 	}
 
-	private FlakyTestRetry retry(BuildTool gradle, int retries) {
-		return new FlakyTestRetry(gradle, new VerifyScript(this.project.resolve("verify.gradle")),
+	private FlakyTestRetry retry(ProjectGradle gradle, int retries) {
+		return new FlakyTestRetry(gradle, new VerifyInitScript(this.project.resolve("verify.gradle")),
 				new RunnerConsole(Logging.getLogger(FlakyTestRetryTests.class)), this.project, retries);
 	}
 
@@ -173,7 +173,7 @@ class FlakyTestRetryTests {
 	}
 
 	/** test --tests 만 받는 가짜 대상 빌드 */
-	private record RetryOnly(Consumer<List<String>> onRetry) implements BuildTool {
+	private record RetryOnly(Consumer<List<String>> onRetry) implements ProjectGradle {
 
 		@Override
 		public @Nullable String javaHome() {

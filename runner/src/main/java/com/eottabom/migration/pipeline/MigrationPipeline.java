@@ -148,7 +148,7 @@ final class MigrationPipeline {
 			console.line("   의존성 {}개 → {}", TextFiles.countMatches(ws.start().versions(), "."), ws.start().versions());
 		}
 		if (config.gate().level().builds() && !config.preview() && !resumed) {
-			BaselineBuild.Result baseline = new BaselineBuild(this.session.gradle(), this.session.verifyScript(),
+			BaselineBuild.Result baseline = new BaselineBuild(this.session.gradle(), this.session.verifyInitScript(),
 					console, this.session.projectDir())
 				.run(ws.start(), !config.gate().baselineTests());
 			baseline.notes().forEach(this.session.history()::note);
@@ -169,7 +169,7 @@ final class MigrationPipeline {
 	}
 
 	private void preview(MigrationPlan plan, int order) {
-		StagePreview preview = new StagePreview(this.session.runner().paths(), this.session.runner().buildTools(),
+		PreviewRun preview = new PreviewRun(this.session.runner().paths(), this.session.runner().gradleFactory(),
 				this.session.components().inspector(), this.session.console());
 		if (this.session.isGit()) {
 			preview.run(this.session.projectDir(), this.session.ws(), plan.stages(), order,

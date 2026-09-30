@@ -8,9 +8,9 @@ import java.nio.file.Path;
 /**
  * stage 밖에서 한 번 모으는 파일 (start/, scan/). 대상 Gradle 이 -P 인자로 받은 경로에 쓴다.
  */
-public record ProjectFiles(Path dir) {
+public record RunFiles(Path dir) {
 
-	public ProjectFiles {
+	public RunFiles {
 		try {
 			Files.createDirectories(dir);
 		}

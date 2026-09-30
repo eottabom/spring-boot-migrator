@@ -2,31 +2,31 @@ package com.eottabom.migration.pipeline;
 
 import java.util.List;
 
-import com.eottabom.migration.config.Gate;
+import com.eottabom.migration.config.GateLevel;
 import com.eottabom.migration.console.RunnerConsole;
-import com.eottabom.migration.gradle.BuildTool;
+import com.eottabom.migration.gradle.ProjectGradle;
 import com.eottabom.migration.misc.TextFiles;
 import com.eottabom.migration.pipeline.step.TestRun;
 import com.eottabom.migration.project.ProjectState;
 import com.eottabom.migration.result.TestResults;
 import com.eottabom.migration.workspace.MigrationWorkspace;
-import com.eottabom.migration.workspace.ProjectFiles;
+import com.eottabom.migration.workspace.RunFiles;
 import org.gradle.api.GradleException;
 
 /**
  * migrationVerify. 현재 소스의 컴파일(+제거 예정 API 경고)과 build(전체 테스트 + 패키징). 소스는 바꾸지 않는다.
  */
-record ProjectVerification(ProjectScanner scanner, RunnerConsole console) {
+record VerifyCommand(ProjectScanner scanner, RunnerConsole console) {
 
-	void verify(ProjectState project, BuildTool gradle, Gate gate) {
+	void verify(ProjectState project, ProjectGradle gradle, GateLevel gate) {
 		if (!gate.compiles()) {
 			throw new GradleException("migrationVerify 의 --gate 는 compile 또는 build");
 		}
-		ProjectFiles files = new ProjectFiles(MigrationWorkspace.in(project.dir()).dir().resolve("verify"));
+		RunFiles files = new RunFiles(MigrationWorkspace.in(project.dir()).dir().resolve("verify"));
 		this.console.project(project, gradle.javaHome());
 		this.console.step("[verify] compile (+deprecation/removal 경고 수집)");
 		if (!gradle.run(files.compileLog(),
-				this.scanner.verifyScript().args("clean", "compileJava", "compileTestJava"))) {
+				this.scanner.verifyInitScript().args("clean", "compileJava", "compileTestJava"))) {
 			throw new GradleException("컴파일 실패 → " + files.compileLog());
 		}
 		this.console.line("   [removal] 경고 {}건, [deprecation] 경고 {}건 → {}",
@@ -37,9 +37,9 @@ record ProjectVerification(ProjectScanner scanner, RunnerConsole console) {
 		}
 	}
 
-	private void build(ProjectState project, BuildTool gradle, ProjectFiles files) {
+	private void build(ProjectState project, ProjectGradle gradle, RunFiles files) {
 		this.console.step("[verify] build (전체 테스트 + 패키징)");
-		TestRun.Result run = new TestRun(gradle, this.scanner.verifyScript(), project.dir()).run(files.buildLog(),
+		TestRun.Result run = new TestRun(gradle, this.scanner.verifyInitScript(), project.dir()).run(files.buildLog(),
 				files.testDirs(), List.of("build"), true);
 		TestResults.Results tests = run.tests();
 		this.console.line("   테스트 {}개, 실패 {}개", tests.total(), tests.failed());

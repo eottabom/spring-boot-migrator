@@ -16,7 +16,7 @@ import org.jspecify.annotations.Nullable;
  * 러너 통합 테스트용 가짜 대상 빌드. 명령 인자로 무엇을 하려는지 알아보고, 테스트가 정해 둔 결과를 순서대로 돌려준다. 정해 둔 결과가 없으면 성공으로
  * 본다.
  */
-public final class FakeBuildTool implements BuildTool {
+public final class FakeProjectGradle implements ProjectGradle {
 
 	public final Path projectDir;
 
@@ -38,11 +38,11 @@ public final class FakeBuildTool implements BuildTool {
 
 	public final List<String> calls;
 
-	public FakeBuildTool(Path projectDir) {
+	public FakeProjectGradle(Path projectDir) {
 		this(projectDir, new ArrayDeque<>(), new ArrayDeque<>(), new ArrayDeque<>(), new ArrayList<>());
 	}
 
-	private FakeBuildTool(Path projectDir, Deque<Consumer<Path>> rewrites, Deque<Boolean> compiles,
+	private FakeProjectGradle(Path projectDir, Deque<Consumer<Path>> rewrites, Deque<Boolean> compiles,
 			Deque<BuildOutcome> builds, List<String> calls) {
 		this.projectDir = projectDir;
 		this.rewrites = rewrites;
@@ -52,11 +52,11 @@ public final class FakeBuildTool implements BuildTool {
 	}
 
 	/** 같은 결과 목록을 쓰면서 다른 디렉토리(preview 의 임시 worktree)에서 실행한다 */
-	public FakeBuildTool at(Path dir) {
+	public FakeProjectGradle at(Path dir) {
 		if (dir.equals(this.projectDir)) {
 			return this;
 		}
-		FakeBuildTool other = new FakeBuildTool(dir, this.rewrites, this.compiles, this.builds, this.calls);
+		FakeProjectGradle other = new FakeProjectGradle(dir, this.rewrites, this.compiles, this.builds, this.calls);
 		other.retries.addAll(this.retries);
 		other.baseline = this.baseline;
 		return other;

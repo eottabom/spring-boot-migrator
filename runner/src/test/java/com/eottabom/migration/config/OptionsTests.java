@@ -12,8 +12,8 @@ class OptionsTests {
 	@ParameterizedTest(name = "[{index}] --gate={0} -> {1}")
 	@CsvSource({ "compile, COMPILE, true, false", "build, BUILD, true, true", "none, NONE, false, false",
 			"NONE, NONE, false, false" })
-	void parsesGate(String option, Gate expected, boolean compiles, boolean builds) {
-		Gate gate = Gate.parse(option);
+	void parsesGate(String option, GateLevel expected, boolean compiles, boolean builds) {
+		GateLevel gate = GateLevel.parse(option);
 
 		assertThat(gate).isEqualTo(expected);
 		assertThat(gate.compiles()).isEqualTo(compiles);
@@ -42,7 +42,7 @@ class OptionsTests {
 	@ParameterizedTest(name = "[{index}] {0}")
 	@ValueSource(strings = { "fast", "", "test" })
 	void rejectsUnknownGate(String option) {
-		assertThatThrownBy(() -> Gate.parse(option)).hasMessageContaining("--gate");
+		assertThatThrownBy(() -> GateLevel.parse(option)).hasMessageContaining("--gate");
 	}
 
 	@ParameterizedTest(name = "[{index}] {0}")

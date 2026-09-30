@@ -1,20 +1,20 @@
 package com.eottabom.migration.pipeline;
 
 import com.eottabom.migration.console.RunnerConsole;
-import com.eottabom.migration.gradle.BuildTool;
+import com.eottabom.migration.gradle.ProjectGradle;
 import com.eottabom.migration.misc.TextFiles;
 import com.eottabom.migration.project.ProjectState;
 import com.eottabom.migration.recipe.ProjectRecipes;
 import com.eottabom.migration.workspace.MigrationWorkspace;
-import com.eottabom.migration.workspace.ProjectFiles;
+import com.eottabom.migration.workspace.RunFiles;
 
 /**
  * migrationScan. 현재 상태, resolve 된 의존성, detect 레시피가 찾은 위치를 보여준다. 소스는 바꾸지 않는다.
  */
-record ProjectAnalysis(ProjectScanner scanner, RunnerConsole console) {
+record ScanCommand(ProjectScanner scanner, RunnerConsole console) {
 
-	void scan(ProjectState project, BuildTool gradle) {
-		ProjectFiles files = MigrationWorkspace.in(project.dir()).scan();
+	void scan(ProjectState project, ProjectGradle gradle) {
+		RunFiles files = MigrationWorkspace.in(project.dir()).scan();
 		this.console.project(project, gradle.javaHome());
 		this.console.projectRecipes(project.dir(), ProjectRecipes.discover(project.dir()));
 

@@ -84,7 +84,7 @@ class ConfigLoaderTests {
 		assertThat(config.target().java()).hasToString("21");
 		assertThat(config.mode()).isEqualTo(Mode.PREVIEW);
 		assertThat(config.preview()).isTrue();
-		assertThat(config.gate()).isEqualTo(new MigrationConfig.GateSettings(Gate.COMPILE, 3, false));
+		assertThat(config.gate()).isEqualTo(new MigrationConfig.GateSettings(GateLevel.COMPILE, 3, false));
 		assertThat(config.recipes()).isEqualTo(new MigrationConfig.RecipeSettings(false, false));
 		assertThat(config.build()).isEqualTo(new MigrationConfig.BuildSettings(Jdk.CURRENT, "-Xmx2g", Duration.ZERO));
 		assertThat(config.build().currentJavaHome()).isTrue();

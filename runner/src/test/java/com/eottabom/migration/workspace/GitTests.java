@@ -52,11 +52,11 @@ class GitTests {
 		Git git = new Git(this.repo);
 		String head = git.head();
 
-		assertThat(git.commit(List.of(), "chore: nothing", "body", null)).isEqualTo(Git.Commit.NOTHING);
+		assertThat(git.commit(List.of(), "chore: nothing", "body", null)).isEqualTo(Git.CommitResult.NOTHING);
 		assertThat(git.head()).isEqualTo(head);
 
 		GitFixture.write(this.repo.resolve("build.gradle"), "plugins {}\n// changed\n");
-		assertThat(git.commit(List.of(), "chore: changed", "body", null)).isEqualTo(Git.Commit.COMMITTED);
+		assertThat(git.commit(List.of(), "chore: changed", "body", null)).isEqualTo(Git.CommitResult.COMMITTED);
 		assertThat(git.head()).isNotEqualTo(head);
 	}
 

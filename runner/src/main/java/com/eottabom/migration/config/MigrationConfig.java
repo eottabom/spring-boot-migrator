@@ -24,7 +24,7 @@ public record MigrationConfig(Path projectDir, Target target, Mode mode, GateSet
 	/** 설정 파일과 CLI 옵션이 없을 때의 값. schema/config.schema.json 의 default 와 같다 */
 	public static MigrationConfig defaults(Path projectDir) {
 		return new MigrationConfig(projectDir, new Target(null, JavaTarget.LATEST), Mode.STAGED,
-				new GateSettings(Gate.BUILD, DEFAULT_TEST_RETRIES, true), new RecipeSettings(true, true),
+				new GateSettings(GateLevel.BUILD, DEFAULT_TEST_RETRIES, true), new RecipeSettings(true, true),
 				new BuildSettings(Jdk.AUTO, null, DEFAULT_TIMEOUT), false, false);
 	}
 
@@ -69,7 +69,7 @@ public record MigrationConfig(Path projectDir, Target target, Mode mode, GateSet
 	 * @param baselineTests 원본 빌드에서도 테스트를 돌린다. false 면 원래 실패하던 테스트를 알 수 없어 stage 의 테스트 실패는
 	 * 모두 새 실패로 본다
 	 */
-	public record GateSettings(Gate level, int testRetries, boolean baselineTests) {
+	public record GateSettings(GateLevel level, int testRetries, boolean baselineTests) {
 	}
 
 	/**

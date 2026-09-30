@@ -271,17 +271,17 @@ OpenRewrite 레시피는 소스를 LST(Lossless Semantic Tree, 타입 정보가 
 | `guide` | guides/ 읽기 | `Guides`, `BootGuide`, `JavaGuide`, `GradleGuide`, `LibraryGuide`, `ChecklistItem`, `FailureHint`, `Deprecation` |
 | `plan` | stage 결정 (파일과 프로세스를 다루지 않는다) | `MigrationPlanner`, `MigrationPlan`, `Stage` |
 | `recipe` | 대상 프로젝트 레시피 | `ProjectRecipes` (`.rewrite/` 탐색), `AssembledRecipe` (`rewrite.assembled.yml`) |
-| `pipeline` | 실행 흐름 | `MigrationRunner` (태스크 진입점), `MigrationPipeline` (한 번의 실행), `StageRunner` (stage 의 step 순서), `Resumption` (재개), `RunSession`, `RunHistory`, `StagePreview`, `RunLock` |
+| `pipeline` | 실행 흐름 | `MigrationRunner` (태스크 진입점), `MigrationPipeline` (한 번의 실행), `StageRunner` (stage 의 step 순서), `Resumption` (재개), `RunSession`, `RunHistory`, `PreviewRun`, `RunLock` |
 | `pipeline.step` | stage 안의 동작 | `RewriteStep`, `GateStep`, `DeprecationStep`, `AssessStep`, `RecordStep`, `CommitStep`, `BaselineBuild`, `FlakyTestRetry`, `TestRun`, `StagePatches` |
-| `gradle` | 대상 빌드 실행 | `BuildTool`, `ProjectGradle` (gradlew 프로세스, 제한 시간), `VerifyScript`, `FailedTasks` |
+| `gradle` | 대상 빌드 실행 | `ProjectGradle`, `GradleWrapperProcess` (gradlew 프로세스, 제한 시간), `VerifyInitScript`, `FailedTasks` |
 | `result` | 결과 | `StageResult`, `StageSummary`, `ResultMarkdown`, `ResultHtml`, `TestReport`, `TestResults`, `CompileWarnings`, `RecipeChanges`, `DependencyChanges` |
-| `workspace` | `.spring-boot-migrator/` 와 git | `MigrationWorkspace`, `StageFiles`, `ProjectFiles`, `RunState`, `RunStateStore`, `Git` |
+| `workspace` | `.spring-boot-migrator/` 와 git | `MigrationWorkspace`, `StageFiles`, `RunFiles`, `RunState`, `RunStateStore`, `Git` |
 | `console` | 콘솔 출력 | `RunnerConsole` |
 | `misc` | 도메인이 없는 도구 | `AtomicFiles`, `Processes`, `TextFiles`, `Versions` |
 
 의존 방향은 `plugin → config, pipeline → step → 도메인 패키지` 한쪽으로만 흐른다. `plan`, `guide`, `result`, `project`, `workspace`, `config` 는
 실행 흐름을 모르고, step 은 서로 부르지 않는다. `ArchitectureTests` 가 이 방향을 검사한다.
-러너 통합 테스트(`MigrationRunnerFlowTests`)는 `BuildTool` 을 가짜 구현으로 바꿔 실패, 수정, 재개, deprecated API 대체, `--mode=all` 흐름을 재현한다.
+러너 통합 테스트(`MigrationRunnerFlowTests`)는 `ProjectGradle` 을 가짜 구현으로 바꿔 실패, 수정, 재개, deprecated API 대체, `--mode=all` 흐름을 재현한다.
 
 ## Extending
 

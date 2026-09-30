@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.eottabom.migration.console.RunnerConsole;
-import com.eottabom.migration.gradle.BuildTool;
+import com.eottabom.migration.gradle.ProjectGradle;
 import com.eottabom.migration.plan.Stage;
 import com.eottabom.migration.recipe.AssembledRecipe;
 import com.eottabom.migration.recipe.AssembledRecipe.Assembled;
@@ -25,8 +25,8 @@ import org.jspecify.annotations.Nullable;
  * @param recipeLibs 레시피 jar 와 의존 jar
  * @param git git 저장소가 아니면 null
  */
-public record RewriteStep(BuildTool gradle, RunnerConsole console, Path projectDir, Path rewriteInit, Path recipeLibs,
-		@Nullable Git git) {
+public record RewriteStep(ProjectGradle gradle, RunnerConsole console, Path projectDir, Path rewriteInit,
+		Path recipeLibs, @Nullable Git git) {
 
 	/**
 	 * @param createdFiles 지금까지 레시피가 만든 파일 (stage 전 작업 트리에 넣는다)

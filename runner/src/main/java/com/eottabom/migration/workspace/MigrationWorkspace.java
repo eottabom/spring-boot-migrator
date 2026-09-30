@@ -75,13 +75,13 @@ public record MigrationWorkspace(Path dir) {
 	}
 
 	/** 시작할 때 모은 파일 */
-	public ProjectFiles start() {
-		return new ProjectFiles(this.dir.resolve("start"));
+	public RunFiles start() {
+		return new RunFiles(this.dir.resolve("start"));
 	}
 
 	/** migrationScan 이 모은 파일 */
-	public ProjectFiles scan() {
-		return new ProjectFiles(this.dir.resolve("scan"));
+	public RunFiles scan() {
+		return new RunFiles(this.dir.resolve("scan"));
 	}
 
 	public StageFiles stage(String tag) {

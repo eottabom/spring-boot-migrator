@@ -9,7 +9,7 @@ import java.time.Instant;
 import java.util.List;
 
 import com.eottabom.migration.GitFixture;
-import com.eottabom.migration.config.Gate;
+import com.eottabom.migration.config.GateLevel;
 import com.eottabom.migration.config.JavaTarget;
 import com.eottabom.migration.config.MigrationConfig;
 import com.eottabom.migration.config.MigrationConfig.BuildSettings;
@@ -18,8 +18,8 @@ import com.eottabom.migration.config.MigrationConfig.Jdk;
 import com.eottabom.migration.config.MigrationConfig.RecipeSettings;
 import com.eottabom.migration.config.MigrationConfig.Target;
 import com.eottabom.migration.config.Mode;
-import com.eottabom.migration.gradle.FakeBuildTool;
-import com.eottabom.migration.gradle.FakeBuildTool.BuildOutcome;
+import com.eottabom.migration.gradle.FakeProjectGradle;
+import com.eottabom.migration.gradle.FakeProjectGradle.BuildOutcome;
 import org.gradle.api.GradleException;
 import org.gradle.api.logging.Logging;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,7 +38,7 @@ class MigrationRunnerFlowTests {
 	@TempDir
 	Path project;
 
-	FakeBuildTool fake;
+	FakeProjectGradle fake;
 
 	MigrationRunner runner;
 
@@ -52,12 +52,12 @@ class MigrationRunnerFlowTests {
 		write("src/main/java/demo/App.java", "package demo;\nclass App {}\n");
 		GitFixture.init(this.project);
 
-		this.fake = new FakeBuildTool(this.project);
+		this.fake = new FakeProjectGradle(this.project);
 		// 3.4 단계는 Boot 버전을 올리고 lombok.config 를 만들고, 3.5 단계는 버전만 올린다. dir 은 대상 프로젝트나
 		// preview worktree
 		this.fake.rewrites.add((dir) -> {
 			replace(dir.resolve("build.gradle"), "3.3.5", "3.4.0");
-			FakeBuildTool.write(dir.resolve("lombok.config"), "config.stopBubbling = true\n");
+			FakeProjectGradle.write(dir.resolve("lombok.config"), "config.stopBubbling = true\n");
 		});
 		this.fake.rewrites.add((dir) -> replace(dir.resolve("build.gradle"), "3.4.0", "3.5.0"));
 		this.runner = new MigrationRunner(
@@ -461,7 +461,7 @@ class MigrationRunnerFlowTests {
 	private MigrationConfig config(String target, Mode mode, boolean commit, boolean allowDirty,
 			boolean baselineTests) {
 		return new MigrationConfig(this.project, new Target(target, JavaTarget.parse("none")), mode,
-				new GateSettings(Gate.BUILD, MigrationConfig.DEFAULT_TEST_RETRIES, baselineTests),
+				new GateSettings(GateLevel.BUILD, MigrationConfig.DEFAULT_TEST_RETRIES, baselineTests),
 				new RecipeSettings(true, false), new BuildSettings(Jdk.CURRENT, null, Duration.ZERO), commit,
 				allowDirty);
 	}
@@ -475,7 +475,7 @@ class MigrationRunnerFlowTests {
 	}
 
 	private void write(String path, String content) {
-		FakeBuildTool.write(this.project.resolve(path), content);
+		FakeProjectGradle.write(this.project.resolve(path), content);
 	}
 
 	private String read(String path) throws IOException {
@@ -484,7 +484,7 @@ class MigrationRunnerFlowTests {
 
 	private static void replace(Path file, String from, String to) {
 		try {
-			FakeBuildTool.write(file, Files.readString(file).replace(from, to));
+			FakeProjectGradle.write(file, Files.readString(file).replace(from, to));
 		}
 		catch (IOException ex) {
 			throw new IllegalStateException(ex);

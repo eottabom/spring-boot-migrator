@@ -5,7 +5,7 @@ import java.util.Locale;
 /**
  * stage 마다 확인하는 범위 (--gate).
  */
-public enum Gate {
+public enum GateLevel {
 
 	/** 컴파일만 */
 	COMPILE,
@@ -16,7 +16,7 @@ public enum Gate {
 	/** 확인하지 않는다 */
 	NONE;
 
-	public static Gate parse(String option) {
+	public static GateLevel parse(String option) {
 		return switch (option.trim().toLowerCase(Locale.ROOT)) {
 			case "compile" -> COMPILE;
 			case "build" -> BUILD;

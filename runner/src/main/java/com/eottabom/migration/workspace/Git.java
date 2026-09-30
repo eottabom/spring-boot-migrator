@@ -107,18 +107,18 @@ public record Git(Path dir) {
 	 * stage , 사용자가 이미 직접 커밋한 재개).
 	 * @param errors git 의 표준 에러를 붙일 파일 (hook 이 실패한 이유 등). null 이면 버린다
 	 */
-	public Commit commit(Collection<String> created, String subject, String body, @Nullable Path errors) {
+	public CommitResult commit(Collection<String> created, String subject, String body, @Nullable Path errors) {
 		if (!stage(created)) {
-			return Commit.FAILED;
+			return CommitResult.FAILED;
 		}
 		if (run("git", "diff", "--cached", "--quiet")) {
-			return Commit.NOTHING;
+			return CommitResult.NOTHING;
 		}
 		return Processes.run(this.dir, null, errors, List.of("git", "commit", "-q", "-m", subject, "-m", body),
-				Map.of()) ? Commit.COMMITTED : Commit.FAILED;
+				Map.of()) ? CommitResult.COMMITTED : CommitResult.FAILED;
 	}
 
-	public enum Commit {
+	public enum CommitResult {
 
 		COMMITTED, NOTHING, FAILED
 
