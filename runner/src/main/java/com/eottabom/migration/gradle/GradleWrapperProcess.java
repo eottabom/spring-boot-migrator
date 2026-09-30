@@ -4,10 +4,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.Reader;
 import java.io.UncheckedIOException;
 import java.io.Writer;
-import java.lang.management.ManagementFactory;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,7 +14,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -39,58 +36,13 @@ public record GradleWrapperProcess(Path projectDir, @Nullable String javaHome, @
 		.toLowerCase(Locale.ROOT)
 		.startsWith("windows");
 
-	/** 러너가 정하는 메모리 옵션. 대상 프로젝트의 org.gradle.jvmargs 에서 이 옵션만 바꾸고 나머지는 둔다 */
-	// -Xms 도 뺀다. 프로젝트의 -Xms 가 러너의 -Xmx 보다 크면 데몬이 뜨지 않는다
-	private static final List<String> MEMORY_OPTIONS = List.of("-Xmx", "-Xms", "-XX:MaxMetaspaceSize=");
-
 	/**
-	 * @param jvmArgs 대상 Gradle 데몬 JVM 옵션. null 이면 대상 프로젝트의 org.gradle.jvmargs 에
-	 * {@link #defaultJvmArgs()} 의 메모리 옵션만 바꿔 쓴다 (명령행 -Dorg.gradle.jvmargs 는
-	 * gradle.properties 값을 통째로 대신하므로 file.encoding, --add-exports 같은 프로젝트 옵션을 잃지 않도록)
+	 * @param jvmArgs 대상 Gradle 데몬 JVM 옵션. null 이면 대상 프로젝트의 org.gradle.jvmargs 에서 메모리 옵션만
+	 * 바꿔 쓴다 ({@link GradleJvmArgs})
 	 * @param timeout 한 번 실행의 제한 시간. 넘으면 프로세스를 종료하고 실패로 본다. 0 이면 제한 없음
 	 */
 	public GradleWrapperProcess {
-		jvmArgs = (jvmArgs != null) ? jvmArgs : mergeJvmArgs(projectJvmArgs(projectDir), defaultJvmArgs());
-	}
-
-	/** 대상 프로젝트 gradle.properties 의 org.gradle.jvmargs (없으면 빈 문자열) */
-	static String projectJvmArgs(Path projectDir) {
-		Path file = projectDir.resolve("gradle.properties");
-		if (!Files.isRegularFile(file)) {
-			return "";
-		}
-		Properties properties = new Properties();
-		try (Reader in = Files.newBufferedReader(file, StandardCharsets.ISO_8859_1)) {
-			properties.load(in);
-		}
-		catch (IOException ex) {
-			return "";
-		}
-		return properties.getProperty("org.gradle.jvmargs", "").trim();
-	}
-
-	/** project 의 옵션에서 메모리 옵션만 runner 의 값으로 바꾼다 */
-	static String mergeJvmArgs(String project, String runner) {
-		List<String> merged = new ArrayList<>();
-		for (String option : project.split("\\s+")) {
-			if (!option.isEmpty() && MEMORY_OPTIONS.stream().noneMatch(option::startsWith)) {
-				merged.add(option);
-			}
-		}
-		merged.addAll(List.of(runner.split("\\s+")));
-		return String.join(" ", merged);
-	}
-
-	/**
-	 * OpenRewrite 는 전체 LST 를 메모리에 올린다. 최대 6g 로 하되 CI 컨테이너에서 죽지 않도록 장비 메모리의 절반을 넘기지 않는다.
-	 */
-	static String defaultJvmArgs() {
-		long totalMb = 8192;
-		if (ManagementFactory.getOperatingSystemMXBean() instanceof com.sun.management.OperatingSystemMXBean os) {
-			totalMb = os.getTotalMemorySize() / (1024 * 1024);
-		}
-		long heapMb = Math.max(1024, Math.min(6144, totalMb / 2));
-		return "-Xmx" + heapMb + "m -XX:MaxMetaspaceSize=1g";
+		jvmArgs = (jvmArgs != null) ? jvmArgs : GradleJvmArgs.forProject(projectDir);
 	}
 
 	/**

@@ -52,7 +52,6 @@ final class MigrationPipeline {
 
 	void run() {
 		MigrationConfig config = this.session.config();
-		RunnerConsole console = this.session.console();
 		Resumed resumed = config.preview() ? Resumed.NONE : new Resumption(this.session, this.stages).resume();
 
 		ProjectState project = this.session.components()
@@ -60,36 +59,17 @@ final class MigrationPipeline {
 					this.session.ws().start());
 		MigrationPlan plan = this.session.components().planner().plan(project, config);
 		String summary = config.summary(plan.targetJava());
-		console.heading("프로젝트 : " + this.session.projectDir());
-		console.line("   현재     : Boot {} / Gradle {} / JAVA_HOME={}", project.bootVersion(),
-				RunnerConsole.orUnknown(project.gradleVersion()),
-				RunnerConsole.orDefault(this.session.gradle().javaHome()));
-		console.line("   목표     : Boot {}  ({})", plan.targetBoot(), summary);
-		console.projectRecipes(this.session.projectDir(), this.session.projectRecipes());
-		if (this.session.isGit()) {
-			// 결과 디렉토리와 조립한 레시피는 git 에 올리지 않는다 (patch 스냅샷과 커밋 대상에서 제외)
-			this.session.git().exclude(MigrationWorkspace.DIR_NAME + "/");
-			this.session.git().exclude(AssembledRecipe.RELATIVE_PATH);
-		}
+		announce(project, plan, summary);
+		excludeRunnerOutputsFromGit();
 		checkWorkingTree(resumed.active());
 		if (plan.isEmpty()) {
-			if (resumed.continued()) {
-				// 멈췄던 마지막 stage 가 재개로 통과했다. 남은 stage 가 없어도 실행을 마무리한다
-				finish(1);
-			}
-			else {
-				console.heading("이미 Boot " + project.bootVersion() + " (목표 " + plan.targetBoot() + " 이상)예요.");
-			}
+			finishWithoutStages(project, plan, resumed);
 			return;
 		}
 		if (!resumed.active() && !config.preview()) {
 			start(project);
 		}
-		console.line("   Java     : {} -> {}", RunnerConsole.orUnknown(project.lowestDeclaredJava()),
-				(plan.targetJava() == null) ? "유지" : plan.targetJava());
-		console.line("   stage    : {}", plan.stageNames());
-		console.targetLine(plan);
-		console.notes(plan);
+		announceStages(project, plan);
 		this.session.history().header(project, plan, summary, resumed.note());
 		prepare(resumed.active());
 		this.session.history().stageTable();
@@ -107,6 +87,42 @@ final class MigrationPipeline {
 			this.stages.run(stage, stage.tag(order));
 		}
 		finish(plan.stages().size() + (resumed.continued() ? 1 : 0));
+	}
+
+	private void announce(ProjectState project, MigrationPlan plan, String summary) {
+		RunnerConsole console = this.session.console();
+		console.heading("프로젝트 : " + this.session.projectDir());
+		console.line("   현재     : Boot {} / Gradle {} / JAVA_HOME={}", project.bootVersion(),
+				RunnerConsole.orUnknown(project.gradleVersion()),
+				RunnerConsole.orDefault(this.session.gradle().javaHome()));
+		console.line("   목표     : Boot {}  ({})", plan.targetBoot(), summary);
+		console.projectRecipes(this.session.projectDir(), this.session.projectRecipes());
+	}
+
+	private void announceStages(ProjectState project, MigrationPlan plan) {
+		RunnerConsole console = this.session.console();
+		console.line("   Java     : {} -> {}", RunnerConsole.orUnknown(project.lowestDeclaredJava()),
+				(plan.targetJava() == null) ? "유지" : plan.targetJava());
+		console.line("   stage    : {}", plan.stageNames());
+		console.targetLine(plan);
+		console.notes(plan);
+	}
+
+	/** 결과 디렉토리와 조립한 레시피는 git 에 올리지 않는다 (patch 스냅샷과 커밋 대상에서 제외) */
+	private void excludeRunnerOutputsFromGit() {
+		if (this.session.isGit()) {
+			this.session.git().exclude(MigrationWorkspace.DIR_NAME + "/");
+			this.session.git().exclude(AssembledRecipe.RELATIVE_PATH);
+		}
+	}
+
+	/** 남은 stage 가 없다. 멈췄던 마지막 stage 가 재개로 통과한 것이면 실행을 마무리한다 */
+	private void finishWithoutStages(ProjectState project, MigrationPlan plan, Resumed resumed) {
+		if (resumed.continued()) {
+			finish(1);
+			return;
+		}
+		this.session.console().heading("이미 Boot " + project.bootVersion() + " (목표 " + plan.targetBoot() + " 이상)예요.");
 	}
 
 	/** 새로 시작할 때는 자동 변경이 기존 변경과 섞이지 않도록 깨끗한 작업 트리를 요구한다 */

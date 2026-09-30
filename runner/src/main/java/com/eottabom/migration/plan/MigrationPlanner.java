@@ -36,21 +36,8 @@ public record MigrationPlanner(Guides guides) {
 	static final String UPSTREAM_RECIPE = "com.eottabom.rewrite.upstream.";
 
 	public MigrationPlan plan(ProjectState project, MigrationConfig config) {
-		if (project.bootVersion() == null) {
-			throw new MigrationException("빌드 파일에서 Spring Boot 버전을 찾지 못했어요 (root build.gradle 의 plugins 블록 확인). "
-					+ "migrationRun, migrationScan 은 대상 Gradle 이 resolve 한 버전으로 다시 찾아요");
-		}
-		List<String> bootStages = this.guides.bootVersions();
-		String target = (config.target().boot() != null) ? minor(config.target().boot())
-				: bootStages.get(bootStages.size() - 1);
-		if (!bootStages.contains(target)) {
-			throw new MigrationException("목표 버전은 다음 중 하나: " + String.join(" ", bootStages));
-		}
-		String current = minor(project.bootVersion());
-		if (compare(current, MINIMUM_BOOT) < 0) {
-			throw new MigrationException(
-					"Boot " + project.bootVersion() + " 에서는 시작할 수 없어요. Boot " + MINIMUM_BOOT + " 이상으로 먼저 올려 주세요");
-		}
+		String current = startingBoot(project);
+		String target = targetBoot(config);
 		BootRequirements targetRequirements = this.guides.boot(target).requirements();
 		if (compare(current, target) > 0) {
 			// 버전을 내리지 않는다. 목표보다 높은 Boot 에 낮은 Boot 기준의 Java stage 를 붙이지 않도록 빈 계획으로 끝낸다
@@ -58,44 +45,78 @@ public record MigrationPlanner(Guides guides) {
 		}
 		Integer targetJava = targetJava(config.target().java(), target, targetRequirements);
 
-		List<String> notes = new ArrayList<>();
-		List<String> bootPath = new ArrayList<>();
-		for (String stage : bootStages) {
-			if (compare(current, stage) < 0 && compare(stage, target) <= 0) {
-				bootPath.add(stage);
-			}
+		Draft draft = new Draft(project.gradleVersion(), project.lowestDeclaredJava());
+		for (String version : bootPath(current, target)) {
+			addBootStage(draft, this.guides.boot(version), config.recipes().custom());
 		}
-		List<Stage> plan = new ArrayList<>();
-		String gradle = project.gradleVersion();
-		int currentJava = (project.lowestDeclaredJava() != null) ? project.lowestDeclaredJava() : 0;
-		for (String version : bootPath) {
-			BootGuide guide = this.guides.boot(version);
-			gradle = ensureGradle(plan, notes, gradle, raisedGradle(gradle, guide), guide);
-			plan.add(bootStage(version, config.recipes().custom()));
-			gradle = raisedGradle(gradle, guide);
-			currentJava = raisedJava(currentJava, guide);
+		if (targetJava != null && draft.java < targetJava) {
+			addJavaStage(draft, this.guides.java(targetJava), target, targetRequirements);
 		}
+		javaNotes(draft.notes, project.lowestDeclaredJava(), targetJava, target, targetRequirements);
+		return new MigrationPlan(target, targetRequirements, targetJava, draft.stages(config.allAtOnce()),
+				List.copyOf(draft.notes));
+	}
 
-		if (targetJava != null && currentJava < targetJava) {
-			JavaGuide java = this.guides.java(targetJava);
-			if (gradle != null && Versions.compare(gradle, java.gradle()) < 0) {
-				GradleGuide upgrade = lowestGradle(java.gradle(), (version) -> true)
-					.orElseThrow(() -> new MigrationException("Java " + java.version() + " 에 필요한 Gradle "
-							+ java.gradle() + " 이상의 가이드가 없어요 (guides/gradle/)"));
-				notes.add("Gradle " + gradle + " 는 JDK " + targetJava + " 위에서 뜨지 않아요 (" + java.gradle()
-						+ "+ 필요) → Gradle " + upgrade.version() + " stage 추가");
-				plan.add(gradleStage(upgrade));
-				gradle = upgrade.version();
-				if (targetRequirements.gradleSupport(gradle) == GradleSupport.NOT_LISTED) {
-					notes.add("Gradle " + gradle + " 는 Boot " + target + " 공식 지원 목록(" + targetRequirements.gradleRange()
-							+ ")에 없어요. 동작은 하지만 문제가 생기면 이것부터 확인해 주세요");
-				}
-			}
-			plan.add(new Stage(StageId.java(targetJava), STAGE_RECIPE + "Java_" + targetJava));
+	/** 시작할 수 있는 Boot 인지 확인하고 minor 까지만 돌려준다 */
+	private static String startingBoot(ProjectState project) {
+		if (project.bootVersion() == null) {
+			throw new MigrationException("빌드 파일에서 Spring Boot 버전을 찾지 못했어요 (root build.gradle 의 plugins 블록 확인). "
+					+ "migrationRun, migrationScan 은 대상 Gradle 이 resolve 한 버전으로 다시 찾아요");
 		}
-		javaNotes(notes, project.lowestDeclaredJava(), targetJava, target, targetRequirements);
-		List<Stage> stages = (config.allAtOnce() && plan.size() > 1) ? List.of(allAtOnce(plan)) : List.copyOf(plan);
-		return new MigrationPlan(target, targetRequirements, targetJava, stages, List.copyOf(notes));
+		String current = minor(project.bootVersion());
+		if (compare(current, MINIMUM_BOOT) < 0) {
+			throw new MigrationException(
+					"Boot " + project.bootVersion() + " 에서는 시작할 수 없어요. Boot " + MINIMUM_BOOT + " 이상으로 먼저 올려 주세요");
+		}
+		return current;
+	}
+
+	/** 목표를 주지 않으면 guides/boot/ 의 마지막 버전 */
+	private String targetBoot(MigrationConfig config) {
+		List<String> bootStages = this.guides.bootVersions();
+		String target = (config.target().boot() != null) ? minor(config.target().boot())
+				: bootStages.get(bootStages.size() - 1);
+		if (!bootStages.contains(target)) {
+			throw new MigrationException("목표 버전은 다음 중 하나: " + String.join(" ", bootStages));
+		}
+		return target;
+	}
+
+	/** current 다음 stage 부터 target 까지 */
+	private List<String> bootPath(String current, String target) {
+		return this.guides.bootVersions()
+			.stream()
+			.filter((stage) -> compare(current, stage) < 0 && compare(stage, target) <= 0)
+			.toList();
+	}
+
+	/**
+	 * Boot stage 하나. Gradle 이 부족하면 그 앞에 Gradle stage 를 넣고, stage 레시피가 함께 올리는 Gradle 과
+	 * Java 를 반영한다
+	 */
+	private void addBootStage(Draft draft, BootGuide guide, boolean custom) {
+		ensureGradle(draft, guide);
+		draft.stages.add(bootStage(guide.version(), custom));
+		draft.gradle = raisedGradle(draft.gradle, guide);
+		draft.java = raisedJava(draft.java, guide);
+	}
+
+	/** Java stage. 그 JDK 위에서 뜨지 않는 Gradle 이면 앞에 Gradle stage 를 넣는다 */
+	private void addJavaStage(Draft draft, JavaGuide java, String target, BootRequirements targetRequirements) {
+		String gradle = draft.gradle;
+		if (gradle != null && Versions.compare(gradle, java.gradle()) < 0) {
+			GradleGuide upgrade = lowestGradle(java.gradle(), (version) -> true)
+				.orElseThrow(() -> new MigrationException("Java " + java.version() + " 에 필요한 Gradle " + java.gradle()
+						+ " 이상의 가이드가 없어요 (guides/gradle/)"));
+			draft.notes.add("Gradle " + gradle + " 는 JDK " + java.version() + " 위에서 뜨지 않아요 (" + java.gradle()
+					+ "+ 필요) → Gradle " + upgrade.version() + " stage 추가");
+			draft.stages.add(gradleStage(upgrade));
+			draft.gradle = upgrade.version();
+			if (targetRequirements.gradleSupport(upgrade.version()) == GradleSupport.NOT_LISTED) {
+				draft.notes.add(notListed(upgrade.version(), target, targetRequirements));
+			}
+		}
+		draft.stages.add(new Stage(StageId.java(java.version()), STAGE_RECIPE + "Java_" + java.version()));
 	}
 
 	/** stage 레시피가 올린 뒤의 Gradle (낮은 버전은 올리고, 높은 버전은 내리지 않는다) */
@@ -109,45 +130,39 @@ public record MigrationPlanner(Guides guides) {
 		return (raises != null) ? Math.max(java, raises) : java;
 	}
 
-	/** --mode=all. 모든 stage 의 레시피를 차례로 이어 한 번에 돌린다. 이름은 마지막 Boot stage */
-	private static Stage allAtOnce(List<Stage> stages) {
-		Stage last = stages.stream()
-			.filter((stage) -> stage.id().kind() == StageId.Kind.BOOT)
-			.reduce((first, second) -> second)
-			.orElse(stages.get(stages.size() - 1));
-		return new Stage(last.id(), stages.stream().flatMap((stage) -> stage.recipes().stream()).toList(),
-				stages.stream().map(Stage::id).toList());
-	}
-
 	/**
 	 * Boot stage 전에 Gradle 이 그 stage 의 지원 범위보다 낮으면 지원 범위에 드는 가장 낮은 Gradle stage 를 넣는다.
-	 * stage 레시피가 스스로 올리는 버전(raised)으로 충분하면 넣지 않는다. 올린 뒤의 Gradle 버전을 돌려준다.
+	 * stage 레시피가 스스로 올리는 버전으로 충분하면 넣지 않는다.
 	 */
-	private @Nullable String ensureGradle(List<Stage> plan, List<String> notes, @Nullable String gradle,
-			@Nullable String raised, BootGuide guide) {
-		if (gradle == null) {
-			return null;
+	private void ensureGradle(Draft draft, BootGuide guide) {
+		String gradle = draft.gradle;
+		String raised = raisedGradle(gradle, guide);
+		if (gradle == null || raised == null) {
+			return;
 		}
 		BootRequirements requirements = guide.requirements();
-		GradleSupport support = requirements.gradleSupport(Objects.requireNonNull(raised));
+		GradleSupport support = requirements.gradleSupport(raised);
 		if (support == GradleSupport.TOO_OLD) {
 			GradleGuide upgrade = lowestGradle(gradle,
 					(version) -> requirements.gradleSupport(version) == GradleSupport.SUPPORTED)
 				.orElseThrow(() -> new MigrationException("Boot " + guide.version() + " 은 Gradle "
 						+ requirements.gradleRange() + " 가 필요한데 맞는 Gradle 가이드가 없어요 (guides/gradle/)"));
-			notes.add("Gradle " + gradle + " 는 Boot " + guide.version() + " 지원 범위(" + requirements.gradleRange()
+			draft.notes.add("Gradle " + gradle + " 는 Boot " + guide.version() + " 지원 범위(" + requirements.gradleRange()
 					+ ") 밖 → Gradle " + upgrade.version() + " stage 추가");
-			plan.add(gradleStage(upgrade));
-			return upgrade.version();
+			draft.stages.add(gradleStage(upgrade));
+			draft.gradle = upgrade.version();
 		}
-		if (support == GradleSupport.NOT_LISTED) {
-			String note = "Gradle " + raised + " 는 Boot " + guide.version() + " 공식 지원 목록(" + requirements.gradleRange()
-					+ ")에 없어요. 동작은 하지만 문제가 생기면 이것부터 확인해 주세요";
-			if (!notes.contains(note)) {
-				notes.add(note);
+		else if (support == GradleSupport.NOT_LISTED) {
+			String note = notListed(raised, guide.version(), requirements);
+			if (!draft.notes.contains(note)) {
+				draft.notes.add(note);
 			}
 		}
-		return gradle;
+	}
+
+	private static String notListed(String gradle, String boot, BootRequirements requirements) {
+		return "Gradle " + gradle + " 는 Boot " + boot + " 공식 지원 목록(" + requirements.gradleRange()
+				+ ")에 없어요. 동작은 하지만 문제가 생기면 이것부터 확인해 주세요";
 	}
 
 	/** minimum 이상이고 조건에 맞는 가장 낮은 Gradle 가이드 */
@@ -218,6 +233,40 @@ public record MigrationPlanner(Guides guides) {
 
 	static int compare(String left, String right) {
 		return Versions.compare(minor(left), minor(right));
+	}
+
+	/** 계획을 짜는 동안의 상태. stage 를 더할 때마다 그 stage 뒤의 Gradle 과 Java 를 같이 옮긴다 */
+	private static final class Draft {
+
+		private final List<Stage> stages = new ArrayList<>();
+
+		private final List<String> notes = new ArrayList<>();
+
+		/** 지금까지의 stage 를 적용한 뒤의 Gradle (모르면 null) */
+		private @Nullable String gradle;
+
+		/** 지금까지의 stage 를 적용한 뒤의 Java (모르면 0) */
+		private int java;
+
+		Draft(@Nullable String gradle, @Nullable Integer java) {
+			this.gradle = gradle;
+			this.java = (java != null) ? java : 0;
+		}
+
+		/** --mode=all 이면 모든 stage 의 레시피를 차례로 이어 한 번에 돌린다. 이름은 마지막 Boot stage */
+		List<Stage> stages(boolean allAtOnce) {
+			if (!allAtOnce || this.stages.size() <= 1) {
+				return List.copyOf(this.stages);
+			}
+			Stage last = this.stages.stream()
+				.filter((stage) -> stage.id().kind() == StageId.Kind.BOOT)
+				.reduce((first, second) -> second)
+				.orElse(this.stages.get(this.stages.size() - 1));
+			return List
+				.of(new Stage(last.id(), this.stages.stream().flatMap((stage) -> stage.recipes().stream()).toList(),
+						this.stages.stream().map(Stage::id).toList()));
+		}
+
 	}
 
 }
