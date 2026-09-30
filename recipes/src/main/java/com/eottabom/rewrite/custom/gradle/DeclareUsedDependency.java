@@ -106,7 +106,7 @@ public class DeclareUsedDependency extends ScanningRecipe<DeclareUsedDependency.
 	 * import(정적 import, * 포함) 나 본문의 패키지 전체 이름으로 패키지를 쓴다. 의존성이 빠지면 타입이 해석되지 않으므로 이름으로 본다
 	 */
 	private static boolean usesPackage(J.CompilationUnit cu, List<String> prefixes) {
-		if (cu.getImports().stream().anyMatch((imp) -> inPackage(qualifiedName(imp.getQualid()), prefixes))) {
+		if (cu.getImports().stream().anyMatch((imported) -> inPackage(qualifiedName(imported.getQualid()), prefixes))) {
 			return true;
 		}
 		var found = new AtomicBoolean();
@@ -124,8 +124,8 @@ public class DeclareUsedDependency extends ScanningRecipe<DeclareUsedDependency.
 			}
 
 			@Override
-			public J.Import visitImport(J.Import imp, AtomicBoolean uses) {
-				return imp;
+			public J.Import visitImport(J.Import imported, AtomicBoolean uses) {
+				return imported;
 			}
 		}.visit(cu, found);
 		return found.get();
@@ -162,19 +162,19 @@ public class DeclareUsedDependency extends ScanningRecipe<DeclareUsedDependency.
 					.orElse(Set.of());
 				return buildScript.getMarkers()
 					.findFirst(GradleProject.class)
-					.map((gp) -> addDependency(buildScript, gp, using, ctx))
+					.map((gradleProject) -> addDependency(buildScript, gradleProject, using, ctx))
 					.orElse(buildScript);
 			}
 
-			private J addDependency(JavaSourceFile buildScript, GradleProject gp, Set<String> using,
+			private J addDependency(JavaSourceFile buildScript, GradleProject gradleProject, Set<String> using,
 					ExecutionContext ctx) {
 				// 소스셋마다 자기 configuration 에 넣는다 (main 에 넣으면 test 는 따라오고 testFixtures 는
 				// 아니다)
 				J result = buildScript;
 				for (String sourceSet : using) {
 					String configuration = "main".equals(sourceSet) ? "implementation" : sourceSet + "Implementation";
-					if (gp.getConfiguration(configuration) == null
-							|| isDeclared(gp, coveringConfigurations(sourceSet, using))) {
+					if (gradleProject.getConfiguration(configuration) == null
+							|| isDeclared(gradleProject, coveringConfigurations(sourceSet, using))) {
 						continue;
 					}
 					result = new AddDependencyVisitor(DeclareUsedDependency.this.groupId,
@@ -207,12 +207,12 @@ public class DeclareUsedDependency extends ScanningRecipe<DeclareUsedDependency.
 		return configurations;
 	}
 
-	private boolean isDeclared(GradleProject gp, @Nullable List<String> configurations) {
+	private boolean isDeclared(GradleProject gradleProject, @Nullable List<String> configurations) {
 		if (configurations == null) {
 			return true;
 		}
 		for (String name : configurations) {
-			GradleDependencyConfiguration configuration = gp.getConfiguration(name);
+			GradleDependencyConfiguration configuration = gradleProject.getConfiguration(name);
 			if (configuration != null && configuration.findRequestedDependency(this.groupId, this.artifactId) != null) {
 				return true;
 			}

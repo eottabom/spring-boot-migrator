@@ -103,9 +103,9 @@ public final class ProjectInspector {
 			.or(() -> property(dir.resolve("gradle.properties"), "springBootVersion"))
 			.or(() -> catalog.plugin("org.springframework.boot"))
 			.or(() -> lowest(BOOT_PLUGIN, allBuildFiles))
-			.map((v) -> {
-				Matcher m = MAJOR_MINOR_PATCH.matcher(v);
-				return m.find() ? m.group() : null;
+			.map((declared) -> {
+				Matcher version = MAJOR_MINOR_PATCH.matcher(declared);
+				return version.find() ? version.group() : null;
 			})
 			.orElse(null);
 	}
@@ -127,9 +127,9 @@ public final class ProjectInspector {
 	private static Optional<String> lowest(Pattern pattern, List<String> contents) {
 		List<String> all = new ArrayList<>();
 		for (String content : contents) {
-			Matcher m = pattern.matcher(content);
-			while (m.find()) {
-				all.add(group(m));
+			Matcher matcher = pattern.matcher(content);
+			while (matcher.find()) {
+				all.add(group(matcher));
 			}
 		}
 		return all.stream().min(Versions::compare);
@@ -148,18 +148,18 @@ public final class ProjectInspector {
 			throw new UncheckedIOException(ex);
 		}
 		return Optional.ofNullable(properties.getProperty(name))
-			.map((v) -> v.trim().replaceAll("^['\"]|['\"]$", ""))
-			.filter((v) -> v.matches("[0-9][0-9.]*.*"));
+			.map((value) -> value.trim().replaceAll("^['\"]|['\"]$", ""))
+			.filter((value) -> value.matches("[0-9][0-9.]*.*"));
 	}
 
 	/** 대안이 여럿인 패턴에서 값이 잡힌 그룹 */
-	private static String group(Matcher m) {
-		for (int g = 1; g <= m.groupCount(); g++) {
-			if (m.group(g) != null) {
-				return m.group(g);
+	private static String group(Matcher matcher) {
+		for (int index = 1; index <= matcher.groupCount(); index++) {
+			if (matcher.group(index) != null) {
+				return matcher.group(index);
 			}
 		}
-		throw new IllegalStateException(m.pattern().pattern());
+		throw new IllegalStateException(matcher.pattern().pattern());
 	}
 
 	public @Nullable String gradleVersion(Path dir) {
@@ -169,9 +169,9 @@ public final class ProjectInspector {
 
 	private static Optional<String> first(Pattern pattern, List<String> contents) {
 		for (String content : contents) {
-			Matcher m = pattern.matcher(content);
-			if (m.find()) {
-				return Optional.of(group(m));
+			Matcher matcher = pattern.matcher(content);
+			if (matcher.find()) {
+				return Optional.of(group(matcher));
 			}
 		}
 		return Optional.empty();
@@ -180,11 +180,11 @@ public final class ProjectInspector {
 	private static List<Integer> numbers(Pattern pattern, List<String> contents) {
 		List<Integer> found = new ArrayList<>();
 		for (String content : contents) {
-			Matcher m = pattern.matcher(content);
-			while (m.find()) {
-				for (int g = 1; g <= m.groupCount(); g++) {
-					if (m.group(g) != null) {
-						found.add(Integer.parseInt(m.group(g)));
+			Matcher matcher = pattern.matcher(content);
+			while (matcher.find()) {
+				for (int index = 1; index <= matcher.groupCount(); index++) {
+					if (matcher.group(index) != null) {
+						found.add(Integer.parseInt(matcher.group(index)));
 					}
 				}
 			}

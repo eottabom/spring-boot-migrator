@@ -384,18 +384,18 @@ final class VersionCatalogEditor {
 					tokens.subList(i, i + 2).clear();
 				}
 			}
-			String[] t = tokens.toArray(String[]::new);
-			Kind kind = Kind.valueOf(t[0].toUpperCase());
+			String[] parts = tokens.toArray(String[]::new);
+			Kind kind = Kind.valueOf(parts[0].toUpperCase());
 			return switch (kind) {
 				case DEPENDENCY -> {
-					String[] ga = t[1].split(":");
-					yield new Rule(kind, ga[0], ga[1], null, null, t[2], arg(t, 3), conditions);
+					String[] ga = parts[1].split(":");
+					yield new Rule(kind, ga[0], ga[1], null, null, parts[2], arg(parts, 3), conditions);
 				}
-				case PLUGIN -> new Rule(kind, t[1], null, null, null, t[2], arg(t, 3), conditions);
+				case PLUGIN -> new Rule(kind, parts[1], null, null, null, parts[2], arg(parts, 3), conditions);
 				case CHANGE -> {
-					String[] ga = t[1].split(":");
-					String[] target = t[2].split(":");
-					yield new Rule(kind, ga[0], ga[1], target[0], target[1], arg(t, 3), arg(t, 4), conditions);
+					String[] ga = parts[1].split(":");
+					String[] target = parts[2].split(":");
+					yield new Rule(kind, ga[0], ga[1], target[0], target[1], arg(parts, 3), arg(parts, 4), conditions);
 				}
 			};
 		}

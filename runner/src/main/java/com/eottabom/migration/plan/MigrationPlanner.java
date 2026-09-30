@@ -215,8 +215,8 @@ public record MigrationPlanner(Guides guides) {
 		return (parts.length >= 2) ? parts[0] + "." + parts[1] : version;
 	}
 
-	static int compare(String a, String b) {
-		return Versions.compare(minor(a), minor(b));
+	static int compare(String left, String right) {
+		return Versions.compare(minor(left), minor(right));
 	}
 
 }

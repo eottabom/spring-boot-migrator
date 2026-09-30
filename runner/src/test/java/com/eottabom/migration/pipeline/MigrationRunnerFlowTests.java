@@ -467,7 +467,7 @@ class MigrationRunnerFlowTests {
 	}
 
 	private List<String> migrationCommits() throws IOException {
-		return git("log", "--format=%s").lines().filter((l) -> l.contains("마이그레이션")).toList();
+		return git("log", "--format=%s").lines().filter((subject) -> subject.contains("마이그레이션")).toList();
 	}
 
 	private String git(String... args) {

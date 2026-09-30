@@ -87,7 +87,7 @@ final class ResultMarkdown {
 		byClass.entrySet().stream().sorted(largestFirst()).forEach((byTestClass) -> {
 			String className = byTestClass.getKey();
 			add("### " + simpleName(className) + " (" + byTestClass.getValue().size() + "건)", code(className), "");
-			groupBy(byTestClass.getValue(), (f) -> f.exception() + "|" + f.message()).values()
+			groupBy(byTestClass.getValue(), (failure) -> failure.exception() + "|" + failure.message()).values()
 				.stream()
 				.sorted(Comparator.comparingInt(List<TestFailure>::size).reversed())
 				.forEach(this::failureCause);
@@ -114,7 +114,7 @@ final class ResultMarkdown {
 			return;
 		}
 		section("## 원본에서도 실패하던 테스트 (" + failures.size() + "건)", "마이그레이션 전부터 실패하던 테스트라 stage 를 막지 않아요.");
-		failures.forEach((f) -> add("- " + code(f.className()) + " " + f.testName()));
+		failures.forEach((failure) -> add("- " + code(failure.className()) + " " + failure.testName()));
 		add("");
 	}
 
@@ -147,8 +147,9 @@ final class ResultMarkdown {
 			return;
 		}
 		add(title);
-		changes.forEach((p) -> add("- " + code(p.key())
-				+ ((p.replacement() != null) ? " → " + code(p.replacement()) : "") + " (" + p.source() + ")"));
+		changes.forEach((change) -> add(
+				"- " + code(change.key()) + ((change.replacement() != null) ? " → " + code(change.replacement()) : "")
+						+ " (" + change.source() + ")"));
 		add("");
 	}
 
@@ -157,9 +158,9 @@ final class ResultMarkdown {
 			return;
 		}
 		section("## " + title, description);
-		warnings.forEach((w) -> add("- **" + w.message() + "** " + w.locations().size() + "곳 ("
-				+ String.join(", ", w.locations().subList(0, Math.min(3, w.locations().size())))
-				+ ((w.locations().size() > 3) ? " …" : "") + ")"));
+		warnings.forEach((warning) -> add("- **" + warning.message() + "** " + warning.locations().size() + "곳 ("
+				+ String.join(", ", warning.locations().subList(0, Math.min(3, warning.locations().size())))
+				+ ((warning.locations().size() > 3) ? " …" : "") + ")"));
 		add("");
 	}
 
@@ -169,10 +170,11 @@ final class ResultMarkdown {
 		}
 		section("## 의존성 버전 변경 (transitive 포함, 전 모듈)", "변경 " + deps.changed().size() + "개 / 추가 " + deps.added().size()
 				+ "개 / 제거 " + deps.removed().size() + "개. 라이브러리 버그는 주로 여기서 나오니 major/minor 변경을 먼저 확인해 주세요.");
-		List<VersionChange> important = deps.changed().stream().filter((c) -> !c.isPatch()).toList();
+		List<VersionChange> important = deps.changed().stream().filter((change) -> !change.isPatch()).toList();
 		if (!important.isEmpty()) {
 			add("### major / minor 변경", "| 라이브러리 | 이전 | 이후 | 구분 |", "|---|---|---|---|");
-			important.forEach((c) -> row(code(c.name()), c.before() + " | " + c.after() + " | " + c.level()));
+			important.forEach((change) -> row(code(change.name()),
+					change.before() + " | " + change.after() + " | " + change.level()));
 			add("");
 		}
 		if (!deps.added().isEmpty()) {
@@ -240,12 +242,12 @@ final class ResultMarkdown {
 
 	private static <T> Map<String, List<T>> groupBy(List<T> items, Function<T, String> key) {
 		Map<String, List<T>> groups = new LinkedHashMap<>();
-		items.forEach((item) -> groups.computeIfAbsent(key.apply(item), (k) -> new ArrayList<>()).add(item));
+		items.forEach((item) -> groups.computeIfAbsent(key.apply(item), (group) -> new ArrayList<>()).add(item));
 		return groups;
 	}
 
 	private static <T> Comparator<Map.Entry<String, List<T>>> largestFirst() {
-		return Comparator.comparingInt((Map.Entry<String, List<T>> e) -> e.getValue().size()).reversed();
+		return Comparator.comparingInt((Map.Entry<String, List<T>> group) -> group.getValue().size()).reversed();
 	}
 
 	/**

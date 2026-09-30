@@ -60,9 +60,10 @@ record RecipeChanges(Map<String, Set<String>> byRecipe, Set<String> changed) {
 				if (!leaf || (!buildFile && isDependencyRecipe(node.name()))) {
 					continue;
 				}
-				for (int j = stack.size() - 1; j >= 0; j--) {
-					if (isCustomFix(stack.get(j).name(), projectRecipes)) {
-						fixes.byRecipe().computeIfAbsent(stack.get(j).name(), (k) -> new TreeSet<>()).add(file);
+				for (int depth = stack.size() - 1; depth >= 0; depth--) {
+					String ancestor = stack.get(depth).name();
+					if (isCustomFix(ancestor, projectRecipes)) {
+						fixes.byRecipe().computeIfAbsent(ancestor, (recipe) -> new TreeSet<>()).add(file);
 						break;
 					}
 				}

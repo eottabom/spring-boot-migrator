@@ -78,7 +78,7 @@ class AssembledRecipeTests {
 		assertThat(generated.name()).isEqualTo("migration.assembled.Stage_03_boot_3_4");
 		assertThat(generated.file()).isEqualTo(this.dir.resolve(".rewrite/rewrite.assembled.yml"));
 		List<Map<String, Object>> docs = new ArrayList<>();
-		new Yaml().loadAll(Files.readString(generated.file())).forEach((d) -> docs.add((Map<String, Object>) d));
+		new Yaml().loadAll(Files.readString(generated.file())).forEach((doc) -> docs.add((Map<String, Object>) doc));
 		assertThat(docs).hasSize(2);
 		assertThat(docs.get(0)).containsEntry("name", generated.name());
 		assertThat((List<Object>) docs.get(0).get("recipeList")).containsExactly("com.example.MigrateLegacyAuthClient",

@@ -17,7 +17,7 @@ public final class TextFiles {
 
 	/** 파일의 줄. 파일이 없으면 빈 목록 */
 	public static List<String> readLines(Path file) {
-		if (file == null || !Files.exists(file)) {
+		if (!Files.exists(file)) {
 			return List.of();
 		}
 		return read(file).lines().toList();

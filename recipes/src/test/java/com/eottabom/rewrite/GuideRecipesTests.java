@@ -37,9 +37,9 @@ class GuideRecipesTests {
 			files = walk.filter((file) -> file.toString().endsWith(".yml")).toList();
 		}
 		for (Path file : files) {
-			Matcher m = RECIPE_REF.matcher(Files.readString(file));
-			while (m.find()) {
-				referenced.add(m.group(1));
+			Matcher reference = RECIPE_REF.matcher(Files.readString(file));
+			while (reference.find()) {
+				referenced.add(reference.group(1));
 			}
 		}
 

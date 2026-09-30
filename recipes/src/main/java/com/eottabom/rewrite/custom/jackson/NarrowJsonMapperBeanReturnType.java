@@ -76,9 +76,9 @@ public class NarrowJsonMapperBeanReturnType extends Recipe {
 		List<J.Return> returns = new ArrayList<>();
 		new JavaIsoVisitor<List<J.Return>>() {
 			@Override
-			public J.Return visitReturn(J.Return ret, List<J.Return> found) {
-				found.add(ret);
-				return ret;
+			public J.Return visitReturn(J.Return returned, List<J.Return> found) {
+				found.add(returned);
+				return returned;
 			}
 
 			@Override
@@ -97,9 +97,9 @@ public class NarrowJsonMapperBeanReturnType extends Recipe {
 			}
 		}.visit(body, returns);
 		JavaType.FullyQualified jsonMapper = null;
-		for (J.Return ret : returns) {
-			JavaType.FullyQualified type = (ret.getExpression() != null)
-					? TypeUtils.asFullyQualified(ret.getExpression().getType()) : null;
+		for (J.Return returned : returns) {
+			JavaType.FullyQualified type = (returned.getExpression() != null)
+					? TypeUtils.asFullyQualified(returned.getExpression().getType()) : null;
 			if (type == null || !TypeUtils.isOfClassType(type, JSON_MAPPER)) {
 				return null;
 			}

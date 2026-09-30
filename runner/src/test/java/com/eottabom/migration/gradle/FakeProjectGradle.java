@@ -88,9 +88,9 @@ public final class FakeProjectGradle implements ProjectGradle {
 		String cmd = String.join(" ", args);
 		this.calls.add(cmd.replaceAll("--init-script \\S+ ", ""));
 		args.stream()
-			.filter((a) -> a.startsWith("-PmigrationVersionsOut="))
+			.filter((arg) -> arg.startsWith("-PmigrationVersionsOut="))
 			.findFirst()
-			.ifPresent((a) -> write(Path.of(a.substring(a.indexOf('=') + 1)),
+			.ifPresent((arg) -> write(Path.of(arg.substring(arg.indexOf('=') + 1)),
 					"org.springframework.boot:spring-boot=3.4.0\n"));
 		if (log != null && log.getFileName().toString().startsWith("baseline")) {
 			return finish(log, this.baseline, args);
@@ -114,7 +114,7 @@ public final class FakeProjectGradle implements ProjectGradle {
 	}
 
 	public long count(String fragment) {
-		return this.calls.stream().filter((c) -> c.contains(fragment)).count();
+		return this.calls.stream().filter((call) -> call.contains(fragment)).count();
 	}
 
 	private boolean finish(@Nullable Path log, BuildOutcome outcome) {
@@ -127,18 +127,20 @@ public final class FakeProjectGradle implements ProjectGradle {
 	 */
 	private boolean finish(@Nullable Path log, BuildOutcome outcome, List<String> args) {
 		Path failedTasksOut = args.stream()
-			.filter((a) -> a.startsWith("-PmigrationFailedTasksOut="))
-			.map((a) -> Path.of(a.substring(a.indexOf('=') + 1)))
+			.filter((arg) -> arg.startsWith("-PmigrationFailedTasksOut="))
+			.map((arg) -> Path.of(arg.substring(arg.indexOf('=') + 1)))
 			.findFirst()
 			.orElse(null);
 		StringBuilder out = new StringBuilder();
 		if (failedTasksOut != null) {
 			write(failedTasksOut, String.join("\n", outcome.failedTasks()));
-			outcome.failedTasks().forEach((t) -> out.append("* 문제: 태스크 ").append(t).append(" 실행 실패\n"));
+			outcome.failedTasks().forEach((task) -> out.append("* 문제: 태스크 ").append(task).append(" 실행 실패\n"));
 		}
 		else {
 			outcome.failedTasks()
-				.forEach((t) -> out.append("* What went wrong:\nExecution failed for task '").append(t).append("'.\n"));
+				.forEach((task) -> out.append("* What went wrong:\nExecution failed for task '")
+					.append(task)
+					.append("'.\n"));
 		}
 		write(log, (out.length() == 0) ? (outcome.ok() ? "BUILD SUCCESSFUL" : "BUILD FAILED") : out.toString());
 		// 테스트 결과 XML (빌드 산출물이라 .gitignore 의 build/ 아래)

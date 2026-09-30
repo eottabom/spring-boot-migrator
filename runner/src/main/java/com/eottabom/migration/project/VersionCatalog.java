@@ -121,18 +121,18 @@ record VersionCatalog(Map<String, String> versions, Map<String, String> plugins)
 	/** 따옴표 밖의 # 부터 줄 끝까지 지운다 (문자열 안의 # 은 값이다) */
 	static String stripComment(String line) {
 		char quote = 0;
-		for (int i = 0; i < line.length(); i++) {
-			char c = line.charAt(i);
+		for (int index = 0; index < line.length(); index++) {
+			char character = line.charAt(index);
 			if (quote != 0) {
-				if (c == quote) {
+				if (character == quote) {
 					quote = 0;
 				}
 			}
-			else if (c == '"' || c == '\'') {
-				quote = c;
+			else if (character == '"' || character == '\'') {
+				quote = character;
 			}
-			else if (c == '#') {
-				return line.substring(0, i);
+			else if (character == '#') {
+				return line.substring(0, index);
 			}
 		}
 		return line;

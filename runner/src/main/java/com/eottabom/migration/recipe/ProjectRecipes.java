@@ -58,7 +58,7 @@ public record ProjectRecipes(List<Path> files, List<Map<String, Object>> documen
 		Path custom = projectDir.resolve(".rewrite/custom");
 		if (Files.isDirectory(custom)) {
 			try (Stream<Path> walk = Files.walk(custom)) {
-				walk.filter((p) -> p.toString().endsWith(".yml") || p.toString().endsWith(".yaml"))
+				walk.filter((path) -> path.toString().endsWith(".yml") || path.toString().endsWith(".yaml"))
 					.sorted()
 					.forEach(files::add);
 			}
@@ -96,24 +96,25 @@ public record ProjectRecipes(List<Path> files, List<Map<String, Object>> documen
 		Set<String> stages = new LinkedHashSet<>();
 		Order order = Order.AFTER;
 		for (Object tag : list) {
-			String t = String.valueOf(tag).trim();
-			if (t.startsWith(STAGE_TAG)) {
-				String stage = t.substring(STAGE_TAG.length()).trim();
+			String text = String.valueOf(tag).trim();
+			if (text.startsWith(STAGE_TAG)) {
+				String stage = text.substring(STAGE_TAG.length()).trim();
 				// 오타(4.0.x, java-21)는 어느 stage 에도 붙지 않고 조용히 빠지므로 막는다
 				if (!STAGE_KEY.matcher(stage).matches()) {
-					throw new IllegalArgumentException(file + ": " + name + " 의 " + t
+					throw new IllegalArgumentException(file + ": " + name + " 의 " + text
 							+ " 는 stage 키가 아니에요 (예: migration-stage:3.4, migration-stage:java21, migration-stage:gradle, migration-stage:*)");
 				}
 				stages.add(stage);
 			}
-			else if (t.startsWith(ORDER_TAG)) {
-				String value = t.substring(ORDER_TAG.length()).trim();
+			else if (text.startsWith(ORDER_TAG)) {
+				String value = text.substring(ORDER_TAG.length()).trim();
 				try {
 					order = Order.valueOf(value.toUpperCase(Locale.ROOT));
 				}
 				catch (IllegalArgumentException ex) {
 					throw new IllegalArgumentException(
-							file + ": " + name + " 의 " + t + " 는 migration-order:before 또는 migration-order:after", ex);
+							file + ": " + name + " 의 " + text + " 는 migration-order:before 또는 migration-order:after",
+							ex);
 				}
 			}
 		}

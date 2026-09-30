@@ -20,63 +20,78 @@ public final class Versions {
 	private Versions() {
 	}
 
-	public static int compare(String a, String b) {
-		Parsed x = parse(a);
-		Parsed y = parse(b);
-		for (int i = 0; i < Math.max(x.numbers.size(), y.numbers.size()); i++) {
-			int d = Long.compare((i < x.numbers.size()) ? x.numbers.get(i) : 0,
-					(i < y.numbers.size()) ? y.numbers.get(i) : 0);
-			if (d != 0) {
-				return d;
+	public static int compare(String left, String right) {
+		Parsed leftVersion = parse(left);
+		Parsed rightVersion = parse(right);
+		int segments = Math.max(leftVersion.numbers().size(), rightVersion.numbers().size());
+		for (int index = 0; index < segments; index++) {
+			int bySegment = Long.compare(leftVersion.number(index), rightVersion.number(index));
+			if (bySegment != 0) {
+				return bySegment;
 			}
 		}
-		int d = Integer.compare(x.rank, y.rank);
-		return (d != 0) ? d : Long.compare(x.qualifierNumber, y.qualifierNumber);
+		int byQualifier = leftVersion.qualifier().compareTo(rightVersion.qualifier());
+		return (byQualifier != 0) ? byQualifier
+				: Long.compare(leftVersion.qualifierNumber(), rightVersion.qualifierNumber());
 	}
 
 	public static int major(String version) {
-		return (int) Math.min(Integer.MAX_VALUE, parse(version).numbers.get(0));
+		return (int) Math.min(Integer.MAX_VALUE, parse(version).number(0));
 	}
 
 	private static Parsed parse(String version) {
-		String v = (version != null) ? version.trim() : "0";
-		Matcher m = NUMERIC_PREFIX.matcher(v);
+		String trimmed = version.trim();
+		Matcher numeric = NUMERIC_PREFIX.matcher(trimmed);
 		// 날짜형 세그먼트(6.7.0.202309050840-r)는 int 를 넘는다
 		List<Long> numbers = new ArrayList<>();
-		String rest = "";
-		if (m.matches()) {
-			for (String token : m.group(1).split("\\.")) {
+		String rest = trimmed;
+		if (numeric.matches()) {
+			for (String token : numeric.group(1).split("\\.")) {
 				numbers.add(Long.parseLong(token));
 			}
-			rest = m.group(2);
+			rest = numeric.group(2);
 		}
 		else {
 			numbers.add(0L);
-			rest = v;
 		}
-		String qualifier = rest.replaceFirst("^[.\\-_]", "").toLowerCase(Locale.ROOT);
-		Matcher q = QUALIFIER.matcher(qualifier);
-		if (qualifier.isEmpty() || !q.find()) {
-			return new Parsed(numbers, 5, 0);
+		String qualifierText = rest.replaceFirst("^[.\\-_]", "").toLowerCase(Locale.ROOT);
+		Matcher qualifier = QUALIFIER.matcher(qualifierText);
+		if (qualifierText.isEmpty() || !qualifier.find()) {
+			return new Parsed(numbers, Qualifier.RELEASE, 0);
 		}
-		if (q.group(1).equals("snapshot")) {
+		if (qualifier.group(1).equals("snapshot")) {
 			// rc 보다 뒤, 정식보다 앞
-			return new Parsed(numbers, 4, Long.MAX_VALUE);
+			return new Parsed(numbers, Qualifier.RELEASE_CANDIDATE, Long.MAX_VALUE);
 		}
-		long number = q.group(2).isEmpty() ? 0 : Long.parseLong(q.group(2));
-		int rank = switch (q.group(1)) {
-			case "alpha", "a" -> 1;
-			case "beta", "b" -> 2;
-			case "milestone", "m" -> 3;
-			case "rc", "cr" -> 4;
-			case "sp" -> 6;
-			// final, release, ga, jre, android 등 정식 릴리즈를 뜻하거나 변형을 뜻하는 수식어
-			default -> 5;
-		};
-		return new Parsed(numbers, rank, number);
+		long number = qualifier.group(2).isEmpty() ? 0 : Long.parseLong(qualifier.group(2));
+		return new Parsed(numbers, Qualifier.of(qualifier.group(1)), number);
 	}
 
-	private record Parsed(List<Long> numbers, int rank, long qualifierNumber) {
+	/** 선언 순서가 비교 순서다 */
+	private enum Qualifier {
+
+		ALPHA, BETA, MILESTONE, RELEASE_CANDIDATE, RELEASE, SERVICE_PACK;
+
+		static Qualifier of(String name) {
+			return switch (name) {
+				case "alpha", "a" -> ALPHA;
+				case "beta", "b" -> BETA;
+				case "milestone", "m" -> MILESTONE;
+				case "rc", "cr" -> RELEASE_CANDIDATE;
+				case "sp" -> SERVICE_PACK;
+				// final, release, ga, jre, android 등 정식 릴리즈를 뜻하거나 변형을 뜻하는 수식어
+				default -> RELEASE;
+			};
+		}
+
+	}
+
+	private record Parsed(List<Long> numbers, Qualifier qualifier, long qualifierNumber) {
+
+		long number(int index) {
+			return (index < this.numbers.size()) ? this.numbers.get(index) : 0;
+		}
+
 	}
 
 }

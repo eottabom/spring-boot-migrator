@@ -37,10 +37,10 @@ class ResultHtmlTests {
 
 		String page = Files.readString(html);
 		assertThat(page).doesNotContain("/*__DATA__*/").doesNotContain("한글 </script>");
-		Matcher m = Pattern.compile("<script id=\"data\" type=\"application/json\">(.*?)</script>", Pattern.DOTALL)
+		Matcher script = Pattern.compile("<script id=\"data\" type=\"application/json\">(.*?)</script>", Pattern.DOTALL)
 			.matcher(page);
-		assertThat(m.find()).isTrue();
-		JsonNode data = new ObjectMapper().readTree(m.group(1));
+		assertThat(script.find()).isTrue();
+		JsonNode data = new ObjectMapper().readTree(script.group(1));
 		assertThat(data.get("project").asText()).isEqualTo("demo");
 		assertThat(data.get("startBoot").asText()).isEqualTo("3.3.5");
 		assertThat(data.get("currentBoot").asText()).isEqualTo("?");
@@ -62,10 +62,10 @@ class ResultHtmlTests {
 		ResultHtml.write(html, new ResultHtml.Page("demo", null, null,
 				List.of(new ResultHtml.StageEntry("01-boot-3.4", "3.4", this.dir.resolve("none.json"), patch))));
 
-		Matcher m = Pattern.compile("<script id=\"data\" type=\"application/json\">(.*?)</script>", Pattern.DOTALL)
+		Matcher script = Pattern.compile("<script id=\"data\" type=\"application/json\">(.*?)</script>", Pattern.DOTALL)
 			.matcher(Files.readString(html));
-		assertThat(m.find()).isTrue();
-		JsonNode stage = new ObjectMapper().readTree(m.group(1)).get("stages").get(0);
+		assertThat(script.find()).isTrue();
+		JsonNode stage = new ObjectMapper().readTree(script.group(1)).get("stages").get(0);
 		assertThat(stage.get("patchTruncated").asBoolean()).isTrue();
 		assertThat(stage.get("patch").asText()).endsWith("+b\n").hasSizeLessThan(1_500_001);
 	}

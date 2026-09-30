@@ -34,8 +34,8 @@ public final class VersionCatalogRulesGenerator {
 	private static final Map<String, String> STAGES = new LinkedHashMap<>();
 
 	static {
-		for (String v : BootStages.suffixes()) {
-			STAGES.put("Boot_" + v, "com.eottabom.rewrite.stage.Boot_" + v);
+		for (String suffix : BootStages.suffixes()) {
+			STAGES.put("Boot_" + suffix, "com.eottabom.rewrite.stage.Boot_" + suffix);
 		}
 		STAGES.put("Java_21", "com.eottabom.rewrite.stage.Java_21");
 		STAGES.put("Java_25", "com.eottabom.rewrite.stage.Java_25");
@@ -140,7 +140,7 @@ public final class VersionCatalogRulesGenerator {
 			}
 			converted.forEach(this.conditions::addLast);
 			walkChildren(target);
-			converted.forEach((c) -> this.conditions.removeLast());
+			converted.forEach((condition) -> this.conditions.removeLast());
 		}
 
 		private void walkChildren(Recipe parent) {
@@ -187,7 +187,7 @@ public final class VersionCatalogRulesGenerator {
 			}
 			return ((List<Recipe>) field(recipe, "preconditions")).stream()
 				.map(Walker::unwrap)
-				.filter((p) -> !"org.openrewrite.Singleton".equals(p.getName()))
+				.filter((precondition) -> !"org.openrewrite.Singleton".equals(precondition.getName()))
 				.toList();
 		}
 

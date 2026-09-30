@@ -44,7 +44,7 @@ public final class AssembledRecipe {
 		documents.add(recipe(name, "Assembled migration for " + projectName + " (" + stage.name() + ")", recipeList));
 		documents.addAll(projectRecipes.documents());
 		String sources = projectRecipes.files().isEmpty() ? "없음" : String.join(", ",
-				projectRecipes.files().stream().map((f) -> projectDir.relativize(f).toString()).toList());
+				projectRecipes.files().stream().map((file) -> projectDir.relativize(file).toString()).toList());
 		Path file = writeFile(projectDir, "# 프로젝트 레시피 원본: " + sources + "\n", documents);
 		return new Assembled(name, file, before, after);
 	}

@@ -32,13 +32,13 @@ public record CompileWarnings(List<ApiWarning> removal, List<ApiWarning> depreca
 		Map<String, Set<String>> removal = new LinkedHashMap<>();
 		Map<String, Set<String>> deprecation = new LinkedHashMap<>();
 		for (String line : TextFiles.readLines(compileLog)) {
-			Matcher m = WARNING.matcher(line);
-			if (m.find()) {
-				String path = slashes(m.group(1));
+			Matcher warning = WARNING.matcher(line);
+			if (warning.find()) {
+				String path = slashes(warning.group(1));
 				String file = path.startsWith(root) ? path.substring(root.length()) : path;
-				(m.group(3).equals("removal") ? removal : deprecation)
-					.computeIfAbsent(m.group(4), (k) -> new LinkedHashSet<>())
-					.add(file + ":" + m.group(2));
+				(warning.group(3).equals("removal") ? removal : deprecation)
+					.computeIfAbsent(warning.group(4), (message) -> new LinkedHashSet<>())
+					.add(file + ":" + warning.group(2));
 			}
 		}
 		return new CompileWarnings(sorted(removal), sorted(deprecation));
@@ -47,8 +47,8 @@ public record CompileWarnings(List<ApiWarning> removal, List<ApiWarning> depreca
 	private static List<ApiWarning> sorted(Map<String, Set<String>> byMessage) {
 		return byMessage.entrySet()
 			.stream()
-			.map((e) -> new ApiWarning(e.getKey(), List.copyOf(e.getValue())))
-			.sorted(Comparator.comparingInt((ApiWarning w) -> w.locations().size()).reversed())
+			.map((locations) -> new ApiWarning(locations.getKey(), List.copyOf(locations.getValue())))
+			.sorted(Comparator.comparingInt((ApiWarning warning) -> warning.locations().size()).reversed())
 			.toList();
 	}
 

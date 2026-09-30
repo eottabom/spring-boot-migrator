@@ -25,7 +25,7 @@ class PlannedRecipesExistTests {
 	@BeforeAll
 	static void readDeclaredRecipes() throws IOException {
 		try (Stream<Path> files = Files.walk(Path.of("src/main/resources/META-INF/rewrite"))) {
-			for (Path file : files.filter((f) -> f.toString().endsWith(".yml")).toList()) {
+			for (Path file : files.filter((path) -> path.toString().endsWith(".yml")).toList()) {
 				for (Object doc : new Yaml().loadAll(Files.readString(file))) {
 					if (doc instanceof Map<?, ?> map && map.get("name") != null) {
 						DECLARED.add(String.valueOf(map.get("name")));

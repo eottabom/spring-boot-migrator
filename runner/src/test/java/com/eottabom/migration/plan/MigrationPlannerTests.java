@@ -121,7 +121,7 @@ class MigrationPlannerTests {
 	void explainsJavaAndGradleDecisions(String scenario, ProjectState project, MigrationConfig request,
 			String expectedNote) {
 		MigrationPlan plan = this.planner.plan(project, request);
-		assertThat(plan.notes()).anyMatch((n) -> n.contains(expectedNote));
+		assertThat(plan.notes()).anyMatch((note) -> note.contains(expectedNote));
 	}
 
 	// @formatter:off

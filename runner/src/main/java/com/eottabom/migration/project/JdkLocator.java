@@ -56,7 +56,7 @@ public final class JdkLocator {
 			return Optional.empty();
 		}
 		String home = Processes.capture(cwd, MAC_JAVA_HOME.toString(), "-v", String.valueOf(version));
-		return Optional.ofNullable(home).map(String::trim).filter((h) -> !h.isEmpty());
+		return Optional.ofNullable(home).map(String::trim).filter((path) -> !path.isEmpty());
 	}
 
 	static Optional<String> fromInstallDirectories(int version) {
@@ -68,7 +68,7 @@ public final class JdkLocator {
 				Path.of("C:\\Program Files\\Zulu"), Path.of("C:\\Program Files\\Amazon Corretto"));
 		for (Path root : roots) {
 			for (Path home : candidates(root)) {
-				if (majorVersion(home).filter((v) -> v == version).isPresent()) {
+				if (majorVersion(home).filter((major) -> major == version).isPresent()) {
 					return Optional.of(home.toString());
 				}
 			}
@@ -99,8 +99,8 @@ public final class JdkLocator {
 			return Optional.empty();
 		}
 		try {
-			Matcher m = RELEASE_VERSION.matcher(Files.readString(release));
-			return m.find() ? Optional.of(Integer.parseInt(m.group(1))) : Optional.empty();
+			Matcher javaVersion = RELEASE_VERSION.matcher(Files.readString(release));
+			return javaVersion.find() ? Optional.of(Integer.parseInt(javaVersion.group(1))) : Optional.empty();
 		}
 		catch (IOException ex) {
 			return Optional.empty();

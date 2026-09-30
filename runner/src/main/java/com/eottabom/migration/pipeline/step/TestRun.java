@@ -37,7 +37,7 @@ public record TestRun(ProjectGradle gradle, VerifyInitScript verifyInit, Path pr
 		// 테스트를 돌린 태스크의 결과가 하나도 없으면 결과를 못 찾은 것이다. 0개로 세면 게이트가 테스트 없이 통과한다
 		// (테스트가 0개인 태스크는 verify.init.gradle 이 남기지 않는다)
 		List<Path> missing = !requireResults ? List.of()
-				: dirs.stream().filter((dir) -> files.stream().noneMatch((f) -> f.startsWith(dir))).toList();
+				: dirs.stream().filter((dir) -> files.stream().noneMatch((file) -> file.startsWith(dir))).toList();
 		TestResults.Results tests = TestResults.read(this.projectDir, files).withUnreadable(missing);
 		return new Result(built, files, tests);
 	}

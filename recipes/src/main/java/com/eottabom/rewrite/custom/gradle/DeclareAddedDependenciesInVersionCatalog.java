@@ -59,8 +59,8 @@ public class DeclareAddedDependenciesInVersionCatalog extends Recipe {
 		return catalog + "." + alias.replace('-', '.').replace('_', '.');
 	}
 
-	static boolean sameAccessor(String a, String b) {
-		return a.replaceAll("[-_.]", ".").equalsIgnoreCase(b.replaceAll("[-_.]", "."));
+	static boolean sameAccessor(String left, String right) {
+		return left.replaceAll("[-_.]", ".").equalsIgnoreCase(right.replaceAll("[-_.]", "."));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -136,7 +136,7 @@ public class DeclareAddedDependenciesInVersionCatalog extends Recipe {
 				return existing;
 			}
 			// Gradle 은 -, _, . 를 같은 접근자로 만든다 (spring-boot 와 spring_boot 는 겹친다)
-			boolean taken = this.aliases.values().stream().anyMatch((a) -> sameAccessor(a, artifact));
+			boolean taken = this.aliases.values().stream().anyMatch((alias) -> sameAccessor(alias, artifact));
 			String alias = taken ? group.substring(group.lastIndexOf('.') + 1) + "-" + artifact : artifact;
 			this.aliases.put(module, alias);
 			return alias;

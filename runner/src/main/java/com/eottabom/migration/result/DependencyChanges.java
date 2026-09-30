@@ -30,7 +30,7 @@ public record DependencyChanges(List<VersionChange> changed, List<String> added,
 				changed.add(new VersionChange(name, previous, version, level(previous, version)));
 			}
 		});
-		changed.sort(Comparator.comparingInt((VersionChange c) -> LEVEL_ORDER.indexOf(c.level()))
+		changed.sort(Comparator.comparingInt((VersionChange change) -> LEVEL_ORDER.indexOf(change.level()))
 			.thenComparing(VersionChange::name));
 		List<String> added = new ArrayList<>(new TreeSet<>(after.keySet()));
 		added.removeAll(before.keySet());
@@ -44,20 +44,21 @@ public record DependencyChanges(List<VersionChange> changed, List<String> added,
 	}
 
 	static String level(String before, String after) {
-		String[] x = before.split("[.-]");
-		String[] y = after.split("[.-]");
-		if (!x[0].equals(y[0])) {
+		String[] beforeParts = before.split("[.-]");
+		String[] afterParts = after.split("[.-]");
+		if (!beforeParts[0].equals(afterParts[0])) {
 			return "major";
 		}
-		return (x.length > 1 && y.length > 1 && !x[1].equals(y[1])) ? "minor" : "patch";
+		boolean minorChanged = beforeParts.length > 1 && afterParts.length > 1 && !beforeParts[1].equals(afterParts[1]);
+		return minorChanged ? "minor" : "patch";
 	}
 
 	public static Map<String, String> readVersions(Path file) {
 		Map<String, String> versions = new LinkedHashMap<>();
 		for (String line : TextFiles.readLines(file)) {
-			int eq = line.indexOf('=');
-			if (eq > 0) {
-				versions.put(line.substring(0, eq), line.substring(eq + 1));
+			int separator = line.indexOf('=');
+			if (separator > 0) {
+				versions.put(line.substring(0, separator), line.substring(separator + 1));
 			}
 		}
 		return versions;

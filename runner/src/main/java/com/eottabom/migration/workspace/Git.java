@@ -49,7 +49,7 @@ public record Git(Path dir) {
 	/** .gitignore 에 걸리지 않는 추적 안 된 파일. */
 	public Set<String> untracked() {
 		String out = Processes.capture(this.dir, "git", "ls-files", "--others", "--exclude-standard");
-		return (out != null) ? new LinkedHashSet<>(out.lines().filter((l) -> !l.isBlank()).toList()) : Set.of();
+		return (out != null) ? new LinkedHashSet<>(out.lines().filter((line) -> !line.isBlank()).toList()) : Set.of();
 	}
 
 	/**

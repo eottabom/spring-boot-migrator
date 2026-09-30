@@ -48,8 +48,8 @@ public record ChecklistItem(String id, String title, @Nullable String detail, @N
 
 	private static Pattern glob(String pattern) {
 		StringBuilder regex = new StringBuilder();
-		for (char c : pattern.toCharArray()) {
-			regex.append((c == '*') ? ".*" : Pattern.quote(String.valueOf(c)));
+		for (char character : pattern.toCharArray()) {
+			regex.append((character == '*') ? ".*" : Pattern.quote(String.valueOf(character)));
 		}
 		return Pattern.compile(regex.toString());
 	}
