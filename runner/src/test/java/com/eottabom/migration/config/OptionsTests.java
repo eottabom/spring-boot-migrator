@@ -1,5 +1,6 @@
 package com.eottabom.migration.config;
 
+import com.eottabom.migration.config.MigrationConfig.Jdk;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -37,6 +38,28 @@ class OptionsTests {
 	void parsesMode(String option, Mode expected) {
 		assertThat(Mode.parse(option)).isEqualTo(expected);
 		assertThat(expected.option()).isEqualTo(expected.name().toLowerCase());
+	}
+
+	@ParameterizedTest(name = "[{index}] build.jdk={0} -> {1}")
+	@CsvSource({ "auto, AUTO", "Current, CURRENT" })
+	void parsesJdk(String option, Jdk expected) {
+		assertThat(Jdk.parse(option)).isEqualTo(expected);
+		assertThat(expected.option()).isEqualTo(expected.name().toLowerCase());
+	}
+
+	@ParameterizedTest(name = "[{index}] {0}")
+	@ValueSource(strings = { "stage", "", "dry-run" })
+	void rejectsUnknownMode(String option) {
+		assertThatThrownBy(() -> Mode.parse(option)).isInstanceOf(IllegalArgumentException.class)
+			.hasMessageContaining("--mode")
+			.hasMessageContaining("staged | all | preview");
+	}
+
+	@ParameterizedTest(name = "[{index}] {0}")
+	@ValueSource(strings = { "latest", "", "17" })
+	void rejectsUnknownJdk(String option) {
+		assertThatThrownBy(() -> Jdk.parse(option)).isInstanceOf(IllegalArgumentException.class)
+			.hasMessageContaining("build.jdk");
 	}
 
 	@ParameterizedTest(name = "[{index}] {0}")

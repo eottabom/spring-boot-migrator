@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -113,8 +112,7 @@ public final class ConfigLoader {
 						gate.path("baselineTests").asBoolean(defaults.gate().baselineTests())),
 				new RecipeSettings(recipes.path("custom").asBoolean(defaults.recipes().custom()),
 						recipes.path("project").asBoolean(defaults.recipes().project())),
-				new BuildSettings(build.has("jdk")
-						? Jdk.valueOf(build.get("jdk").asText().toUpperCase(Locale.ROOT)) : defaults.build().jdk(),
+				new BuildSettings(build.has("jdk") ? Jdk.parse(build.get("jdk").asText()) : defaults.build().jdk(),
 						text(build, "jvmArgs", defaults.build().jvmArgs()),
 						build.has("timeoutMinutes") ? Duration.ofMinutes(build.get("timeoutMinutes").asLong())
 								: defaults.build().timeout()),

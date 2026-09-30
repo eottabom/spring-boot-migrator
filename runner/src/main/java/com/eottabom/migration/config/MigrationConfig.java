@@ -48,7 +48,7 @@ public record MigrationConfig(Path projectDir, Target target, Mode mode, GateSet
 		addIf(options, this.allowDirty, "allow-dirty");
 		addIf(options, !this.gate.baselineTests(), "gate.baselineTests=false");
 		addIf(options, this.gate.testRetries() != DEFAULT_TEST_RETRIES, "gate.testRetries=" + this.gate.testRetries());
-		addIf(options, this.build.jdk() != Jdk.AUTO, "build.jdk=" + this.build.jdk().name().toLowerCase(Locale.ROOT));
+		addIf(options, this.build.jdk() != Jdk.AUTO, "build.jdk=" + this.build.jdk().option());
 		return String.join(", ", options);
 	}
 
@@ -98,7 +98,19 @@ public record MigrationConfig(Path projectDir, Target target, Mode mode, GateSet
 		AUTO,
 
 		/** 지금 JAVA_HOME 그대로 */
-		CURRENT
+		CURRENT;
+
+		public static Jdk parse(String option) {
+			return switch (option.trim().toLowerCase(Locale.ROOT)) {
+				case "auto" -> AUTO;
+				case "current" -> CURRENT;
+				default -> throw new IllegalArgumentException("build.jdk 는 auto | current");
+			};
+		}
+
+		public String option() {
+			return name().toLowerCase(Locale.ROOT);
+		}
 
 	}
 

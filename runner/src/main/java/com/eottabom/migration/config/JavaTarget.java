@@ -21,7 +21,7 @@ public record JavaTarget(Kind kind, @Nullable Integer version) {
 			case "keep" -> new JavaTarget(Kind.KEEP, null);
 			default -> {
 				if (!value.matches("\\d+")) {
-					throw new IllegalArgumentException("--java 는 latest | keep | 17 | 21 | 25");
+					throw new IllegalArgumentException("target.java (--java) 는 latest | keep | 17 | 21 | 25");
 				}
 				yield new JavaTarget(Kind.VERSION, Integer.parseInt(value));
 			}

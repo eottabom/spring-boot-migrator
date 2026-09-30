@@ -21,7 +21,7 @@ public enum GateLevel {
 			case "compile" -> COMPILE;
 			case "build" -> BUILD;
 			case "none" -> NONE;
-			default -> throw new IllegalArgumentException("--gate 는 compile | build | none");
+			default -> throw new IllegalArgumentException("gate.level (--gate) 은 compile | build | none");
 		};
 	}
 
