@@ -93,8 +93,6 @@ class AssembledRecipeTests {
 		AssembledRecipe.Assembled generated = AssembledRecipe.write(this.dir, "p", stage, stage.tag(1),
 				ProjectRecipes.discover(this.dir));
 
-		assertThat(generated.before()).isEmpty();
-		assertThat(generated.after()).isEmpty();
 		assertThat(generated.name()).isEqualTo("migration.assembled.Stage_01_gradle8_14");
 	}
 

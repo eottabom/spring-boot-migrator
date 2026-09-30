@@ -45,13 +45,13 @@ public final class AssembledRecipe {
 		String sources = projectRecipes.files().isEmpty() ? "없음" : String.join(", ",
 				projectRecipes.files().stream().map((file) -> projectDir.relativize(file).toString()).toList());
 		Path file = writeFile(projectDir, "# 프로젝트 레시피 원본: " + sources + "\n", documents);
-		return new Assembled(name, file, before, after);
+		return new Assembled(name, file);
 	}
 
 	/** 레시피 목록만 묶는다 (deprecated API 대체처럼 프로젝트 레시피 없이 한 번 더 돌 때) */
 	public static Assembled write(Path projectDir, String name, List<String> recipes) {
 		Path file = writeFile(projectDir, "", List.of(assembled(name, name, recipes)));
-		return new Assembled(name, file, List.of(), List.of());
+		return new Assembled(name, file);
 	}
 
 	private static RecipeDocument assembled(String name, String displayName, List<String> recipeList) {
@@ -80,7 +80,7 @@ public final class AssembledRecipe {
 	/**
 	 * @param name 활성화할 레시피 이름 (-Drewrite.activeRecipe)
 	 */
-	public record Assembled(String name, Path file, List<String> before, List<String> after) {
+	public record Assembled(String name, Path file) {
 	}
 
 }

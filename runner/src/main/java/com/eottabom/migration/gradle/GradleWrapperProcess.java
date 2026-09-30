@@ -43,14 +43,11 @@ public record GradleWrapperProcess(Path projectDir, @Nullable String javaHome, @
 	// -Xms 도 뺀다. 프로젝트의 -Xms 가 러너의 -Xmx 보다 크면 데몬이 뜨지 않는다
 	private static final List<String> MEMORY_OPTIONS = List.of("-Xmx", "-Xms", "-XX:MaxMetaspaceSize=");
 
-	/** 대상 Gradle 한 번 실행의 기본 제한 시간 */
-	public static final Duration DEFAULT_TIMEOUT = Duration.ofHours(3);
-
 	/**
 	 * @param jvmArgs 대상 Gradle 데몬 JVM 옵션. null 이면 대상 프로젝트의 org.gradle.jvmargs 에
 	 * {@link #defaultJvmArgs()} 의 메모리 옵션만 바꿔 쓴다 (명령행 -Dorg.gradle.jvmargs 는
 	 * gradle.properties 값을 통째로 대신하므로 file.encoding, --add-exports 같은 프로젝트 옵션을 잃지 않도록)
-	 * @param timeout 한 번 실행의 제한 시간. 넘으면 프로세스를 종료하고 실패로 본다. null 이나 0 이면 제한 없음
+	 * @param timeout 한 번 실행의 제한 시간. 넘으면 프로세스를 종료하고 실패로 본다. 0 이면 제한 없음
 	 */
 	public GradleWrapperProcess {
 		jvmArgs = (jvmArgs != null) ? jvmArgs : mergeJvmArgs(projectJvmArgs(projectDir), defaultJvmArgs());
@@ -170,7 +167,7 @@ public record GradleWrapperProcess(Path projectDir, @Nullable String javaHome, @
 				}
 			}, "target-gradle-quiet");
 			drain.start();
-			boolean finished = (this.timeout == null || this.timeout.isZero()) ? process.waitFor() >= 0
+			boolean finished = this.timeout.isZero() ? process.waitFor() >= 0
 					: process.waitFor(this.timeout.toMillis(), TimeUnit.MILLISECONDS);
 			if (!finished) {
 				kill(process);
@@ -198,7 +195,7 @@ public record GradleWrapperProcess(Path projectDir, @Nullable String javaHome, @
 	}
 
 	private boolean timedOut(long start, long now) {
-		return this.timeout != null && !this.timeout.isZero() && now - start > this.timeout.toMillis();
+		return !this.timeout.isZero() && now - start > this.timeout.toMillis();
 	}
 
 	/**

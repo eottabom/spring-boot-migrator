@@ -38,14 +38,6 @@ record TestReport(int total, List<TestFailure> failures, List<PropertyChange> re
 
 	private static final int MAX_MESSAGE = 200;
 
-	List<TestFailure> newFailures() {
-		return this.failures.stream().filter((failure) -> !failure.existing()).toList();
-	}
-
-	List<TestFailure> existingFailures() {
-		return this.failures.stream().filter(TestFailure::existing).toList();
-	}
-
 	/**
 	 * @param baselineFailedTests 원본에서도 실패하던 테스트 id. 여기 있는 실패는 existing 으로 표시한다
 	 * @param files 읽을 테스트 결과 파일
