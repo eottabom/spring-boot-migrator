@@ -4,9 +4,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import com.eottabom.migration.MigrationException;
 import com.eottabom.migration.config.MigrationConfig.BuildSettings;
@@ -14,15 +13,11 @@ import com.eottabom.migration.config.MigrationConfig.GateSettings;
 import com.eottabom.migration.config.MigrationConfig.Jdk;
 import com.eottabom.migration.config.MigrationConfig.RecipeSettings;
 import com.eottabom.migration.config.MigrationConfig.Target;
+import com.eottabom.migration.io.SchemaValidator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
-import com.networknt.schema.JsonSchema;
-import com.networknt.schema.JsonSchemaFactory;
-import com.networknt.schema.SchemaLocation;
-import com.networknt.schema.SpecVersion;
-import com.networknt.schema.ValidationMessage;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -88,12 +83,10 @@ public final class ConfigLoader {
 	}
 
 	private void validate(JsonNode config, String source) {
-		JsonSchema schema = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V202012)
-			.getSchema(SchemaLocation.of(this.schemaDir.resolve("config.schema.json").toUri().toString()));
-		Set<ValidationMessage> errors = schema.validate(config);
-		if (!errors.isEmpty()) {
-			throw new MigrationException(source + " 의 값이 맞지 않아요 (schema/config.schema.json)\n  "
-					+ errors.stream().map(ValidationMessage::getMessage).sorted().collect(Collectors.joining("\n  ")));
+		List<String> violations = new SchemaValidator(this.schemaDir).violations("config", config);
+		if (!violations.isEmpty()) {
+			throw new MigrationException(
+					source + " 의 값이 맞지 않아요 (schema/config.schema.json)" + SchemaValidator.describe(violations));
 		}
 	}
 

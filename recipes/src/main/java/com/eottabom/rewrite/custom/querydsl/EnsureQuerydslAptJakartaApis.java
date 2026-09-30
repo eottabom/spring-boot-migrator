@@ -3,6 +3,7 @@ package com.eottabom.rewrite.custom.querydsl;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.eottabom.rewrite.support.GradleDsl;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -134,11 +135,7 @@ public class EnsureQuerydslAptJakartaApis extends Recipe {
 
 	private static Statement copyWithNotation(J.MethodInvocation apt, String notation) {
 		Expression first = apt.getArguments().get(0);
-		String quote = "\"";
-		if (first instanceof J.Literal original && original.getValueSource() != null
-				&& original.getValueSource().startsWith("'")) {
-			quote = "'";
-		}
+		String quote = (first instanceof J.Literal original) ? GradleDsl.quoteOf(original) : "\"";
 		J.Literal literal = new J.Literal(Tree.randomId(), first.getPrefix(), first.getMarkers(), notation,
 				quote + notation + quote, null, JavaType.Primitive.String);
 		List<Expression> args = new ArrayList<>();

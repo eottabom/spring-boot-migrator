@@ -1,11 +1,11 @@
 package com.eottabom.rewrite.detect.spring;
 
+import com.eottabom.rewrite.support.SpringAnnotations;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
-import org.openrewrite.java.AnnotationMatcher;
 import org.openrewrite.java.JavaIsoVisitor;
 import org.openrewrite.java.search.UsesType;
 import org.openrewrite.java.tree.J;
@@ -17,8 +17,6 @@ import org.openrewrite.marker.SearchResult;
  * 표시한다.
  */
 public class FindBeanMethodsReturning extends Recipe {
-
-	private static final AnnotationMatcher BEAN = new AnnotationMatcher("@org.springframework.context.annotation.Bean");
 
 	@Option(displayName = "Fully qualified type name", description = "이 타입이거나 이 타입을 상속/구현한 반환 타입",
 			example = "org.springframework.http.converter.HttpMessageConverter")
@@ -49,7 +47,7 @@ public class FindBeanMethodsReturning extends Recipe {
 						if (visited.getReturnTypeExpression() != null
 								&& TypeUtils.isAssignableTo(FindBeanMethodsReturning.this.fullyQualifiedTypeName,
 										visited.getReturnTypeExpression().getType())
-								&& visited.getLeadingAnnotations().stream().anyMatch(BEAN::matches)) {
+								&& visited.getLeadingAnnotations().stream().anyMatch(SpringAnnotations.BEAN::matches)) {
 							return SearchResult.found(visited);
 						}
 						return visited;

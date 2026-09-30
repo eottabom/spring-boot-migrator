@@ -44,8 +44,7 @@ public record DeprecationStep(Guides guides, RecipeRun recipeRun, RunnerConsole 
 		}
 		this.console.heading("[" + stage.name() + "] deprecated API 대체 " + String.join(", ", recipes));
 		move(files.compileLog(), files.compileBeforeDeprecationsLog());
-		Assembled assembled = AssembledRecipe.write(projectDir,
-				"migration.assembled.Deprecations_" + tag.recipeSuffix(), List.copyOf(recipes));
+		Assembled assembled = AssembledRecipe.writeDeprecations(projectDir, tag, List.copyOf(recipes));
 		return new Fixed(List.copyOf(recipes), this.recipeRun.run(assembled, files.deprecationsLog()));
 	}
 

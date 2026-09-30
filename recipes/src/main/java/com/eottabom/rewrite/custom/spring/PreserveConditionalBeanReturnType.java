@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import com.eottabom.rewrite.support.SpringAnnotations;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -31,8 +32,6 @@ import org.openrewrite.marker.Markers;
  */
 public class PreserveConditionalBeanReturnType extends Recipe {
 
-	private static final AnnotationMatcher BEAN = new AnnotationMatcher("@org.springframework.context.annotation.Bean");
-
 	private static final AnnotationMatcher CONDITIONAL = new AnnotationMatcher(
 			"@org.springframework.boot.autoconfigure.condition.ConditionalOn*Bean");
 
@@ -58,7 +57,7 @@ public class PreserveConditionalBeanReturnType extends Recipe {
 					public J.MethodDeclaration visitMethodDeclaration(J.MethodDeclaration method,
 							ExecutionContext ctx) {
 						J.MethodDeclaration visited = super.visitMethodDeclaration(method, ctx);
-						if (visited.getLeadingAnnotations().stream().noneMatch(BEAN::matches)) {
+						if (visited.getLeadingAnnotations().stream().noneMatch(SpringAnnotations.BEAN::matches)) {
 							return visited;
 						}
 						NameTree returnType = classLiteralType(visited.getReturnTypeExpression());

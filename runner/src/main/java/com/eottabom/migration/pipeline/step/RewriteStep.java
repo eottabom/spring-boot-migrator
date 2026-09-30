@@ -26,8 +26,7 @@ public record RewriteStep(RecipeRun recipeRun, RunnerConsole console, Path proje
 	 */
 	public RewriteOutcome run(Stage stage, StageTag tag, StageFiles files, ProjectRecipes projectRecipes,
 			Collection<String> createdFiles, Path tempIndex) {
-		Assembled assembled = AssembledRecipe.write(this.projectDir, String.valueOf(this.projectDir.getFileName()),
-				stage, tag, projectRecipes);
+		Assembled assembled = AssembledRecipe.write(this.projectDir, stage, tag, projectRecipes);
 		MigrationWorkspace.copyOrEmpty(assembled.file(), files.assembledRecipe());
 		this.console.heading("[" + stage.name() + "] rewriteRun " + stage.recipeNames()
 				+ RunnerConsole.projectRecipeSuffix(projectRecipes, stage));

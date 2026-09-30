@@ -12,8 +12,8 @@ import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.eottabom.rewrite.support.GradleDsl;
 import org.jspecify.annotations.Nullable;
-import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
 import org.openrewrite.Recipe;
@@ -193,7 +193,7 @@ public class DeclareAddedDependenciesInVersionCatalog extends Recipe {
 					J.MethodInvocation visited = super.visitMethodInvocation(method, ctx);
 					Path path = getCursor().firstEnclosingOrThrow(SourceFile.class).getSourcePath();
 					J.Literal literal = coordinateLiteral(visited);
-					if (literal == null || !acc.appliesTo(path) || !inDependenciesBlock(getCursor())) {
+					if (literal == null || !acc.appliesTo(path) || !GradleDsl.inDependenciesBlock(getCursor())) {
 						return visited;
 					}
 					String coordinates = (String) Objects.requireNonNull(literal.getValue());
@@ -224,20 +224,6 @@ public class DeclareAddedDependenciesInVersionCatalog extends Recipe {
 		private static boolean isBuildScript(Path path) {
 			String name = path.getFileName().toString();
 			return name.equals("build.gradle") || name.equals("build.gradle.kts");
-		}
-
-		private static boolean inDependenciesBlock(Cursor cursor) {
-			boolean dependencies = false;
-			for (Cursor parent = cursor.getParent(); parent != null; parent = parent.getParent()) {
-				if (parent.getValue() instanceof J.MethodInvocation invocation) {
-					String name = invocation.getSimpleName();
-					if (name.equals("buildscript") || name.equals("constraints")) {
-						return false;
-					}
-					dependencies |= name.equals("dependencies");
-				}
-			}
-			return dependencies;
 		}
 
 	}

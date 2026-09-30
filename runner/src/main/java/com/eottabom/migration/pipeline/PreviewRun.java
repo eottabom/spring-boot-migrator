@@ -51,7 +51,7 @@ record PreviewRun(ProjectGradle.Factory gradleFactory, ProjectInspector inspecto
 				order++;
 				StageTag tag = stage.tag(order);
 				StageFiles files = ws.stage(tag);
-				Assembled assembled = AssembledRecipe.write(worktree, projectName, stage, tag, projectRecipes);
+				Assembled assembled = AssembledRecipe.write(worktree, stage, tag, projectRecipes);
 				this.console.heading("[" + stage.name() + "] " + stage.recipeNames()
 						+ RunnerConsole.projectRecipeSuffix(projectRecipes, stage) + " (preview)");
 				if (!gradle.rewrite(files.rewriteLog(), RewriteTask.RUN, assembled.name(), assembled.file())) {
@@ -79,8 +79,7 @@ record PreviewRun(ProjectGradle.Factory gradleFactory, ProjectInspector inspecto
 	void firstStage(Path projectDir, MigrationWorkspace ws, Stage stage, StageTag tag, ProjectRecipes projectRecipes,
 			ProjectGradle gradle) {
 		StageFiles files = ws.stage(tag);
-		Assembled assembled = AssembledRecipe.write(projectDir, String.valueOf(projectDir.getFileName()), stage, tag,
-				projectRecipes);
+		Assembled assembled = AssembledRecipe.write(projectDir, stage, tag, projectRecipes);
 		MigrationWorkspace.copyOrEmpty(assembled.file(), files.assembledRecipe());
 		this.console.heading("[" + stage.name() + "] " + stage.recipeNames() + " (preview)");
 		if (!gradle.rewrite(files.rewriteLog(), RewriteTask.DRY_RUN, assembled.name(), assembled.file())) {

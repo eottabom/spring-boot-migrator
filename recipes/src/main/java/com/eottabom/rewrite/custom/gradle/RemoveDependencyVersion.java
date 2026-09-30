@@ -1,12 +1,10 @@
 package com.eottabom.rewrite.custom.gradle;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import com.eottabom.rewrite.support.GradleDsl;
 import org.jspecify.annotations.Nullable;
-import org.openrewrite.Cursor;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Option;
 import org.openrewrite.Preconditions;
@@ -14,7 +12,6 @@ import org.openrewrite.Recipe;
 import org.openrewrite.TreeVisitor;
 import org.openrewrite.gradle.IsBuildGradle;
 import org.openrewrite.java.JavaIsoVisitor;
-import org.openrewrite.java.tree.Expression;
 import org.openrewrite.java.tree.J;
 
 /**
@@ -63,18 +60,15 @@ public class RemoveDependencyVersion extends Recipe {
 				// constraints 는 버전이 있어야 한다
 				J.Literal literal = firstStringArgument(visited);
 				if (KEEPS_VERSION.contains(visited.getSimpleName()) || literal == null
-						|| !inDependenciesBlock(getCursor())) {
+						|| !GradleDsl.inDependenciesBlock(getCursor())) {
 					return visited;
 				}
 				String[] parts = ((String) Objects.requireNonNull(literal.getValue())).split(":", -1);
 				if (!isVersionedInGroup(parts)) {
 					return visited;
 				}
-				String value = parts[0] + ":" + parts[1];
-				String source = literal.getValueSource();
-				String quote = (source != null && !source.isEmpty()) ? source.substring(0, 1) : "'";
-				J.Literal updated = literal.withValue(value).withValueSource(quote + value + quote);
-				return visited.withArguments(withFirst(visited.getArguments(), updated));
+				J.Literal updated = GradleDsl.withStringValue(literal, parts[0] + ":" + parts[1]);
+				return visited.withArguments(GradleDsl.withFirstArgument(visited.getArguments(), updated));
 			}
 
 			/** 대상 그룹의 group:artifact:version. classifier 가 있는 선언과 BOM 좌표는 건드리지 않는다 */
@@ -83,28 +77,6 @@ public class RemoveDependencyVersion extends Recipe {
 						&& !isBom(parts[1]);
 			}
 		});
-	}
-
-	/** dependencies { } 안의 선언. buildscript, constraints, resolutionStrategy 안은 뺀다 */
-	private static boolean inDependenciesBlock(Cursor cursor) {
-		boolean dependencies = false;
-		for (Cursor parent = cursor.getParent(); parent != null; parent = parent.getParent()) {
-			if (parent.getValue() instanceof J.MethodInvocation invocation) {
-				String name = invocation.getSimpleName();
-				if (name.equals("buildscript") || name.equals("constraints") || name.equals("resolutionStrategy")
-						|| name.equals("configurations")) {
-					return false;
-				}
-				dependencies |= name.equals("dependencies");
-			}
-		}
-		return dependencies;
-	}
-
-	private static List<Expression> withFirst(List<Expression> arguments, Expression first) {
-		List<Expression> replaced = new ArrayList<>(arguments);
-		replaced.set(0, first);
-		return replaced;
 	}
 
 	private static J.@Nullable Literal firstStringArgument(J.MethodInvocation invocation) {

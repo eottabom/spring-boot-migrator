@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import com.eottabom.rewrite.support.GradleDsl;
 import org.jspecify.annotations.Nullable;
 import org.openrewrite.ExecutionContext;
 import org.openrewrite.Preconditions;
@@ -58,24 +59,19 @@ public class UseQuerydslJakartaClassifier extends Recipe {
 				if (first instanceof J.Literal literal && literal.getValue() instanceof String gav) {
 					String updated = withJakartaClassifier(gav);
 					if (updated != null) {
-						return visited.withArguments(withFirst(args, replaceLiteral(literal, updated)));
+						return visited.withArguments(
+								GradleDsl.withFirstArgument(args, GradleDsl.withStringValue(literal, updated)));
 					}
 				}
 				else if (first instanceof G.GString gString) {
 					G.GString updated = withJakartaClassifier(gString);
 					if (updated != first) {
-						return visited.withArguments(withFirst(args, updated));
+						return visited.withArguments(GradleDsl.withFirstArgument(args, updated));
 					}
 				}
 				return visited;
 			}
 		});
-	}
-
-	private static List<Expression> withFirst(List<Expression> arguments, Expression first) {
-		List<Expression> replaced = new ArrayList<>(arguments);
-		replaced.set(0, first);
-		return replaced;
 	}
 
 	/** 변경이 필요 없으면 null */
@@ -116,12 +112,6 @@ public class UseQuerydslJakartaClassifier extends Recipe {
 
 	private static boolean isTarget(String artifactId) {
 		return "querydsl-jpa".equals(artifactId) || "querydsl-apt".equals(artifactId);
-	}
-
-	private static J.Literal replaceLiteral(J.Literal literal, String value) {
-		String source = literal.getValueSource();
-		String quote = (source != null && !source.isEmpty()) ? source.substring(0, 1) : "\"";
-		return literal.withValue(value).withValueSource(quote + value + quote);
 	}
 
 	private static J.Literal newFragment(String value) {

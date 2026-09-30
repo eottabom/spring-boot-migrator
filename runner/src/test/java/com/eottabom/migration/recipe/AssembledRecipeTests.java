@@ -78,7 +78,7 @@ class AssembledRecipeTests {
 				""");
 		Stage stage = new Stage(StageId.boot("3.4"), "com.eottabom.rewrite.stage.Boot_3_4");
 
-		AssembledRecipe.Assembled generated = AssembledRecipe.write(this.dir, "product-api", stage, stage.tag(3),
+		AssembledRecipe.Assembled generated = AssembledRecipe.write(this.dir, stage, stage.tag(3),
 				ProjectRecipes.discover(this.dir));
 
 		assertThat(generated.name()).isEqualTo("migration.assembled.Stage_03_boot_3_4");
@@ -96,7 +96,7 @@ class AssembledRecipeTests {
 	void generatesStageRecipeWithoutProjectRecipes() {
 		Stage stage = new Stage(StageId.gradle("8.14"), "com.eottabom.rewrite.stage.Gradle_8_14");
 
-		AssembledRecipe.Assembled generated = AssembledRecipe.write(this.dir, "p", stage, stage.tag(1),
+		AssembledRecipe.Assembled generated = AssembledRecipe.write(this.dir, stage, stage.tag(1),
 				ProjectRecipes.discover(this.dir));
 
 		assertThat(generated.name()).isEqualTo("migration.assembled.Stage_01_gradle8_14");
